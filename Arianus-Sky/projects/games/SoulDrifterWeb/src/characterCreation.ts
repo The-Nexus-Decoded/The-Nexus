@@ -1,11 +1,7 @@
 import {
-  BODY_TYPES,
   CALLINGS,
   callingById,
   deriveCharacter,
-  FACIAL_HAIR_STYLES,
-  HAIR_COLORS,
-  HAIR_STYLES,
   MEMORY_QUESTIONS,
   normalizeLegacyCharacterProfile,
   RACES,
@@ -24,7 +20,6 @@ import {
   EMPTY_CREATION_PREVIEW_AVAILABILITY,
   type CreationPreviewAvailability,
 } from "./creationPreview";
-import { HUMAN_FACE_TYPES } from "./game/humanAppearanceAssembly";
 
 export function characterPortraitPath(raceId: string, callingId: string): string {
   if (callingId === "shadowknight") {
@@ -293,15 +288,15 @@ export class CharacterCreation {
     const facePanel = this.appearancePanel === "face";
     this.stage.innerHTML = `
       <div class="creation-heading">
-        <p class="eyebrow">The returned body · Human foundation · ${facePanel ? "Face & features" : "Body type"}</p>
+        <p class="eyebrow">The returned body · Human foundation · ${facePanel ? "Face & features" : "Body"}</p>
         <h2>${facePanel ? "Shape the face the world will meet." : "Which body did the Soul Well return?"}</h2>
         <p>${facePanel
-          ? "Inspect the head at conversation distance. Choose a face, complexion, hair, and age without losing sight of the details."
-          : "Choose the foundation body from a neutral rigging view. Face and hair decisions follow in their own close-up."}</p>
+          ? "Inspect the head at conversation distance and choose a complexion. Further features are offered only once their canonical assets pass review."
+          : "The Well returned one body. Turn it and look it over; the face waits in its own close-up."}</p>
       </div>
       <div class="appearance-workflow" role="tablist" aria-label="Appearance setup">
         <button class="appearance-workflow__tab ${facePanel ? "" : "is-selected"}" data-appearance-panel="body" type="button" role="tab" aria-selected="${!facePanel}">
-          <span>01</span><strong>Body type</strong><small>Full-body rigging view</small>
+          <span>01</span><strong>Body</strong><small>Full-body view</small>
         </button>
         <span class="appearance-workflow__path" aria-hidden="true">→</span>
         <button class="appearance-workflow__tab ${facePanel ? "is-selected" : ""}" data-appearance-panel="face" type="button" role="tab" aria-selected="${facePanel}">
@@ -311,8 +306,7 @@ export class CharacterCreation {
       <div class="appearance-builder appearance-builder--${this.appearancePanel}">
         <div class="appearance-preview appearance-preview--${this.appearancePanel}">
           <div class="appearance-preview__viewport appearance-preview__viewport--${this.appearancePanel}">
-            <canvas id="appearance-preview-canvas" aria-label="${facePanel ? "Close-up preview of your face" : "Full-body preview of your selected body type"}. Drag to rotate manually."></canvas>
-            <span class="appearance-preview__sigil" aria-hidden="true">◇</span>
+            <canvas id="appearance-preview-canvas" aria-label="${facePanel ? "Close-up preview of your face" : "Full-body preview of the returned body"}. Drag to rotate manually."></canvas>
           </div>
           <div class="appearance-preview__controls">
             <label class="appearance-rotation-toggle">
@@ -322,30 +316,14 @@ export class CharacterCreation {
             <button id="appearance-front-view" type="button">Front view</button>
           </div>
           <div class="appearance-preview__readout" aria-live="polite">
-            <span>${facePanel ? "Face inspection · idle stance · drag to turn" : "Body assay · neutral rigging stance · drag to turn"}</span>
-            <strong id="appearance-preview-asset-status">Scalp-ready · provider scan in progress</strong>
-            <small id="appearance-preview-age-status">Young Adult · 0% greying</small>
+            <span>${facePanel ? "Face inspection · relaxed idle · drag to turn" : "Body · relaxed idle · drag to turn"}</span>
+            <strong id="appearance-preview-status">Loading the returned body…</strong>
           </div>
         </div>
         <div class="appearance-builder__options">
         <section ${facePanel ? "hidden" : ""}>
-          <h3>Body type</h3>
-          <div class="appearance-options">
-            ${BODY_TYPES.map((body) => `
-              <button class="appearance-option ${(this.draft.appearance.bodyType ?? "foundation") === body.id ? "is-selected" : ""}" data-body-type="${body.id}" type="button" aria-pressed="${(this.draft.appearance.bodyType ?? "foundation") === body.id}">
-                <strong>${body.name}</strong><small>${body.description}</small>
-              </button>`).join("")}
-          </div>
-        </section>
-        <section ${facePanel ? "" : "hidden"}>
-          <h3>Face</h3>
-          <div class="appearance-options">
-            ${HUMAN_FACE_TYPES.map((face) => `
-              <button class="appearance-option ${(this.draft.appearance.faceType ?? "foundation") === face.id ? "is-selected" : ""} ${face.id === "foundation" ? "is-provider-ready" : "is-provider-pending"}" data-face-type="${face.id}" type="button" aria-pressed="${(this.draft.appearance.faceType ?? "foundation") === face.id}" ${face.id === "foundation" ? "" : "disabled aria-disabled=\"true\""}>
-                <strong>${face.name}</strong><small>${face.description}</small>
-                <em class="appearance-option__availability">${face.id === "foundation" ? "Foundation ready" : "Awaiting canonical morph"}</em>
-              </button>`).join("")}
-          </div>
+          <h3>Body</h3>
+          <p class="appearance-note">The Human foundation, athletic build. Other builds arrive with their own canonical bodies; none is offered here before it exists.</p>
         </section>
         <section ${facePanel ? "" : "hidden"}>
           <h3>Skin tone</h3>
@@ -358,66 +336,13 @@ export class CharacterCreation {
           </div>
         </section>
         <section ${facePanel ? "" : "hidden"}>
-          <h3>Hair</h3>
-          <div class="appearance-options appearance-options--hair">
-            ${HAIR_STYLES.map((style) => `
-              <button class="appearance-option ${appearance.hairStyle === style.id ? "is-selected" : ""} ${style.id === "shaved-buzzed" ? "is-provider-ready" : "is-provider-pending"}" data-hair-style="${style.id}" type="button" aria-pressed="${appearance.hairStyle === style.id}" ${style.id === "shaved-buzzed" ? "" : "disabled aria-disabled=\"true\""}>
-                <strong>${style.name}</strong><small>${style.description}</small>
-                <em class="appearance-option__availability">${style.id === "shaved-buzzed" ? "Scalp-ready" : "Awaiting canonical asset"}</em>
-              </button>`).join("")}
-          </div>
-        </section>
-        <section ${facePanel ? "" : "hidden"}>
-          <h3>Natural hair color</h3>
-          <div class="appearance-colors" role="group" aria-label="Natural hair color">
-            ${(Object.entries(HAIR_COLORS) as [keyof typeof HAIR_COLORS, (typeof HAIR_COLORS)[keyof typeof HAIR_COLORS]][]).map(([id, color]) => `
-              <button class="appearance-color ${appearance.hairColor === id ? "is-selected" : ""}" data-hair-color="${id}" type="button" aria-label="${color.name}" aria-pressed="${appearance.hairColor === id}" title="${color.name}" disabled aria-disabled="true">
-                <span style="--hair-swatch:#${color.color.toString(16).padStart(6, "0")}"></span><small>${color.name}</small>
-              </button>`).join("")}
-          </div>
-        </section>
-        <section ${facePanel ? "" : "hidden"}>
-          <h3>Facial hair</h3>
-          <div class="appearance-options appearance-options--beard">
-            ${FACIAL_HAIR_STYLES.map((style) => `
-              <button class="appearance-option ${appearance.facialHair === style.id ? "is-selected" : ""} ${style.id === "none" ? "is-provider-ready" : "is-provider-pending"}" data-facial-hair="${style.id}" type="button" aria-pressed="${appearance.facialHair === style.id}" ${style.id === "none" ? "" : "disabled aria-disabled=\"true\""}>
-                <strong>${style.name}</strong><small>${style.description}</small>
-                <em class="appearance-option__availability">${style.id === "none" ? "Face-ready" : "Awaiting canonical asset"}</em>
-              </button>`).join("")}
-          </div>
-        </section>
-        <section ${facePanel ? "" : "hidden"}>
-          <h3>Complexion details</h3>
-          <div class="appearance-options">
-            <button class="appearance-option is-provider-pending" type="button" disabled aria-disabled="true">
-              <strong>Freckles</strong><small>The creator requires the validated spot/freckle texture mask before this slider can alter the production skin.</small>
-              <em class="appearance-option__availability">Awaiting canonical complexion mask</em>
-            </button>
-          </div>
-        </section>
-        <section class="appearance-assay" aria-labelledby="appearance-age-heading" ${facePanel ? "" : "hidden"}>
-          <div class="appearance-assay__heading">
-            <h3 id="appearance-age-heading">Age &amp; greying</h3>
-            <span id="appearance-morph-status" class="appearance-provider-status">Age morph scan pending</span>
-          </div>
-          <label class="appearance-range">
-            <span><strong>Adult age</strong><output id="appearance-age-output">${appearanceAgeStage(appearance.age)}</output></span>
-            <input id="appearance-age" type="range" min="0" max="1" step="0.01" value="${appearance.age}" disabled aria-disabled="true" aria-describedby="appearance-age-stages appearance-morph-status" />
-            <small id="appearance-age-stages"><span>Young Adult</span><span>Middle-Aged</span><span>Elder</span></small>
-          </label>
-          <label class="appearance-range">
-            <span><strong>Hair greying</strong><output id="appearance-hair-greying-output">${appearanceControlPercent(appearance.hairGreying)}%</output></span>
-            <input id="appearance-hair-greying" type="range" min="0" max="1" step="0.01" value="${appearance.hairGreying}" disabled aria-disabled="true" />
-          </label>
-          <label class="appearance-range">
-            <span><strong>Facial-hair greying</strong><output id="appearance-facial-greying-output">${appearanceControlPercent(appearance.facialHairGreying)}%</output></span>
-            <input id="appearance-facial-greying" type="range" min="0" max="1" step="0.01" value="${appearance.facialHairGreying}" disabled aria-disabled="true" />
-          </label>
+          <h3>Withheld</h3>
+          <p class="appearance-note">Face shape, hair, facial hair, complexion detail and age are withheld until their canonical assets pass review. The creator never offers a control that cannot change what you see.</p>
         </section>
         </div>
       </div>
       ${this.navigation(
-        this.appearanceEditProfile ? "Cancel" : facePanel ? "Return to body type" : "Return to ancestry",
+        this.appearanceEditProfile ? "Cancel" : facePanel ? "Return to body" : "Return to ancestry",
         this.appearanceEditProfile
           ? facePanel ? "Save appearance" : "Review face & features"
           : facePanel ? "Choose calling" : "Continue to face & features",
@@ -452,38 +377,11 @@ export class CharacterCreation {
     requiredElement<HTMLButtonElement>("appearance-front-view").addEventListener("click", () => {
       this.appearancePreview?.resetFacing();
     });
-    this.bindChoices("button[data-body-type]", "bodyType", (id) => {
-      this.draft.appearance.bodyType = id as CharacterDraft["appearance"]["bodyType"];
-    });
-    this.bindChoices("button[data-face-type]", "faceType", (id) => {
-      this.draft.appearance.faceType = id as CharacterDraft["appearance"]["faceType"];
-      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
-      this.updateAppearanceReadout();
-    });
     this.bindChoices("button[data-skin-tone]", "skinTone", (id) => {
       this.draft.appearance.skinTone = id as CharacterDraft["appearance"]["skinTone"];
       this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
-    });
-    this.bindChoices("button[data-hair-style]", "hairStyle", (id) => {
-      this.draft.appearance.hairStyle = id as CharacterDraft["appearance"]["hairStyle"];
-      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
-      this.updateDependentAppearanceControls();
       this.updateAppearanceReadout();
     });
-    this.bindChoices("button[data-hair-color]", "hairColor", (id) => {
-      this.draft.appearance.hairColor = id as CharacterDraft["appearance"]["hairColor"];
-      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
-      this.updateAppearanceReadout();
-    });
-    this.bindChoices("button[data-facial-hair]", "facialHair", (id) => {
-      this.draft.appearance.facialHair = id as CharacterDraft["appearance"]["facialHair"];
-      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
-      this.updateDependentAppearanceControls();
-      this.updateAppearanceReadout();
-    });
-    this.bindAppearanceRange("appearance-age", "age", "appearance-age-output", (value) => appearanceAgeStage(value));
-    this.bindAppearanceRange("appearance-hair-greying", "hairGreying", "appearance-hair-greying-output", (value) => `${appearanceControlPercent(value)}%`);
-    this.bindAppearanceRange("appearance-facial-greying", "facialHairGreying", "appearance-facial-greying-output", (value) => `${appearanceControlPercent(value)}%`);
     const leaveAppearance = (): void => {
       if (this.appearanceEditProfile) {
         this.appearanceEditProfile = null;
@@ -494,12 +392,11 @@ export class CharacterCreation {
     };
     const acceptAppearance = (): void => {
       const resolved = resolveCharacterAppearance(this.draft.appearance);
+      // Every offered control resolves to an accepted asset, so this only trips
+      // on a stale or hand-edited draft. It stays because the creator must never
+      // bind an appearance the runtime cannot honour.
       if (!isCreatorAppearanceSelectionAvailable(resolved, this.appearanceAvailability)) {
-        return this.fail(!this.appearanceAvailability.faceTypes.includes(resolved.faceType)
-          ? "That face family is awaiting its canonical validated morph. Choose a ready face before binding this body."
-          : resolved.age > 0 && !this.appearanceAvailability.ageMorphsAvailable
-            ? "This age pattern is awaiting the canonical facial morph asset. Return the age control to Young Adult or wait for validation."
-            : "That hair pattern is awaiting its canonical validated asset. Choose a ready option before binding this body.");
+        return this.fail("This appearance depends on an asset that has not passed review. Choose from what is offered.");
       }
       if (this.appearanceEditProfile) {
         const updated: CharacterProfile = {
@@ -706,88 +603,19 @@ export class CharacterCreation {
     });
   }
 
-  private bindAppearanceRange(
-    inputId: string,
-    key: "age" | "hairGreying" | "facialHairGreying",
-    outputId: string,
-    format: (value: number) => string,
-  ): void {
-    const input = requiredElement<HTMLInputElement>(inputId);
-    const output = requiredElement<HTMLOutputElement>(outputId);
-    input.addEventListener("input", () => {
-      const value = Math.min(1, Math.max(0, Number(input.value)));
-      this.draft.appearance[key] = value;
-      output.value = format(value);
-      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
-      this.updateAppearanceReadout();
-    });
-  }
-
   private updateAppearanceAvailability(availability: CreationPreviewAvailability): void {
+    // Fires once the canonical model has loaded and been inspected, so it doubles
+    // as the honest "loaded" signal for the readout.
     this.appearanceAvailability = availability;
-    const setAvailability = (selector: string, availableIds: readonly string[], dataKey: string): void => {
-      this.stage.querySelectorAll<HTMLButtonElement>(selector).forEach((button) => {
-        const available = availableIds.includes(button.dataset[dataKey] ?? "");
-        button.disabled = !available;
-        button.setAttribute("aria-disabled", String(!available));
-        button.classList.toggle("is-provider-ready", available);
-        button.classList.toggle("is-provider-pending", !available);
-        const status = button.querySelector<HTMLElement>(".appearance-option__availability");
-        if (status) status.textContent = available
-          ? button.dataset[dataKey] === "shaved-buzzed" ? "Scalp-ready" : "Canonical module ready"
-          : "Awaiting canonical asset";
-      });
-    };
-    setAvailability("button[data-hair-style]", availability.hairStyles, "hairStyle");
-    setAvailability("button[data-facial-hair]", availability.facialHair, "facialHair");
-    setAvailability("button[data-face-type]", availability.faceTypes, "faceType");
-    const morphStatus = this.stage.querySelector<HTMLElement>("#appearance-morph-status");
-    if (morphStatus) {
-      morphStatus.textContent = availability.ageMorphsAvailable ? "Canonical age morphs ready" : "Awaiting canonical facial morphs";
-      morphStatus.classList.toggle("is-ready", availability.ageMorphsAvailable);
-    }
-    const ageInput = this.stage.querySelector<HTMLInputElement>("#appearance-age");
-    if (ageInput) {
-      ageInput.disabled = !availability.ageMorphsAvailable;
-      ageInput.setAttribute("aria-disabled", String(!availability.ageMorphsAvailable));
-    }
-    this.updateDependentAppearanceControls();
     this.updateAppearanceReadout();
   }
 
-  private updateDependentAppearanceControls(): void {
-    const readiness = appearanceDependentControls(
-      resolveCharacterAppearance(this.draft.appearance),
-      this.appearanceAvailability,
-    );
-    this.stage.querySelectorAll<HTMLButtonElement>("button[data-hair-color]").forEach((button) => {
-      button.disabled = !readiness.hairColor;
-      button.setAttribute("aria-disabled", String(!readiness.hairColor));
-    });
-    const hairGreying = this.stage.querySelector<HTMLInputElement>("#appearance-hair-greying");
-    if (hairGreying) {
-      hairGreying.disabled = !readiness.hairGreying;
-      hairGreying.setAttribute("aria-disabled", String(!readiness.hairGreying));
-    }
-    const facialGreying = this.stage.querySelector<HTMLInputElement>("#appearance-facial-greying");
-    if (facialGreying) {
-      facialGreying.disabled = !readiness.facialHairGreying;
-      facialGreying.setAttribute("aria-disabled", String(!readiness.facialHairGreying));
-    }
-  }
-
   private updateAppearanceReadout(): void {
+    const status = this.stage.querySelector<HTMLElement>("#appearance-preview-status");
+    if (!status) return;
     const appearance = resolveCharacterAppearance(this.draft.appearance);
-    const ready = isCreatorAppearanceSelectionAvailable(appearance, this.appearanceAvailability);
-    const assetStatus = this.stage.querySelector<HTMLElement>("#appearance-preview-asset-status");
-    const ageStatus = this.stage.querySelector<HTMLElement>("#appearance-preview-age-status");
-    if (assetStatus) {
-      assetStatus.textContent = ready ? "Selected pattern ready" : "Selected pattern awaiting canonical asset";
-      assetStatus.classList.toggle("is-pending", !ready);
-    }
-    if (ageStatus) {
-      ageStatus.textContent = `${appearanceAgeStage(appearance.age)} · ${appearanceControlPercent(appearance.hairGreying)}% hair greying · ${appearanceControlPercent(appearance.facialHairGreying)}% facial greying`;
-    }
+    const tone = SKIN_TONES[appearance.skinTone]?.name ?? appearance.skinTone;
+    status.textContent = `Human foundation · ${tone}`;
   }
 
   private fail(message: string): void {
