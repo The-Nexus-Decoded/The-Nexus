@@ -354,6 +354,31 @@ The archetype clip is the floor, not the ceiling. Where a body reads badly on th
 override under the same reaction name, the way the composer already builds per-variant packs. Start shared, specialise
 where it looks wrong.
 
+
+### 5.5 Corrections after adversarial review, 2026-09-04
+
+A reviewer re-derived the severity rows against the pinned combat fixture and found two of them wrong. Both are
+recorded here rather than quietly edited, because they change which tier the work lands in.
+
+**Severity is classified from the label, not the clip name, so identical clips are not identical rows.**
+`classifyAttackSeverity` reads the attack id, label and clip name together. The same
+`ProMeleeAxe__StandingMeleeAttack360Low` is measured **light** in seven fixture rows under the staff, whose label is
+"One-hand low sweep", and **heavy** in ten rows under the dagger, labelled "Spinning strike". Collapsing them into one
+row assigned heavy to both and routed the staff's sweep to a heavy stagger the tool never asks for. Section B rows
+must therefore be keyed by clip **and** label.
+
+**`GreatSword__GreatSwordAttack` is heavy, not light.** Its label is "Pommel butt smash" and the fixture measures it
+heavy in eight rows.
+
+**The spit is called poison everywhere in the project.** The word "acid" appears nowhere in any document, source file
+or type. `ReviewDamageType` offers physical, fire, ice, poison and arcane. The owner asks for acid, so either the type
+gains an `acid` member and the spit moves onto it, or the existing poison type is what acid means here. Left as an
+open decision rather than changed unilaterally, because the damage type is written into every registered pack.
+
+**The victim's burning reaction is not blocked.** An earlier version of this document listed it as a Mixamo download
+the owner had to supply. Under the archetype ruling in section 5 it is authored here, and it is the next piece of
+work rather than a dependency on anyone.
+
 ---
 
 ## 6. Open decisions the owner must rule on
