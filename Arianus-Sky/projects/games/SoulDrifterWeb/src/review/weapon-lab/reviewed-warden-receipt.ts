@@ -66,4 +66,17 @@ export function reviewedWardenNote(receipt: ReviewedWardenReceipt): string {
  * entry stays absent until that exact export clears review, so an unfinished pack
  * cannot reach the lab by being written to disk.
  */
-export const REVIEWED_FOURVIEW_WARDEN_RECEIPTS: ReviewedWardenReceipts = prepareReviewedWardenReceipts({});
+export const REVIEWED_FOURVIEW_WARDEN_RECEIPTS: ReviewedWardenReceipts = prepareReviewedWardenReceipts({
+  wayfarer: {
+    kind: "wayfarer",
+    url: "/assets/weapon-lab/wardens/wayfarer-cinderbound-warden-fourview-v8.glb",
+    runtimeSourceSha256: "6653370bbd3f057dce8602de257cdcc60163fd012589bb76ed5983d1d03ca387",
+    bytes: 17_484_284,
+    sha256: "3478250e32077a60e69efcf367011089279fc58ca9d336bf0c3609a256e90f60",
+    runtimeScale: 3.6733054326308605,
+    clips: [
+      "Idle", "CombatIdle", "HeadLook", "HeavyWalk", "HeavyRun", "TurnLeft", "TurnRight", "HitReact",
+      "DeathCollapse", "BladeSweep", "CinderSweep", "AshCall", "PalmFire", "SoulTax", "FurnaceShutdown",
+    ],
+  },
+});

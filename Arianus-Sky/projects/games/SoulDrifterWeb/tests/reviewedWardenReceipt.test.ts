@@ -23,12 +23,28 @@ function wayfarer(overrides: Partial<ReviewedWardenReceipt> = {}): ReviewedWarde
 }
 
 describe("Rebuilt Warden review intake", () => {
-  it("ships no rebuilt Warden bodies until a pack clears its gates", () => {
-    expect(Object.keys(REVIEWED_FOURVIEW_WARDEN_RECEIPTS)).toEqual([]);
+  it("lists exactly the rebuilt Warden bodies that cleared their gates", () => {
+    expect(Object.keys(REVIEWED_FOURVIEW_WARDEN_RECEIPTS)).toEqual(["wayfarer"]);
     expect(Object.isFrozen(REVIEWED_FOURVIEW_WARDEN_RECEIPTS)).toBe(true);
-    // and therefore no rebuilt Warden appears in the catalog yet
-    expect(MOB_CATALOG.filter((entry) => entry.id.startsWith("warden-") && entry.id.endsWith("-4v"))).toEqual([]);
-    expect(MOB_CATALOG.every((entry) => !entry.reviewedWardenMotion)).toBe(true);
+    const listed = MOB_CATALOG.filter((entry) => entry.id.startsWith("warden-") && entry.id.endsWith("-4v"));
+    expect(listed.map((entry) => entry.id)).toEqual(["warden-wayfarer-4v"]);
+    const rebuilt = listed[0]!;
+    // the rebuilt body is served from its own review url and never over the shipped asset
+    expect(rebuilt.url).toBe(REVIEWED_FOURVIEW_WARDEN_RECEIPTS.wayfarer!.url);
+    expect(rebuilt.runtimeUrl).toBe("/assets/3d/creatures/cinderbound-wardens/cinderbound-warden.glb");
+    expect(rebuilt.url).not.toBe(rebuilt.runtimeUrl);
+    expect(rebuilt.reviewedWardenMotion).toBe(REVIEWED_FOURVIEW_WARDEN_RECEIPTS.wayfarer);
+    expect(rebuilt.label).toContain("four-view body");
+    // the shipped Warden entry is untouched and still selectable
+    const shipped = MOB_CATALOG.find((entry) => entry.id === "warden-wayfarer")!;
+    expect(shipped.url).toBe(shipped.runtimeUrl);
+    expect(shipped.reviewedWardenMotion).toBeUndefined();
+    expect(shipped.sha256).not.toBe(rebuilt.sha256);
+  });
+
+  it("pins the rebuilt Warden to the shipped body it stands in for", () => {
+    const shipped = MOB_CATALOG.find((entry) => entry.id === "warden-wayfarer")!;
+    expect(REVIEWED_FOURVIEW_WARDEN_RECEIPTS.wayfarer!.runtimeSourceSha256).toBe(shipped.sha256);
   });
 
   it("accepts a complete receipt and freezes its clip list", () => {

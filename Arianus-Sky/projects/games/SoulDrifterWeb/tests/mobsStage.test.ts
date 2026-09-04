@@ -3,11 +3,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BREACHLING_RUNTIME_ASSETS } from "../src/game/dungeons/breach-v2-breachlings";
 import { CINDERBOUND_WARDEN_ASSETS,
-  cinderboundWardenActionNames } from "../src/game/dungeons/breach-v2-wardens";
+  cinderboundWardenActionNames, type CinderboundWardenKind } from "../src/game/dungeons/breach-v2-wardens";
 import { MOB_CATALOG, MobsStage, mobCalibrationKey, type MobDefinition } from "../src/review/weapon-lab/mobs-stage";
 import { COMPOSER_MOB_PACKS } from "../src/review/weapon-lab/composer-mob-packs";
 import { composerPackForDefinition, FOURVIEW_DEFINITION_SUFFIX } from "../src/review/weapon-lab/composer-pack-lookup";
 import { REVIEWED_FOURVIEW_MOB_RECEIPTS } from "../src/review/weapon-lab/reviewed-mob-receipt";
+import { REVIEWED_FOURVIEW_WARDEN_RECEIPTS } from "../src/review/weapon-lab/reviewed-warden-receipt";
 import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL, REVIEWED_MOB_RECEIPTS,
   prepareReviewedMobReceipts, reviewedMobNote, type ReviewedMobReceipt } from "../src/review/weapon-lab/reviewed-mob-receipt";
 import { createMobReviewActor, type MobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
@@ -224,7 +225,7 @@ describe("Mobs stage exact installed asset contract", () => {
     expect(MOB_CATALOG.map((definition) => definition.id)).toEqual([
       "breachling-base", "breachling-stalker", "breachling-oathbound", "breachling-ravager",
       "breachling-base-4v", "breachling-stalker-4v", "breachling-oathbound-4v", "breachling-ravager-4v",
-      "warden-wayfarer", "warden-oathbreaker",
+      "warden-wayfarer", "warden-oathbreaker", "warden-wayfarer-4v",
     ]);
     for (const definition of MOB_CATALOG) {
       const bytes = bytesFor(definition);
@@ -240,6 +241,15 @@ describe("Mobs stage exact installed asset contract", () => {
         expect(definition.reviewedMotion).toBe((fourview ? REVIEWED_FOURVIEW_MOB_RECEIPTS : REVIEWED_MOB_RECEIPTS)[definition.variant as keyof typeof BREACHLING_RUNTIME_ASSETS]);
         expect(definition.label).toContain(fourview ? `${catalog.label} · four-view body` : `${catalog.label} · revised `);
         expect(definition.url).toBe(definition.reviewedMotion.url);
+      } else if (definition.reviewedWardenMotion) {
+        expect(definition.family).toBe("warden");
+        expect(definition.id).toBe(`warden-${definition.variant}${FOURVIEW_DEFINITION_SUFFIX}`);
+        expect(definition.reviewedWardenMotion).toBe(REVIEWED_FOURVIEW_WARDEN_RECEIPTS[definition.variant as CinderboundWardenKind]);
+        expect(definition.label).toContain(`${catalog.label} · four-view body`);
+        expect(definition.url).toBe(definition.reviewedWardenMotion.url);
+        // the rebuilt body is served beside the shipped one, never over it
+        expect(definition.url).not.toBe(catalog.url);
+        expect(definition.runtimeUrl).toBe(catalog.url);
       } else expect(definition).toMatchObject({ label: catalog.label, url: catalog.url });
       const header = glbHeader(definition);
       expect(header.skins).toHaveLength(1);
@@ -260,8 +270,9 @@ describe("Mobs stage exact installed asset contract", () => {
     expect(value.checksumVerified).toBe(true);
     const actor = value.actor()!;
     expect(actor.root.name).toBe(`studio:${definition.id}`);
-    expect(actor.model.name).toBe(`${definition.reviewedMotion
-      ? BREACHLING_RUNTIME_ASSETS[definition.variant as keyof typeof BREACHLING_RUNTIME_ASSETS].label : definition.label} model`);
+    expect(actor.model.name).toBe(`${definition.family === "breachling"
+      ? BREACHLING_RUNTIME_ASSETS[definition.variant as keyof typeof BREACHLING_RUNTIME_ASSETS].label
+      : CINDERBOUND_WARDEN_ASSETS[definition.variant as CinderboundWardenKind].label} model`);
     if (definition.reviewedMotion) expect(actor.model.scale.toArray()).toEqual([
       expect.closeTo(definition.reviewedMotion.runtimeScale, 6), expect.closeTo(definition.reviewedMotion.runtimeScale, 6),
       expect.closeTo(definition.reviewedMotion.runtimeScale, 6),
