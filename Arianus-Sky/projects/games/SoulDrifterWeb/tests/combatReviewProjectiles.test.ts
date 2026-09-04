@@ -149,11 +149,12 @@ describe("fixed review projectile paths and actual emitted visuals", () => {
     });
     const actor = await createMobReviewActor({ instanceId: "spit-source", definitionId: definition.id }); actors.add(actor);
     const binding = reviewProjectileBinding(actor, "SpitAttack")!;
-    expect(binding.releaseSeconds).toBe(0.64); expect(binding.endSeconds).toBeCloseTo(1.44, 12);
+    expect(binding.releaseSeconds).toBe(0.45); expect(binding.endSeconds).toBeCloseTo(1.25, 12);
     actor.sample("SpitAttack", binding.releaseSeconds);
     const set = projectiles(actor, "SpitAttack"), description = set.flights[0]!;
-    expect(set.flights).toHaveLength(1); expect(description.evidence).toContain("newly authored review-only");
-    expect(description.direction).toEqual([expect.closeTo(0, 5), expect.closeTo(Math.sin(8 * Math.PI / 180), 5), expect.closeTo(Math.cos(8 * Math.PI / 180), 5)]);
+    expect(set.flights).toHaveLength(1); expect(description.evidence).toContain("review-only");
+    // composer-v95 Spit: the fixed head aim at the 0.45 s release frame sits 15 degrees above the horizon
+    expect(description.direction).toEqual([expect.closeTo(0, 5), expect.closeTo(Math.sin(15 * Math.PI / 180), 5), expect.closeTo(Math.cos(15 * Math.PI / 180), 5)]);
     expect(actor.root.worldToLocal(sampleReviewProjectileFlight(description, binding.endSeconds)).z).toBeCloseTo(5.25, 7);
     set.update(binding.releaseSeconds); expect(set.probe.sample()).toHaveLength(set.probe.vertexCount);
     const surface = new ReviewContactSurface(actor.model); surface.update();

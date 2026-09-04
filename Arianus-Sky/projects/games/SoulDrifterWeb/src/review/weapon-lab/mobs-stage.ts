@@ -12,7 +12,8 @@ import { buildBreachV2Layout } from "../../game/dungeons/breach-v2-layout";
 import type { BreachV2AnimationReviewActor, BreachV2AnimationReviewPlayback, BreachV2AnimationReviewPoseHooks } from "../../game/dungeons/breach-v2-animation-review";
 import { createMobPoseOverlay } from "./mob-pose-overlay";
 import { configureReviewAssetLoader, fetchPinnedReviewAsset } from "./review-asset-loader";
-import { REVIEWED_MOB_RECEIPTS, type ReviewedMobReceipt } from "./reviewed-mob-receipt";
+import { REVIEWED_FOURVIEW_MOB_RECEIPTS, REVIEWED_MOB_RECEIPTS, type ReviewedMobReceipt } from "./reviewed-mob-receipt";
+import { FOURVIEW_DEFINITION_SUFFIX } from "./composer-pack-lookup";
 
 export interface MobDefinition {
   id: string;
@@ -57,6 +58,21 @@ export const MOB_CATALOG: readonly MobDefinition[] = Object.freeze([
       } : {}),
     });
   }),
+  // Four-view remodel bodies: same variant and dungeon lineage, a different reviewed mesh.
+  ...(Object.keys(BREACHLING_RECEIPTS) as BreachlingTier[]).flatMap((variant) => {
+    const reviewed = REVIEWED_FOURVIEW_MOB_RECEIPTS[variant];
+    if (!reviewed) return [];
+    if (reviewed.runtimeSourceSha256 !== BREACHLING_RECEIPTS[variant][1]) {
+      throw new Error(`Reviewed four-view ${variant} receipt has the wrong dungeon-source lineage.`);
+    }
+    return [Object.freeze({
+      id: `breachling-${variant}${FOURVIEW_DEFINITION_SUFFIX}`, family: "breachling" as const, variant,
+      ...BREACHLING_RUNTIME_ASSETS[variant],
+      label: `${BREACHLING_RUNTIME_ASSETS[variant].label} · four-view body`,
+      runtimeUrl: BREACHLING_RUNTIME_ASSETS[variant].url,
+      url: reviewed.url, bytes: reviewed.bytes, sha256: reviewed.sha256, reviewedMotion: reviewed,
+    })];
+  }),
   ...(Object.keys(WARDEN_RECEIPTS) as CinderboundWardenKind[]).map((variant) => Object.freeze({
     id: `warden-${variant}`, family: "warden" as const, variant,
     ...CINDERBOUND_WARDEN_ASSETS[variant], bytes: WARDEN_RECEIPTS[variant][0], sha256: WARDEN_RECEIPTS[variant][1],
@@ -93,8 +109,9 @@ class PinnedMobLoader extends GLTFLoader {
     const reviewed = this.definition.reviewedMotion;
     if (reviewed) {
       const variant = this.definition.variant as BreachlingTier;
-      const approved = REVIEWED_MOB_RECEIPTS[variant];
-      if (this.definition.family !== "breachling" || this.definition.id !== `breachling-${variant}`
+      const fourview = this.definition.id === `breachling-${variant}${FOURVIEW_DEFINITION_SUFFIX}`;
+      const approved = fourview ? REVIEWED_FOURVIEW_MOB_RECEIPTS[variant] : REVIEWED_MOB_RECEIPTS[variant];
+      if (this.definition.family !== "breachling" || (this.definition.id !== `breachling-${variant}` && !fourview)
         || reviewed !== approved || reviewed.variant !== variant || url !== BREACHLING_RUNTIME_ASSETS[variant]?.url
         || this.definition.url !== reviewed.url || this.definition.bytes !== reviewed.bytes || this.definition.sha256 !== reviewed.sha256) {
         throw new Error("Unapproved review-only mob asset override.");

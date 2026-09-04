@@ -11,8 +11,10 @@ export interface ComposerMobPack {
   readonly revision: string; readonly strikes: Readonly<Record<string, ComposerStrike>>;
   readonly spit: { readonly releaseSeconds: number; readonly endSeconds: number } | null;
   readonly toeBones: readonly string[]; // toe-rig bones appended to the source skeleton (empty for legacy rigs)
+  readonly body: "legacy" | "fourview"; // legacy single-view Tripo body or the four-view remodel (issue 458, 2026-09-05 owner decision)
 }
 
+// Legacy single-view bodies (dungeon runtime lineage).
 export const COMPOSER_MOB_PACKS: Readonly<Partial<Record<ComposerMobPack["variant"], ComposerMobPack>>> = Object.freeze({
   base: Object.freeze({
     variant: "base", url: "/assets/weapon-lab/mobs/breachling-base-composer-v95.glb", bytes: 12484648, sha256: "0761165e41dbd4a6e3a38462f8a3cd69a6bc9b5c75e68dd8236f785ff9d00791",
@@ -26,6 +28,7 @@ export const COMPOSER_MOB_PACKS: Readonly<Partial<Record<ComposerMobPack["varian
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe4L","front_toe1R","front_toe2R","front_toe3R","front_toe4R","rear_toe1L","rear_toe2L","rear_toe3L","rear_toe1R","rear_toe2R","rear_toe3R"],
+    body: "legacy",
   }),
   ravager: Object.freeze({
     variant: "ravager", url: "/assets/weapon-lab/mobs/breachling-ravager-composer-v20.glb", bytes: 10981168, sha256: "4e75cf5eb40d70e5c88424c29585de2c298ecc1eb2c3be8388c21f0e8845c385",
@@ -39,6 +42,7 @@ export const COMPOSER_MOB_PACKS: Readonly<Partial<Record<ComposerMobPack["varian
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe4L","front_toe1R","front_toe2R","front_toe3R","front_toe4R","rear_toe1L","rear_toe2L","rear_toe3L","rear_toe1R","rear_toe2R","rear_toe3R"],
+    body: "legacy",
   }),
   stalker: Object.freeze({
     variant: "stalker", url: "/assets/weapon-lab/mobs/breachling-stalker-composer-v24.glb", bytes: 11418068, sha256: "e4e0e56d335f1cb013a51f5412396995fc19c0711c6b901e5536c6d0a4288427",
@@ -52,6 +56,7 @@ export const COMPOSER_MOB_PACKS: Readonly<Partial<Record<ComposerMobPack["varian
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe4L","front_toe1R","front_toe2R","front_toe3R","front_toe4R","rear_toe1L","rear_toe2L","rear_toe3L","rear_toe1R","rear_toe2R","rear_toe3R"],
+    body: "legacy",
   }),
   oathbound: Object.freeze({
     variant: "oathbound", url: "/assets/weapon-lab/mobs/breachling-oathbound-composer-v14.glb", bytes: 11861332, sha256: "36100ba5dd4dccac0ce80296f0eff1ba41dd9c9233ca3043c8472864c2f55015",
@@ -65,5 +70,38 @@ export const COMPOSER_MOB_PACKS: Readonly<Partial<Record<ComposerMobPack["varian
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe4L","front_toe1R","front_toe2R","front_toe3R","front_toe4R","rear_toe1L","rear_toe2L","rear_toe3L","rear_toe1R","rear_toe2R","rear_toe3R"],
+    body: "legacy",
+  }),
+});
+
+// Four-view remodel bodies: Tripo multi-view meshes, Tripo auto-rig converted to the canonical skeleton. Review-only; not dungeon runtime.
+export const COMPOSER_MOB_PACKS_FOURVIEW: Readonly<Partial<Record<ComposerMobPack["variant"], ComposerMobPack>>> = Object.freeze({
+  ravager: Object.freeze({
+    variant: "ravager", url: "/assets/weapon-lab/mobs/breachling-ravager-fourview-composer-v4.glb", bytes: 16843992, sha256: "7d820c38022469d1c03910d63e4562322ec615bc17462c1ffab2e4c8f8ad5971",
+    runtimeSourceSha256: "cd8fa4f5daf6f789e80322fad2ed7df15cb7b6dcea0dec19c0d869478f08e22c", runtimeScale: 1.5839816537015536,
+    actions: ["Walk","Run","BiteAttack","ClawAttack","LungeAttack","TailWhip","SpitAttack","RecieveHit","RecieveHitHeavy","RecieveHitLeft","RecieveHitRight","RecieveHitBack","Death"], neutralHolds: ["Idle","CombatIdle"], revision: "composer-v4",
+    strikes: Object.freeze({
+      BiteAttack: { start: 0.4233, end: 0.5833, vertices: [16198,16203,16207], phase: "BiteAttack contact 0.4833s via head+jaw", revision: "composer-v4" },
+      ClawAttack: { start: 0.3233, end: 0.4833, vertices: [8748,8652,8669], phase: "ClawAttack contact 0.3833s via front_handR", revision: "composer-v4" },
+      LungeAttack: { start: 0.39, end: 0.55, vertices: [8748,8652,8959], phase: "LungeAttack contact 0.45s via front_handL+front_handR", revision: "composer-v4" },
+      TailWhip: { start: 0.7567, end: 0.9167, vertices: [28214,28219,28216], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-v4" },
+    }),
+    spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe1R","front_toe2R","front_toe3R","rear_toe1L","rear_toe1R","rear_toe2R","rear_toe3R"],
+    body: "fourview",
+  }),
+  stalker: Object.freeze({
+    variant: "stalker", url: "/assets/weapon-lab/mobs/breachling-stalker-fourview-composer-v5.glb", bytes: 15559440, sha256: "c98664174c1c3da6bf9d804234f0f5d9c133663beaecbcb67a856706bc00356d",
+    runtimeSourceSha256: "1f61df8716b60dd376959dbff1295c708f770d3601cf9781263d1996f808a641", runtimeScale: 1.1994050642631422,
+    actions: ["Walk","Run","BiteAttack","ClawAttack","LungeAttack","TailWhip","SpitAttack","RecieveHit","RecieveHitHeavy","RecieveHitLeft","RecieveHitRight","RecieveHitBack","Death"], neutralHolds: ["Idle","CombatIdle"], revision: "composer-v5",
+    strikes: Object.freeze({
+      BiteAttack: { start: 0.4233, end: 0.5833, vertices: [20686,20682,20687], phase: "BiteAttack contact 0.4833s via head+jaw", revision: "composer-v5" },
+      ClawAttack: { start: 0.3233, end: 0.4833, vertices: [14382,14209,14193], phase: "ClawAttack contact 0.3833s via front_handR", revision: "composer-v5" },
+      LungeAttack: { start: 0.39, end: 0.55, vertices: [14286,14196,14415], phase: "LungeAttack contact 0.45s via front_handL+front_handR", revision: "composer-v5" },
+      TailWhip: { start: 0.7567, end: 0.9167, vertices: [28054,28051,28047], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-v5" },
+    }),
+    spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    toeBones: ["rear_toe1L","rear_toe1R"],
+    body: "fourview",
   }),
 });

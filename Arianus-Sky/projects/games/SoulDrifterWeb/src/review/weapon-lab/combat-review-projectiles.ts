@@ -5,7 +5,7 @@ import { createReviewMeshProbe, type ReviewMeshProbe } from "./combat-review-pro
 import { reviewRenderedVertexIndices, sampleReviewMeshVertices } from "./combat-review-contact";
 import { createReviewImpactAttachment, type ReviewImpactAttachment } from "./combat-review-impact-anchor";
 import type { ReviewActorAdapter, ReviewEvent, ReviewProjectileFlight } from "./combat-review-types";
-import { COMPOSER_MOB_PACKS } from "./composer-mob-packs";
+import { composerPackForDefinition } from "./composer-pack-lookup";
 
 export const REVIEWED_BASE_SHA = "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217";
 export const SPIT_PROJECTILE_MOTION = Object.freeze({ releaseSeconds: 0.64, flightSeconds: 0.8, rangePlaneMeters: 5.25 });
@@ -50,7 +50,7 @@ export function reviewProjectileBinding(actor: ReviewActorAdapter, actionId: str
   if (actor.definitionId === "human-foundation-pilot" && state?.loadoutId === "rod" && state.mode === "equipment"
     && wandRelease !== undefined) return { emitter: "wand-fire", releaseSeconds: action.durationSeconds * wandRelease,
     endSeconds: action.durationSeconds, evidence: `Existing Tripo fire wand tip and source cast pose at normalized release ${wandRelease}; review-only fixed fire VFX, no target tracking` };
-  const composerPack = COMPOSER_MOB_PACKS[actor.definitionId.replace("breachling-", "") as keyof typeof COMPOSER_MOB_PACKS];
+  const composerPack = composerPackForDefinition(actor.definitionId);
   if (composerPack?.spit && reviewActorSourceSha(actor) === composerPack.sha256 && actionId === "SpitAttack") {
     return { emitter: "base-spit", releaseSeconds: composerPack.spit.releaseSeconds,
       endSeconds: composerPack.spit.releaseSeconds + SPIT_PROJECTILE_MOTION.flightSeconds,

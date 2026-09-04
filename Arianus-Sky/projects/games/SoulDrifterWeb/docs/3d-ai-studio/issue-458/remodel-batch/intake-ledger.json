@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "issue": 458,
+  "batch": "four-view creature remodel (owner decision 2026-09-05)",
+  "provider": "Tripo Studio (studio.tripo3d.ai), owner account ola.lawal, driven through Chrome + Claude in Chrome extension; no credentials handled by the assistant",
+  "creditFloor": 5000,
+  "subjects": [
+    {
+      "assetId": "breachling-ravager",
+      "status": "canonical rig v2; composer pack v2 built (14/15 gates)",
+      "originalConcept": {
+        "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/breachling-lineage-variants/selected/breachling-ravager-selected.png",
+        "bytes": 1450771,
+        "sha256": "cf39ecdb17b4b595a1f89137f87784eb804e86d4830f387623bce318755f972e",
+        "origin": "Midjourney v8.2 selected lineage variant"
+      },
+      "imageSteps": [
+        {
+          "step": "neutral side view from the original concept",
+          "model": "Nano Banana 2 (Tripo image generator, free tier)",
+          "at": "2026-09-03 22:03 (Tripo history)",
+          "result": "two side-view candidates; superseded because a side view labelled 'front' would give a sideways forward axis"
+        },
+        {
+          "step": "front view from the original concept",
+          "model": "Nano Banana 2",
+          "at": "2026-09-03 22:12",
+          "result": "two symmetric front-view candidates; second candidate selected"
+        },
+        {
+          "step": "Generate Multi-Views (front, left, right, back) from the selected front view",
+          "at": "2026-09-03 22:14",
+          "result": "consistent four-view set; used as the multi-view image-to-3D input"
+        },
+        {
+          "note": "an earlier 21:58 pair was generated from a screenshot of the flawed mesh and is NOT used (owner rule: never reference the flawed meshes)"
+        }
+      ],
+      "task3d": {
+        "taskId": "51492f2a-d2c7-44f8-a29f-844c0d07b88c",
+        "mode": "multi-view image-to-3D",
+        "model": "v3.1 Best Quality, HD Model, 8K texture, Generate in Parts off",
+        "credits": 65,
+        "balanceAfter": 10580,
+        "submittedAt": "2026-09-03T22:16 local"
+      },
+      "acceptanceGates": [
+        "+Z forward",
+        "symmetric head and jaw hinge on the lateral axis",
+        "all four leg pivots inside the mesh legs (mirror check)",
+        "four front / three rear claws",
+        "toe-rig surgery, neutral re-solve, 15-clip pack, gates, critic, Motion Forge review before the old asset is archived"
+      ],
+      "rawExport": {
+        "path": "H:/CodexData/.codex/artifacts/issue-458-remodel-intake/ravager/raw/breachling-ravager-fourview-raw.glb",
+        "bytes": 63935344,
+        "sha256": "1f5cc13fd8cb29e48dcf81adfa334c38b952e64d59e090ebecd84c1cc839ab6c",
+        "format": "GLB, 8K texture, HD triangles 1,970,891",
+        "exportedAt": "2026-09-03T22:27 local",
+        "note": "untouched provider export; game intake needs decimation to ~35k tris and a 2K texture"
+      },
+      "riggingSteps": [
+        {
+          "step": "local mesh-fitted rig (tools/rig-breachling-fit.py, Blender 4.5.12)",
+          "at": "2026-09-03 22:40",
+          "result": "rejected: height-band joint fitting misplaces limb pivots on the splayed concept pose and Blender automatic weights fail in background mode (all vertices fell back to distance weights)"
+        },
+        {
+          "step": "Tripo Auto Rig, AI model v2.5 - Good for Animals, model type Quadruped",
+          "at": "2026-09-03 22:52",
+          "credits": 20,
+          "balanceAfter": 10495,
+          "result": "skeleton overlay shows bones inside every limb, toe chains on all four paws, tail chain; exported as GLB with skeleton (8K texture, 0 animations) for local decimation and bone-name mapping"
+        },
+        {
+          "step": "canonical conversion (lib/tripo-rig-to-canonical.mjs + mappings/ravager-fourview-tripo.json)",
+          "at": "2026-09-03 23:10",
+          "result": "24 canonical bones + 10 toe bones from the 66-joint Tripo skeleton (weights merged, jaw derived from the lower muzzle); composer Idle solves on the new body (floor 2.7 mm) - full pack build started"
+        },
+        {
+          "step": "canonical conversion v2 with the paw weight filter (Tripo auto-weights bled between touching paws: left toes influencing the right paw and 30 cm along the floor)",
+          "at": "2026-09-03 23:35",
+          "result": "composer pack ravager4v v2: 14/15 clips pass mechanical gates (TailWhip: tail dips 5 cm under the floor at 0.87 s - tuning pending)"
+        }
+      ]
+    },
+    {
+      "assetId": "breachling-base",
+      "status": "canonical rig v2; composer pack v2 built (13/15 gates)",
+      "originalConcept": {
+        "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/breachling-base-bakeoff/midjourney-v8.2-base-winner.png",
+        "bytes": 1083511,
+        "sha256": "1183040586097ff097b2bcd2e1a5389430a6ff430fc0117bbee1301d46d7ef89",
+        "origin": "Midjourney v8.2 base bake-off winner"
+      },
+      "imageSteps": [
+        {
+          "step": "front view from the original concept",
+          "model": "Nano Banana 2 (free tier)",
+          "at": "2026-09-03 22:22",
+          "result": "two symmetric front-view candidates (mouth open as in the concept); first candidate selected"
+        },
+        {
+          "step": "Generate Multi-Views (front, left, right, back)",
+          "at": "2026-09-03 22:24",
+          "result": "consistent four-view set"
+        }
+      ],
+      "task3d": {
+        "taskId": "06975f6e-da79-41ee-b28c-b9f03499dddb",
+        "mode": "multi-view image-to-3D",
+        "model": "v3.1 Best Quality, HD Model, 8K texture, Generate in Parts off",
+        "credits": 65,
+        "balanceAfter": 10515,
+        "submittedAt": "2026-09-03T22:26 local"
+      },
+      "acceptanceGates": [
+        "+Z forward",
+        "symmetric head and jaw hinge on the lateral axis",
+        "all four leg pivots inside the mesh legs (mirror check)",
+        "four front / three rear claws",
+        "toe-rig surgery, neutral re-solve, 15-clip pack, gates, critic, Motion Forge review before the old asset is archived"
+      ],
+      "riggingSteps": [
+        {
+          "step": "Tripo Auto Rig, AI model v2.5 - Good for Animals, model type Quadruped",
+          "at": "2026-09-03 23:02",
+          "credits": 20,
+          "balanceAfter": 10410,
+          "result": "skeleton overlay: bones inside every limb, toe chains; exported GLB with skeleton (8K texture) -> intake/base/raw/breachling-base-fourview-tripo-rig.glb sha256 e3068c8cf25fd8cc4ca65e23569cbe5181962be3d139d60365fb9f1b6926c6a9"
+        },
+        {
+          "step": "canonical conversion v2 (mappings/base-fourview-tripo.json; Tripo labelled the spine chain as 0_Right_Limb, sides taken from the x sign; rear legs end at the hock so rear_foot carries the paw, front toes only)",
+          "at": "2026-09-03 23:35",
+          "result": "composer pack base4v v2: 13/15 clips pass (LungeAttack floor -6 mm at 0.18 s; RecieveHitBack tail004 vs torso 0.128 m < 0.145 limit)"
+        }
+      ]
+    },
+    {
+      "assetId": "breachling-stalker",
+      "status": "canonical rig v2 with fitted tail; composer pack v2 built (15/15 gates)",
+      "originalConcept": {
+        "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/breachling-lineage-variants/selected/breachling-stalker-selected.png",
+        "origin": "Midjourney v8.2 selected lineage variant"
+      },
+      "imageSteps": [
+        {
+          "step": "front view from the original concept",
+          "model": "Nano Banana 2",
+          "at": "2026-09-03 22:36",
+          "result": "two front-view candidates; first candidate selected (all four limbs readable, crest and long clawed forelimbs kept)"
+        },
+        {
+          "step": "Generate Multi-Views (front, left, right, back)",
+          "at": "2026-09-03 22:48",
+          "result": "consistent four-view set, side views show the four-legged stance and tail"
+        }
+      ],
+      "modelSteps": [
+        {
+          "step": "Multi-View to 3D, HD Model, 8K texture, v3.1 Best Quality",
+          "taskId": "fd0e812d-8e84-47cb-ad82-c60e3747e553",
+          "at": "2026-09-03 22:57",
+          "credits": 65,
+          "balanceAfter": 10430,
+          "result": "done; raw GLB exported -> intake/stalker/raw/breachling-stalker-fourview-raw.glb sha256 dcee1abb9affc6b3d8559dec6f001f9e2e2e99cfefc9861d43e3932ce521b641"
+        }
+      ],
+      "riggingSteps": [
+        {
+          "step": "Tripo Auto Rig, AI model v2.5 - Good for Animals",
+          "at": "2026-09-03 23:12",
+          "credits": 20,
+          "balanceAfter": 10325,
+          "result": "classified as Humanoid (41 joints: hip/thigh/calf/foot/toe, clavicle/upperarm/forearm/hand, twist bones, spine, neck, head); NO tail bones and no finger/toe chains -> exported anyway (intake/stalker/raw/breachling-stalker-fourview-tripo-rig.glb sha256 eebd7f68e77d218683e89c23d52568ccf7513cf028bfb30965dcdb2a1cffc3eb); retrying the auto rig once for a quadruped classification"
+        },
+        {
+          "step": "Tripo Auto Rig retry",
+          "at": "2026-09-03 23:20",
+          "credits": 20,
+          "balanceAfter": 10305,
+          "result": "Humanoid again (the upright front pose drives the classification); not re-exported - the first humanoid export is used with a mesh-fitted tail chain added during the canonical conversion"
+        },
+        {
+          "step": "canonical conversion v2 (mappings/stalker-fourview-tripo.json): humanoid arms/legs mapped to front/rear limbs, tail.001-005 FITTED from the mesh (3020 vertices behind the pelvis, |x| < 0.12, centroid path sliced along -Z), no finger joints, one toe joint per rear foot",
+          "at": "2026-09-03 23:45",
+          "result": "composer pack stalker4v v2: 15/15 clips pass mechanical gates"
+        }
+      ]
+    },
+    {
+      "assetId": "oathbound-breachling",
+      "status": "humanoid tripo rig in intake; canonical conversion pending",
+      "originalConcept": {
+        "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/breachling-lineage-variants/selected/oathbound-breachling-selected.png",
+        "origin": "Midjourney v8.2 selected lineage variant"
+      },
+      "imageSteps": [
+        {
+          "step": "front view from the original concept",
+          "model": "Nano Banana 2",
+          "at": "2026-09-03 23:17",
+          "result": "two four-legged front-view candidates; first selected (all limbs and tail readable)"
+        },
+        {
+          "step": "Generate Multi-Views (front, left, right, back)",
+          "at": "2026-09-03 23:19",
+          "result": "consistent quadruped set"
+        }
+      ],
+      "modelSteps": [
+        {
+          "step": "Multi-View to 3D, HD Model, 8K texture, v3.1 Best Quality",
+          "taskId": "b4f7e50a-a686-4547-adc1-d4ac1b745433",
+          "at": "2026-09-03 23:24",
+          "credits": 65,
+          "balanceAfter": 10240,
+          "result": "done; raw GLB exported -> intake/oathbound/raw/breachling-oathbound-fourview-raw.glb sha256 c9cf27598c86beff373ba3a4e2efb1719a285630dfcf3a8612e5f9cc9697bed9"
+        }
+      ],
+      "riggingSteps": [
+        {
+          "step": "Tripo Auto Rig, AI model v2.5 - Good for Animals",
+          "at": "2026-09-03 23:41",
+          "credits": 20,
+          "balanceAfter": 10220,
+          "result": "classified Humanoid despite the four-legged pose (41 joints); right rear leg joints sit near the midline (R_Thigh x -0.02 vs L_Thigh x 0.11) -> mirrored from the left during the canonical conversion; exported GLB with skeleton -> intake/oathbound/raw/breachling-oathbound-fourview-tripo-rig.glb sha256 578f55e1b5ed4b676897d65b2c273807c8966b64d33d64240e4e134f10bd50b9"
+        }
+      ]
+    }
+  ]
+}

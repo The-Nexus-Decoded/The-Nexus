@@ -1,5 +1,5 @@
 import { BREACHLING_RUNTIME_ASSETS, type BreachlingTier } from "../../game/dungeons/breach-v2-breachlings";
-import { COMPOSER_MOB_PACKS } from "./composer-mob-packs";
+import { COMPOSER_MOB_PACKS, COMPOSER_MOB_PACKS_FOURVIEW } from "./composer-mob-packs";
 
 export interface ReviewedMobReceipt {
   readonly variant: BreachlingTier;
@@ -93,6 +93,15 @@ const COMPOSER_REVIEWED_MOB_RECEIPTS: ReviewedMobReceipts = Object.fromEntries(
   }]),
 );
 export const REVIEWED_MOB_RECEIPTS = prepareReviewedMobReceipts({ ...LEGACY_REVIEWED_MOB_RECEIPTS, ...COMPOSER_REVIEWED_MOB_RECEIPTS });
+// Four-view remodel bodies (Tripo multi-view meshes, Tripo auto-rig converted to the
+// canonical skeleton). Separate review entries keyed by the same variants; they share
+// the dungeon lineage of their legacy variant and never replace it without owner sign-off.
+export const REVIEWED_FOURVIEW_MOB_RECEIPTS: ReviewedMobReceipts = prepareReviewedMobReceipts(Object.fromEntries(
+  Object.entries(COMPOSER_MOB_PACKS_FOURVIEW).map(([variant, pack]) => [variant, {
+    variant: pack!.variant, url: pack!.url, runtimeSourceSha256: pack!.runtimeSourceSha256, bytes: pack!.bytes,
+    sha256: pack!.sha256, runtimeScale: pack!.runtimeScale, actions: [...pack!.actions], neutralHolds: [...pack!.neutralHolds],
+  }]),
+));
 // Existing base-specific contact/provenance consumers retain their exact intake.
 export const REVIEWED_BASE_MOB_RECEIPT = REVIEWED_MOB_RECEIPTS.base!;
 export const REVIEWED_BASE_MOB_URL = REVIEWED_BASE_MOB_RECEIPT.url;

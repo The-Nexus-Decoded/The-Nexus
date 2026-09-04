@@ -6,6 +6,8 @@ import { CINDERBOUND_WARDEN_ASSETS,
   cinderboundWardenActionNames } from "../src/game/dungeons/breach-v2-wardens";
 import { MOB_CATALOG, MobsStage, mobCalibrationKey, type MobDefinition } from "../src/review/weapon-lab/mobs-stage";
 import { COMPOSER_MOB_PACKS } from "../src/review/weapon-lab/composer-mob-packs";
+import { composerPackForDefinition, FOURVIEW_DEFINITION_SUFFIX } from "../src/review/weapon-lab/composer-pack-lookup";
+import { REVIEWED_FOURVIEW_MOB_RECEIPTS } from "../src/review/weapon-lab/reviewed-mob-receipt";
 import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL, REVIEWED_MOB_RECEIPTS,
   prepareReviewedMobReceipts, reviewedMobNote, type ReviewedMobReceipt } from "../src/review/weapon-lab/reviewed-mob-receipt";
 import { createMobReviewActor, type MobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
@@ -221,6 +223,7 @@ describe("Mobs stage exact installed asset contract", () => {
   it("pins all four current Breachlings and both Wardens to real source bytes and runtime catalogs", () => {
     expect(MOB_CATALOG.map((definition) => definition.id)).toEqual([
       "breachling-base", "breachling-stalker", "breachling-oathbound", "breachling-ravager",
+      "breachling-stalker-4v", "breachling-ravager-4v",
       "warden-wayfarer", "warden-oathbreaker",
     ]);
     for (const definition of MOB_CATALOG) {
@@ -233,18 +236,19 @@ describe("Mobs stage exact installed asset contract", () => {
       expect(definition).toMatchObject({ runtimeUrl: catalog.url, targetHeightMeters: catalog.targetHeightMeters });
       if (definition.reviewedMotion) {
         expect(definition.family).toBe("breachling");
-        expect(definition.reviewedMotion).toBe(REVIEWED_MOB_RECEIPTS[definition.variant as keyof typeof BREACHLING_RUNTIME_ASSETS]);
-        expect(definition.label).toContain(`${catalog.label} · revised `);
+        const fourview = definition.id.endsWith(FOURVIEW_DEFINITION_SUFFIX);
+        expect(definition.reviewedMotion).toBe((fourview ? REVIEWED_FOURVIEW_MOB_RECEIPTS : REVIEWED_MOB_RECEIPTS)[definition.variant as keyof typeof BREACHLING_RUNTIME_ASSETS]);
+        expect(definition.label).toContain(fourview ? `${catalog.label} · four-view body` : `${catalog.label} · revised `);
         expect(definition.url).toBe(definition.reviewedMotion.url);
       } else expect(definition).toMatchObject({ label: catalog.label, url: catalog.url });
       const header = glbHeader(definition);
       expect(header.skins).toHaveLength(1);
-      const composer = definition.family === "breachling" ? COMPOSER_MOB_PACKS[definition.variant as keyof typeof COMPOSER_MOB_PACKS] : undefined;
-      // composer packs add toe bones (4 front + 3 rear per side) and appended reaction clips
-      expect(header.skins[0]?.joints).toHaveLength(definition.family === "breachling" ? (composer ? 38 : 24) : 18);
+      const composer = definition.family === "breachling" ? composerPackForDefinition(definition.id) : undefined;
+      // composer packs add toe bones (legacy rigs: 4 front + 3 rear per side; four-view bodies: whatever Tripo found) and appended reaction clips
+      expect(header.skins[0]?.joints).toHaveLength(definition.family === "breachling" ? (composer ? 24 + composer.toeBones.length : 24) : 18);
       expect(header.meshes).toHaveLength(definition.family === "breachling" ? 1 : 4);
       expect(header.animations).toHaveLength(definition.family === "breachling"
-        ? (composer ? 12 + composer.actions.filter((name) => /^RecieveHit./.test(name)).length : 12)
+        ? (composer ? (composer.body === "fourview" ? 0 : 1) + composer.actions.length + composer.neutralHolds.length : 12)
         : cinderboundWardenActionNames(definition.variant as "wayfarer" | "oathbreaker").length);
     }
   });
@@ -268,8 +272,8 @@ describe("Mobs stage exact installed asset contract", () => {
       .filter((name) => name !== "SwordSlashOutward").sort());
     expect(value.snapshot()).toMatchObject({ currentClip: "CombatIdle", playbackSpeed: 0.6, reviewLoop: true });
     const audit = value.overlay!.audit();
-    expect(audit.bones).toHaveLength(definition.family === "breachling"
-      ? (COMPOSER_MOB_PACKS[definition.variant as keyof typeof COMPOSER_MOB_PACKS] ? 38 : 24) : 18);
+    const composerPack = definition.family === "breachling" ? composerPackForDefinition(definition.id) : undefined;
+    expect(audit.bones).toHaveLength(definition.family === "breachling" ? (composerPack ? 24 + composerPack.toeBones.length : 24) : 18);
     expect(audit.skinnedMeshCount).toBe(definition.family === "breachling" ? 1 : 4);
     if (definition.family === "breachling") {
       expect(actor.model.getObjectByName("front_handR")).toBeInstanceOf(THREE.Bone);

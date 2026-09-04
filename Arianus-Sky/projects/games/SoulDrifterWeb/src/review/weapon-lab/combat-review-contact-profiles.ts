@@ -5,7 +5,7 @@ import type { ReviewActorAdapter } from "./combat-review-types";
 import { REVIEWED_BASE_SHA as BASE_SHA, reviewActorSourceSha as sourceSha, reviewProjectileBinding,
   type ReviewProjectileEmitter } from "./combat-review-projectiles";
 import { REVIEWED_MOB_RECEIPTS } from "./reviewed-mob-receipt";
-import { COMPOSER_MOB_PACKS } from "./composer-mob-packs";
+import { composerPackForDefinition } from "./composer-pack-lookup";
 
 export type ReviewStrikeSurface =
   | { readonly kind: "indexed"; readonly meshName: string; readonly vertices: readonly number[] }
@@ -122,7 +122,7 @@ export function reviewContactProfile(actor: ReviewActorAdapter, actionId: string
     startSeconds: projectile.releaseSeconds, endSeconds: projectile.endSeconds,
     surface: { kind: "projectile", emitter: projectile.emitter }, evidence: projectile.evidence,
     definitionId: actor.definitionId, assetSha256: sourceSha(actor) };
-  const composer = COMPOSER_MOB_PACKS[actor.definitionId.replace("breachling-", "") as keyof typeof COMPOSER_MOB_PACKS];
+  const composer = composerPackForDefinition(actor.definitionId);
   if (composer && sourceSha(actor) === composer.sha256) {
     const strike = composer.strikes[actionId];
     if (!strike) return null;
