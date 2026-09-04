@@ -7,7 +7,7 @@
   "subjects": [
     {
       "assetId": "breachling-ravager",
-      "status": "canonical rig v2; composer pack v2 built (14/15 gates)",
+      "status": "registered in Motion Forge as the four-view body (ravager4v v4, 15/15, commit 36adce47)",
       "originalConcept": {
         "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/breachling-lineage-variants/selected/breachling-ravager-selected.png",
         "bytes": 1450771,
@@ -86,7 +86,7 @@
     },
     {
       "assetId": "breachling-base",
-      "status": "canonical rig v2; composer pack v2 built (13/15 gates)",
+      "status": "registered in Motion Forge as the four-view body (base4v v8)",
       "originalConcept": {
         "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/breachling-base-bakeoff/midjourney-v8.2-base-winner.png",
         "bytes": 1083511,
@@ -133,12 +133,17 @@
           "step": "canonical conversion v2 (mappings/base-fourview-tripo.json; Tripo labelled the spine chain as 0_Right_Limb, sides taken from the x sign; rear legs end at the hock so rear_foot carries the paw, front toes only)",
           "at": "2026-09-03 23:35",
           "result": "composer pack base4v v2: 13/15 clips pass (LungeAttack floor -6 mm at 0.18 s; RecieveHitBack tail004 vs torso 0.128 m < 0.145 limit)"
+        },
+        {
+          "step": "composer pack base4v v8 (re-rolled toe frames, thin tail proxy, hit-back tail flick halved for four-view bodies)",
+          "at": "2026-09-04 01:50",
+          "result": "15/15 gates; registered as breachling-base-4v (commit 831844e3)"
         }
       ]
     },
     {
       "assetId": "breachling-stalker",
-      "status": "canonical rig v2 with fitted tail; composer pack v2 built (15/15 gates)",
+      "status": "registered in Motion Forge as the four-view body (stalker4v v5, 15/15, commit 36adce47)",
       "originalConcept": {
         "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/breachling-lineage-variants/selected/breachling-stalker-selected.png",
         "origin": "Midjourney v8.2 selected lineage variant"
@@ -190,7 +195,7 @@
     },
     {
       "assetId": "oathbound-breachling",
-      "status": "quadruped tripo rig converted (canon q1); composer pack building",
+      "status": "registered in Motion Forge as the four-view body (oathbound4v q4)",
       "originalConcept": {
         "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/breachling-lineage-variants/selected/oathbound-breachling-selected.png",
         "origin": "Midjourney v8.2 selected lineage variant"
@@ -237,12 +242,22 @@
           "credits": 20,
           "balanceAfter": 10105,
           "result": "classified Quadruped (83 joints: 4 front toes + 3 rear toes per side, 12 tail segments, a lower-jaw joint); exported -> intake/oathbound/raw/breachling-oathbound-fourview-tripo-rig-quad.glb sha256 c91b709fbf074ecf566da32932da7ec23f2fcdc69bbef9bce521e52ee12a1c38; mapping mappings/oathbound-fourview-tripo-quad.json; Idle solves (floor 1 mm); full pack q1 building"
+        },
+        {
+          "step": "composer pack oathbound4v q1",
+          "at": "2026-09-04 01:58",
+          "result": "13/15: the tail tip curled sideways on the floor dips 3-8 mm in the Bite/Spit crouches (the tail guard could only pitch); guard now probes pitch and roll - q2 building"
+        },
+        {
+          "step": "composer pack oathbound4v q4 (tail guard probes pitch/roll and re-probes a dead axis; sideways hit reactions halved for four-view bodies)",
+          "at": "2026-09-04 02:25",
+          "result": "15/15 gates; registered as breachling-oathbound-4v"
         }
       ]
     },
     {
       "assetId": "wayfarer-cinderbound-warden",
-      "status": "3d-generated and Tripo-rigged (humanoid); raw + rig exports pending download; segmentation for break-off parts and retarget to the warden skeleton are follow-ups",
+      "status": "four-view model + Tripo humanoid rig in intake; follow-ups: retarget onto the game warden skeleton (18 bones, blade forearm), break-off parts (segment an unrigged copy or split in Blender), Greater (Oathbreaker) Warden not started",
       "originalConcept": {
         "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/cinderbound-warden-bakeoff/selected/wayfarer-cinderbound-warden-gpt-image-2-design-reference.png",
         "origin": "GPT Image 2 design reference"
@@ -282,7 +297,43 @@
           "at": "2026-09-04 01:47",
           "credits": 20,
           "balanceAfter": 10085,
-          "result": "rigged; export requested"
+          "result": "rigged (Humanoid, 41 joints: hip/pelvis, thigh/calf/foot/toe, spine01/02, neck, head, clavicle/upperarm/forearm/hand plus twist bones); exported -> intake/warden-wayfarer/raw/wayfarer-cinderbound-warden-fourview-tripo-rig.glb sha256 0639cd4cc28835de097222351a2f16d5860f4264cbf48a5b47a9078f56eaad49 (83 MB, 8K textures); 36k decimation in intake/warden-wayfarer/prepared"
+        }
+      ],
+      "segmentation": {
+        "attempt": "Tripo Segment (Balanced, 6-15 parts, 40 credits, trial x1) on the rigged Warden",
+        "at": "2026-09-04 01:55",
+        "result": "refused: 'Rigged models don't support segmentation yet' - Tripo segmentation must run on the unrigged model BEFORE Auto Rig. Break-off damage parts therefore need either a second unrigged Warden generation segmented first, or a Blender split of the rigged mesh (preferred: we choose the plates, cap the cuts, keep the skin weights per part)."
+      }
+    },
+    {
+      "assetId": "oathbreaker-greater-cinderbound-warden",
+      "status": "multi-view to 3D generating (task a4987127-ca2a-4162-a46e-8f5b3c856212); export an UNRIGGED copy first (segmentation), then Auto Rig",
+      "originalConcept": {
+        "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/cinderbound-warden-bakeoff/selected/oathbreaker-greater-cinderbound-warden-midjourney-v8.2-selected.png",
+        "origin": "Midjourney v8.2 selected"
+      },
+      "imageSteps": [
+        {
+          "step": "front view A-pose, single RIGHT blade forearm and open LEFT casting hand",
+          "model": "Nano Banana 2",
+          "at": "2026-09-04 02:05",
+          "result": "both candidates correct (one blade, open hand); candidate 2 selected (no base plate)"
+        },
+        {
+          "step": "Generate Multi-Views",
+          "at": "2026-09-04 02:06",
+          "result": "consistent biped set, blade on the right arm in every view"
+        }
+      ],
+      "modelSteps": [
+        {
+          "step": "Multi-View to 3D, HD Model, 8K texture, v3.1",
+          "taskId": "a4987127-ca2a-4162-a46e-8f5b3c856212",
+          "at": "2026-09-04 02:08",
+          "credits": 65,
+          "balanceAfter": 10020,
+          "result": "done; unrigged raw export requested (oathbreaker-greater-cinderbound-warden-fourview-raw) before any rigging so Tripo segmentation stays possible"
         }
       ]
     }
