@@ -1,503 +1,242 @@
 # SoulDrifter Quest and Progression Framework Runbook
 
-**Status:** Binding framework-production contract
-**Owner direction recorded:** 2026-09-04
-**Framework epic:** #501
+Status: Binding production contract
+Owner direction: 2026-09-04 / environment-first-v2
+Program epic: #501
 
-## Purpose
+## Purpose and current precedence
 
-Build a reusable quest, reward, leveling, inventory, faction, persistence, authoring, simulation, and player-UX framework before locking the complete Heartvale quest prose and details.
+Build the full reusable quest, reward, leveling, inventory, faction, persistence, authoring, simulation and player-UX system while delivering a real Heartvale 3D first pass early.
 
-The owner may revise quest names, dialogue, NPC roles, reward numbers, prerequisites, faction names, story causes, and finale choices later. Those revisions must be data/content changes rather than framework-code rewrites.
+The latest owner direction supersedes the old framework-first sequencing:
 
 ```text
-framework first
--> four-quest integration proof
--> owner content review
--> 30 approved Heartvale quest records
--> later regions reuse the same framework
+recover and redesign the existing Heartvale outdoor section
+-> reconstruct environment, buildings, landscape and water
+-> fresh Tripo Human NPCs and usable existing creature placement
+-> provisional in-world quest loop using minimum real framework interfaces
+-> integrated 3D review
+-> expand/harden the full reusable framework
+-> owner final content review
+-> 30-quest Heartvale rollout and later-region reuse
 ```
 
----
+Read `HEARTVALE_ENVIRONMENT_FIRST_HANDOFF.md` and the revised #501 kickoff for spatial production, exact source locations, model routing and the first-pass scope. This runbook retains the entire framework capability contract; environment-first does not mean abandoning it or building a disposable parallel engine.
 
-# 1. Ticket ownership
+The owner may revise names, dialogue, roles, reward numbers, prerequisites, faction names, story causes and finale choices later. These remain versioned data/content rather than hard-coded services. Provisional local test content is allowed before final canon approval.
+
+## 1. Ticket ownership
 
 | Ticket | Ownership |
 |---|---|
-| #501 | Framework orchestration, dependencies, integration and final acceptance |
-| #502 | Versioned quest/chapter definitions, safe expressions, objective DAG compiler and content lint |
-| #503 | Quest lifecycle runtime, prerequisite evaluation, event routing and quest instances |
-| #504 | Standard objective/action adapter registry |
-| #505 | Persistence, idempotency, migrations, simulator and developer inspector |
-| #506 | Dialogue, offer/turn-in, journal, tracker, map/markers, rewards and accessible UX |
-| #442 | Parent progression epic |
-| #507 | #442A XP curve, atomic award transaction, level state, ledger and save migration |
-| #508 | #442B level rewards, choices, skills/talents, character sheet, respec and readiness UX |
-| #499 | Twenty-slot shared inventory, quest reservations, pending claims and expansion entitlements |
-| #500 | Human Heartvale factions, reputation and realm-readiness state |
-| #459 | Four-quest Heartvale integration proof after framework gates |
-| #498 | Full Heartvale content only after owner review |
+| #501 | Integrated design/production coordination, dependencies and acceptance |
+| #509 | Existing Heartvale section overhaul, spatial/quest sockets and environment integration; reconcile #452–#455 |
+| #510 | Fresh Tripo Human quest cast, complete cast coverage, placement and staged animation |
+| #456 | Creature asset/animation source library and review ledger |
+| #492/#493/#494/#495 | Population, legal terrain/navigation, behavior and staged creature runtime integration |
+| #502 | Versioned definitions, safe expressions, objective DAG compiler and lint |
+| #503 | Quest lifecycle/runtime, prerequisites, events and instances |
+| #504 | Objective/action adapters |
+| #505 | Persistence, idempotency, migration, simulator and developer inspector |
+| #506 | Dialogue, offers/turn-in, journal, tracker, map/markers and accessible quest UX |
+| #442 / #507 | Progression parent / XP curves, award coordination, level state, ledger and migration |
+| #508 | Level choices, skills/talents, character sheet, respec and readiness UX |
+| #499 | 20-slot shared inventory, quest reservations, pending claims and capacity entitlements |
+| #500 | Human Heartvale factions and reusable reputation/readiness state |
+| #459 | Early provisional quest loop in rebuilt Heartvale, then complete framework integration proof |
+| #498 | Full draft campaign and later owner-approved 10 main, 10 side, 10 optional content |
 
-One issue owns one concern, branch, worktree, and PR. Shared interfaces are frozen deliberately; workers do not edit another ticket's active worktree.
+One concern, branch, worktree and PR per implementation worker. Shared map/renderer/type changes have an explicit serialization owner. Preserve current work; do not overwrite other agents to synchronize them.
 
----
+## 2. Canonical delivery order
 
-# 2. Canonical build order
+### Stage 0 — recovery and spatial audit
 
-## Wave 0 — framework audit and interface map
+Use cached fast-start, live issues/comments/PRs and actual repository/worktree data. Classify existing implementation as REUSE, REFACTOR_BEHIND_INTERFACE, MIGRATE_CONTENT_ONLY, LEGACY_REFERENCE, REJECT or OWNER_DECISION_REQUIRED. Record local-only artifacts separately from pushed files. Capture current outdoor renders; historical defects are not automatically current defects.
 
-1. Read current master harness and all live issues/comments/PRs.
-2. Inspect current First Breach tutorial, quest-like, interaction, combat, save, map, dialogue, inventory and progression code.
-3. Classify existing code:
+Publish the section layout/route plan, asset availability ledger, placement socket contract, event/reward seams and file ownership. The first sessions are #501 lead, #509 environment and #510 NPC cast. After the bounded receipt, proceed with authorized local work rather than returning only more plans.
 
-```text
-REUSE
-REFACTOR_BEHIND_INTERFACE
-MIGRATE_CONTENT_ONLY
-LEGACY_REFERENCE
-REJECT
-OWNER_DECISION_REQUIRED
-```
+### Stage 1 — reconstructed environment and placement
 
-4. Produce the dependency graph, file-collision map, canonical event catalog, and shared interface package plan.
-5. Do not implement Heartvale's final prose or all 30 quests.
+#509 reworks the whole existing Heartvale section coherently, with the Basin -> road/ford -> Anwel -> fields/river loop delivered first. Use topology/graybox, semantic staging, prop-complete collision/nav, interactions/destruction, lighting/audio/readability/performance/recovery and population-ready gates.
 
-## Wave 1 — foundation, parallel after interface review
+#510 produces new Tripo Human identities for all distinct required quest participants, opening cast first. #495 consumes exact usable #456 assets through #492/#493 legal placement. Good meshes without full motion are allowed as MESH_ONLY_PREVIEW; rejected/quarantined assets are not. Later AI/animation completeness remains under #494/#495 and the asset lane.
 
-- #502 quest definition/compiler
-- #503 runtime state machine/event router
-- #507 progression/award kernel
+Keep the Basin treeless grassland, the outdoor Soul Well a silvery machinic pool, the ordinary river distinct, and the accepted map/First Breach seam intact. Human-only is a local social-population rule, not a rewrite of player ancestry eligibility.
 
-## Wave 2 — runtime completeness
+### Stage 2 — provisional playable loop
 
-- #504 objective adapters
-- #505 persistence/idempotency/simulator
-- #499 inventory reservations and claims
+#459 proves rescue/combat, dialogue/actual-map orientation, townward travel and one side task. Names/text/tuning may be provisional. Use existing functional systems behind minimum #502/#503/#507 interfaces; no second temporary quest engine and no direct award writes from rendering/UI.
 
-## Wave 3 — player-facing and world integration
+Reserve all draft cast/quest space now, but do not confuse placement with functional objectives. Isolate provisional saves/rewards. Missing animation polish is acceptable only with honest limitations; core completion/retry/reward behavior must work for anything called playable.
 
-- #506 quest UX
-- #508 progression rewards/character sheet
-- #500 faction/readiness
-- dialogue, map, cutscene/media, combat and environment gateways
+### Stage 3 — full framework implementation
 
-## Wave 4 — small vertical proof
+After the integrated environment-first pilot is reviewable, expand #502, #503 and #507 in separate worktrees with frozen shared interfaces. Then #504/#505/#499, followed by #506/#508/#500 and remaining gateways. Design/interfaces and necessary thin implementations may run earlier where they directly support the first pass; do not delay environment work for unrelated framework completeness.
 
-#459 proves:
+### Stage 4 — full technical proof and content approval
 
-```text
-1 opening combat/rescue quest
-1 dialogue + map/orientation quest
-1 travel/exploration quest
-1 representative side quest
-```
+Re-run the #459 four-quest proof against the complete framework. The owner separately approves final quest names, prose, NPC roles, story cause, prerequisites/branching, numeric rewards, faction details and finale/next-region consequences. Then finish #498's 30 approved records. A first-loop acceptance does not waive the whole-section, complete-cast or full-framework obligations.
 
-Use stable IDs and temporary localization text where final prose is unapproved.
+## 3. Immutable definitions and mutable instances
 
-## Wave 5 — owner content gate
-
-The owner reviews:
-
-- final quest names and summaries;
-- dialogue/scripts;
-- NPC identities and roles;
-- story cause and chapter title;
-- prerequisite and branching details;
-- exact reward values;
-- faction names and effects;
-- finale consequence and next-region hook.
-
-Only after that gate does #498 author/load all 10 main, 10 side, and 10 optional quests.
-
----
-
-# 3. Immutable definitions and mutable instances
-
-## `QuestDefinition`
-
-Immutable, compiled, versioned content containing:
+QuestDefinition is compiled/versioned immutable data:
 
 ```text
 questId/version/chapterId/classification
 localization keys
 visibility/availability/acceptance/completion expressions
 start and turn-in sources
-objective DAG
-branch and choice definitions
+objective DAG, branches and choices
 failure/recovery/abandon/reacquire/repeat policy
-reward bundle references
-inventory reservations
+reward bundle references and inventory reservations
 faction/readiness/world-state reads and writes
 map/marker/dialogue/media references
-level/readiness recommendations
-party/co-op attribution policy
-save migration metadata
-content hash
+level/readiness recommendations and party attribution
+save migration metadata and content hash
 ```
 
-## `QuestInstance`
-
-Player- or party-specific mutable state containing:
+QuestInstance is player/party-specific state:
 
 ```text
-instanceId
-questId/definitionVersion
-lifecycle state
-active/completed/failed objective nodes
-progress counters
-selected branches/choices
-reservation and pending-claim references
-pending/applied reward transaction references
+instanceId, questId, definitionVersion
+lifecycle state and active/completed/failed objective nodes
+progress counters and selected branches/choices
+reservation, pending claim and reward transaction references
 completion/repeat/cooldown history
-last processed event sequence
-idempotency ledger references
+last processed event sequence, idempotency ledger references
 migration history
 ```
 
-Definitions may be renamed or reworded without resetting valid instances. Structural definition changes require explicit migration.
+Text/name changes do not reset valid instances. Structural graph changes require explicit migration.
 
----
-
-# 4. Lifecycle state machine
-
-Minimum states:
+## 4. Lifecycle
 
 ```text
-LOCKED
-HIDDEN
-AVAILABLE
-OFFERED
-ACCEPTED
-ACTIVE
-READY_TO_TURN_IN
-COMPLETED
-FAILED_RECOVERABLE
-FAILED_FINAL
-ABANDONED
-EXPIRED
-SUSPENDED
+LOCKED, HIDDEN, AVAILABLE, OFFERED, ACCEPTED, ACTIVE,
+READY_TO_TURN_IN, COMPLETED, FAILED_RECOVERABLE, FAILED_FINAL,
+ABANDONED, EXPIRED, SUSPENDED
 ```
 
-Rules:
+Use an explicit transition table, stable event/idempotency keys, deterministic rejection reasons and atomic local state updates. Completion cannot directly pay rewards. Recoverable failure defines checkpoint/retry; abandon/reacquire cleans inventory reservations through #499. Changed world state may select an alternate version, not silently erase content. Instances survive zone unload/re-entry.
 
-- transitions are declared in a typed transition table;
-- every transition has a stable event and idempotency key;
-- invalid transitions return a reason and do not mutate state;
-- completion cannot pay rewards directly;
-- recoverable failure defines a deterministic retry/checkpoint path;
-- abandon/reacquire cleans up inventory reservations and quest objects through #499;
-- changed world state can select an alternate definition/version rather than silently deleting content;
-- cross-zone instances remain active through unload/re-entry.
+## 5. Safe conditions
 
----
+Use a typed expression tree, never unrestricted eval or content-authored JavaScript/network/filesystem access.
 
-# 5. Safe condition/expression system
-
-Content uses a typed expression tree, never arbitrary JavaScript or `eval`.
-
-Supported predicate families include:
+Predicates:
 
 ```text
-QUEST_STATE
-OBJECTIVE_STATE
-PLAYER_LEVEL
-PLAYER_CLASS
-PLAYER_ANCESTRY
-INVENTORY_HAS
-INVENTORY_SPACE
-EQUIPPED_ITEM
-FACTION_REPUTATION
-READINESS_VALUE
-WORLD_FLAG
-LOCATION_DISCOVERED
-TUTORIAL_FLAG
-PARTY_STATE
-TIME_OR_EVENT_WINDOW
-AND / OR / NOT / comparisons
+QUEST_STATE, OBJECTIVE_STATE, PLAYER_LEVEL, PLAYER_CLASS, PLAYER_ANCESTRY,
+INVENTORY_HAS, INVENTORY_SPACE, EQUIPPED_ITEM, FACTION_REPUTATION,
+READINESS_VALUE, WORLD_FLAG, LOCATION_DISCOVERED, TUTORIAL_FLAG,
+PARTY_STATE, TIME_OR_EVENT_WINDOW, AND/OR/NOT/comparisons
 ```
 
-Compiler diagnostics must explain which predicate blocks visibility, acceptance, progress, or completion.
+Diagnostics explain blocked visibility/acceptance/progress/completion. Static validation proves what it can; uncertain dynamic conditions require fixtures/simulation rather than false claims of universal satisfiability.
 
----
+## 6. Objective graphs and adapters
 
-# 6. Objective graph and adapter registry
+Operators: SEQUENCE, AND, OR, COUNT, OPTIONAL, BRANCH, PLAYER_CHOICE.
 
-Objective graphs support:
+Standard adapter types:
 
 ```text
-SEQUENCE
-AND
-OR
-COUNT
-OPTIONAL
-BRANCH
-PLAYER_CHOICE
+TALK, KILL, DAMAGE, DEFEAT_BOSS, COLLECT, DELIVER, INTERACT, USE_ITEM,
+EQUIP, CRAFT, GATHER, DISCOVER_LOCATION, ENTER_AREA, FOLLOW_ROUTE, ESCORT,
+DEFEND, SURVIVE, REPAIR, DESTROY, ACTIVATE, PUZZLE_STATE, PLAYER_CHOICE,
+CUTSCENE_OR_VIDEO, FACTION_THRESHOLD, WORLD_STATE, CUSTOM_SCRIPTED_ADAPTER
 ```
 
-Standard adapters:
+Custom adapters are typed registered allowlisted code. Index routing by event/target/location and subscribe only for active objectives; no full quest scan every frame. Optional nodes never block required completion. Repeated/late/out-of-order events do not duplicate progress. Branch selection and retry resets are explicit.
+
+Both real-time and tactical combat emit the same event contract. Pet/summon/assist/party/environmental credit is an explicit policy. Media skip/fallback/replay, escort/home/terrain recovery and inventory protection each need real adapters, not one-off renderer conditionals.
+
+## 7. Canonical gameplay events
 
 ```text
-TALK
-KILL
-DAMAGE
-DEFEAT_BOSS
-COLLECT
-DELIVER
-INTERACT
-USE_ITEM
-EQUIP
-CRAFT
-GATHER
-DISCOVER_LOCATION
-ENTER_AREA
-FOLLOW_ROUTE
-ESCORT
-DEFEND
-SURVIVE
-REPAIR
-DESTROY
-ACTIVATE
-PUZZLE_STATE
-PLAYER_CHOICE
-CUTSCENE_OR_VIDEO
-FACTION_THRESHOLD
-WORLD_STATE
-CUSTOM_SCRIPTED_ADAPTER
-```
-
-Custom adapters are typed, registered, allowlisted code. Quest content cannot inject arbitrary executable code.
-
-Adapters subscribe only to needed canonical event types and use indexed routing; they do not scan every quest every frame.
-
-Real-time and tactical/turn-based combat emit the same canonical quest events.
-
----
-
-# 7. Canonical event contract
-
-Every event includes:
-
-```text
-eventId
-eventType
-schemaVersion
-sourceSystem
+eventId, eventType, schemaVersion, sourceSystem
 player/actor/party IDs
-zone/location/socket IDs
-target/entity/item/faction IDs
-quantity/value
-combatMode
-worldStateVersion
-logical/game time
-causationId
-correlationId
-idempotencyKey
+zone/location/socket and target/entity/item/faction IDs
+quantity/value, combatMode, worldStateVersion
+logical/game time, causationId, correlationId, idempotencyKey
 validated payload
 ```
 
-Late, repeated, and out-of-order events must not duplicate progression.
+Distinguish observed gameplay evidence from UI requests. Validate attribution and event ordering at the appropriate authority boundary; the offline POC does not establish secure online authority.
 
-Pet, summon, party, assist, environment, and scripted kill attribution are explicit policies.
+## 8. Awards and progression gateway
 
----
+#507 owns AwardTransactionService. Quests/UI/renderers never directly mutate rewarded XP, money, inventory, reputation, readiness or unlocks.
 
-# 8. Atomic award/progression service
+Bundles may contain XP/level advancement, currency, items/pending claims, skills/talents/attributes, capacity entitlements, faction reputation, readiness/world-state changes, map/travel/service unlocks and tutorial flags.
 
-#507 owns one `AwardTransactionService`. Quest, combat, UI, inventory, and faction code never directly mutate rewards.
-
-One transaction may contain:
+Outcomes:
 
 ```text
-XP and level progression
-currency
-items or pending claims
-skill/talent/attribute/unlock grants
-inventory capacity entitlement
-faction reputation
-realm-readiness/world-state writes
-map/travel/service unlocks
-tutorial flags
+APPLIED, ALREADY_APPLIED, PENDING_EXTERNAL_CLAIM,
+REJECTED_VALIDATION, RETRYABLE_FAILURE, NONRETRYABLE_FAILURE
 ```
 
-Typed outcomes:
+Local state commits once or not at all within its transaction boundary. Cross-gateway effects use durable outbox/receipts and idempotent recovery, not an unsupported claim of global atomicity. Never report a quest fully paid when required effects silently failed. Pending item claims are visible, unusable until claimed and cannot repay twice.
 
-```text
-APPLIED
-ALREADY_APPLIED
-PENDING_EXTERNAL_CLAIM
-REJECTED_VALIDATION
-RETRYABLE_FAILURE
-NONRETRYABLE_FAILURE
-```
+## 9. Leveling
 
-The transaction commits once or remains visibly recoverable. A quest may not appear fully paid while some required effects silently failed.
+Keep level/current XP/lifetime XP, versioned curve/cap, exact thresholds, multi-level gains, pending choices, deterministic migration and reward provenance. Support levels 1–20 and extension without hard-coded content assumptions. Planning data targets level1 First Breach -> level2 Heartvale arrival -> around3 orientation -> around10 finale through XP/catch-up, not arbitrary level setting.
 
----
+#508 provides data-driven automatic/choice rewards, skill/talent/attribute growth, later specialization hooks, durable multi-level choice queues, respec and explainable readiness. Consume #443 ancestry/class contracts; do not resolve old ancestry conflicts independently. Readiness uses level plus approved gear/skill/story conditions and distinguishes warnings from hard access rules.
 
-# 9. Leveling framework
+Final numbers remain owner-reviewable data. Main-only, mixed, completionist, under-level and over-level paths must be simulated; no required grinding or all-side-quest completion.
 
-The progression kernel supports:
+## 10. Inventory
 
-- current level, current XP and lifetime XP;
-- versioned curves and caps;
-- exact threshold and multi-level gains;
-- pending level-up choices;
-- deterministic curve migration;
-- source/reward provenance;
-- main-only, mixed, completionist, under-level and over-level simulations;
-- party attribution interfaces;
-- readiness signals using level plus gear, skills, story and approved access state.
+#499 owns 20 base physical slots shared by regular and physical quest items, counted visible quest reservations, protected items/reacquisition, full-inventory pending rewards and +5 capacity entitlements. No unlimited invisible quest bag or mandatory purchased capacity. Quest definitions declare simultaneous reservation and reward-capacity needs, respecting stack sizes and atomic consumption/claim behavior.
 
-Heartvale planning target:
+## 11. Factions and realm state
 
-```text
-Level 1 First Breach start
-Level 2 Heartvale arrival
-Level 3 after opening rescue/orientation target
-Levels 3–10 campaign
-Level 10 finale/readiness
-```
+#500 owns Human-only local Heartvale factions and reusable reputation/readiness. Six vectors: PERSONAL_POWER, RECOVERED_KNOWLEDGE, ALLIANCES_AND_FACTION_INFLUENCE, REALM_STABILITY, INFRASTRUCTURE_AND_ACCESS, RESOURCES_AND_AUTHORITY. They initially describe narrative/world readiness, not hidden stat multipliers.
 
-This target is achieved through XP/catch-up rules, not arbitrary level assignment. Final numbers remain owner-approved data.
+Definitions declare reads/writes; validated gateways apply them idempotently. Drakkin/other peoples arrive in later regions. Working faction names remain proposals.
 
-#508 owns data-driven level rewards, skills/talents, choice queues, character sheet, respec, and explainable readiness.
+## 12. Persistence, migration and simulation
 
----
+#505 owns versioned snapshots, content hashes/definition versions, event/idempotency ledgers, pending transaction recovery, safe migration mappings, deterministic headless simulation and development-only inspector/event injection.
 
-# 10. Inventory integration
+Simulate main-only, mixed, completionist, skipped tutorials, direct-to-town, late side quests, abandon/reacquire, defeat/retry, inventory-full, reward failure/retry, duplicate/out-of-order events, every lifecycle save/reload, and under/over-level paths.
 
-#499 owns:
+Never silently reset progress on a definition change. Test missing actors/objects/locations, failed media, browser crash, conflicting tabs, corrupted saves and migration rollback. Future server/party authority has explicit interfaces; building a full backend is not a prerequisite for this local POC.
 
-```text
-20 base physical-item slots
-physical quest and normal items share capacity
-visible counted quest reservations
-pending reward claim when full
-protected quest items and reacquisition
-+5 capacity entitlement/token
-```
+Debug mutation tools use validated runtime APIs and are excluded/securely disabled in production.
 
-No main quest requires purchased capacity. Inventory expansion remains quality of life.
+## 13. Player-facing UX
 
-The quest compiler rejects required physical quest-item definitions without capacity/reservation handling.
+#506 owns projection-driven offer/accept/blocked explanations, canonical NPC dialogue, journal/history, tracked HUD objectives, map/world/search-area markers, branch/choice views, abandon/reacquire, reward previews/committed receipts, pending claims, level-up handoff, faction/readiness displays and captions/skip/replay/fallback.
 
----
+All surfaces share canonical projections. UI dispatches validated commands, not direct state mutations. Keep desktop, controller where supported, touch/mobile, readable contrast/text, focus restoration, reduced motion and color-independent status. Bound notification queues/marker cost and lazily load heavy media.
 
-# 11. Faction and realm-readiness integration
+## 14. Compiler hard failures
 
-#500 owns Human-only Heartvale factions and the reusable reputation/readiness model.
+Reject duplicate IDs, required graph cycles/unreachable nodes, missing references, required main depending on optional content, demonstrably contradictory conditions, missing recovery/idempotency/migration rules, unbounded required random drops, quest physical items without reservation/reacquisition, paid items/capacity required by main content, nonhuman Heartvale social actors, missing required media captions/skip/fallback and unsafe executable content.
 
-Readiness vectors:
+Chapter-specific restrictions belong to data-driven validation profiles, not hard-coded Heartvale imports inside the generic runtime.
 
-```text
-PERSONAL_POWER
-RECOVERED_KNOWLEDGE
-ALLIANCES_AND_FACTION_INFLUENCE
-REALM_STABILITY
-INFRASTRUCTURE_AND_ACCESS
-RESOURCES_AND_AUTHORITY
-```
+## 15. Acceptance
 
-Quest definitions declare expected reads/writes; runtime applies them only through the atomic award/world-state gateways.
+The environment-first milestone needs a runnable rebuilt map, fresh Tripo Human NPCs, legal usable creature placement, an honest animation-gap ledger and working provisional quests; it is not proof of all final framework capabilities.
 
-Heartvale social NPCs and faction members are Human only. Drakkin and other peoples are introduced in later locations.
+Full framework acceptance still requires:
 
----
+1. A generic sample chapter compiles/runs without Heartvale imports.
+2. Names/dialogue change without service-code changes.
+3. Lifecycle/graph/adapter behavior is deterministic and tested.
+4. Both combat modes progress the same instances.
+5. Award coordination applies once or exposes recoverable failure.
+6. Save/reload/re-entry/replay/migration preserves progress and prevents duplicates.
+7. Inventory-full/protected quest items and faction/readiness writes pass.
+8. Dialogue/journal/HUD/map/markers agree with one state.
+9. Simulations cover major routes and failures; debugging explains blocked conditions.
+10. Four #459 representative quests pass desktop/mobile real-GPU evidence against the full framework.
+11. Independent verification precedes owner-ready status.
+12. The owner reviews #498 content separately from technical framework acceptance.
 
-# 12. Persistence, migration, and simulation
-
-#505 provides:
-
-- versioned save snapshots;
-- quest/progression event and idempotency ledger;
-- content-hash and definition-version tracking;
-- safe migration mapping;
-- pending/retryable transaction recovery;
-- deterministic headless simulation;
-- developer-only quest inspector and event injection.
-
-Simulations include:
-
-```text
-main-only
-mixed
-completionist
-skip tutorials
-direct-to-town
-late side quest
-abandon/reacquire
-defeat/recovery
-inventory full
-reward failure/retry
-duplicate/out-of-order events
-save/reload at every lifecycle state
-under-level and over-level
-```
-
-Debug tools call real validated APIs and are disabled outside development builds.
-
----
-
-# 13. Player-facing UX
-
-#506 owns one canonical projection-driven experience:
-
-- quest offer and blocked-reason view;
-- dialogue integration;
-- journal/history;
-- tracked objective HUD;
-- map and world markers/search areas;
-- branch/choice presentation;
-- abandon/reacquire;
-- reward preview and committed-reward receipt;
-- pending item claim;
-- XP/level summary and level-up handoff;
-- faction/readiness effects;
-- captions, skip/replay/fallback for narrative media;
-- desktop, controller where supported, and touch/mobile accessibility.
-
-UI dispatches validated commands and never directly mutates quest/progression state.
-
----
-
-# 14. Content compiler hard failures
-
-Reject content with:
-
-- duplicate IDs;
-- graph cycles or unreachable required nodes;
-- missing references;
-- required main dependency on optional content;
-- contradictory conditions;
-- no recovery path for required recoverable failure;
-- missing idempotency keys;
-- random required drop without fallback;
-- quest item without reservation/reacquisition contract;
-- paid capacity/item required by main content;
-- non-Human Heartvale social actor;
-- missing captions/fallback/skip policy;
-- missing save migration version;
-- unsafe custom executable content.
-
----
-
-# 15. Framework acceptance
-
-The framework is not owner-ready until:
-
-1. a generic sample chapter compiles and runs without Heartvale imports;
-2. changing quest names/dialogue/localization requires no framework code change;
-3. all lifecycle states and graph operators pass;
-4. standard objective adapters pass deterministic tests;
-5. both combat modes progress the same instances;
-6. rewards apply atomically and once;
-7. save/reload/re-entry/replay cannot duplicate or erase state;
-8. inventory-full and quest-reservation cases pass;
-9. faction/readiness writes pass;
-10. journal/dialogue/map/markers agree with one canonical projection;
-11. deterministic simulations cover major paths and failures;
-12. four representative #459 quests pass desktop/mobile real-GPU proof;
-13. independent verification passes;
-14. the owner can then review #498 content without being asked to approve framework code and story prose simultaneously.
-
-No merge or deployment occurs without owner authorization.
+No merge or deployment without owner authorization. No provider purchase or unspecified credit expenditure is authorized by this runbook. The new NPC production lane uses the current scoped spend gates; pure framework work requires no paid 3D generation.
