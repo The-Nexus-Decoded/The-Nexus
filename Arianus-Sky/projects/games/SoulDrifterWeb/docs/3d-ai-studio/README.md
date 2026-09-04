@@ -146,6 +146,23 @@ Before a paid 3D request, prepare a consistent multi-view sheet:
 - no long loose hair during the rigging proof;
 - no labels or decorative borders touching the subject.
 
+### Four-view rule (mandatory for every generated subject)
+
+Owner rule, 2026-09-03 (#458): every monster, boss, NPC, and even equipment
+model is generated from a **four-image multi-view set** (front, left, back,
+right of the same subject), never from one image. The Ravager head was
+produced from a single three-quarter/side image and the provider inferred
+the hidden angles, which is why its head geometry and jaw hinge are skewed.
+A single-image request is only acceptable for a throwaway prop that will
+never be rigged or animated.
+
+- Generate or paint the four views first; check silhouette agreement between
+  them before spending credits.
+- Record all four source-image hashes in the intake ledger, not just one.
+- A body whose head, jaw, or limb symmetry fails a front/side/top review after
+  generation is regenerated from a corrected four-view set rather than
+  repaired in animation.
+
 ### Base-body prompt template
 
 ```text

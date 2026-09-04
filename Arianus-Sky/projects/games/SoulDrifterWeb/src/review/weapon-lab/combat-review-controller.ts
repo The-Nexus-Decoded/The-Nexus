@@ -58,12 +58,40 @@ export interface CombatReviewSnapshot {
   readonly frame: ReviewClockFrame | null;
   readonly error: string | null;
   readonly contact: CombatContactSnapshot;
+  readonly reactionPolicy: CombatReactionPolicy;
+  readonly spar: CombatSparSnapshot;
   readonly projectiles: Readonly<{ bound: boolean; flights: readonly ReviewProjectileFlight[]; unavailableReason: string | null }>;
 }
+export type CombatContactDirection = "front" | "back" | "left" | "right";
+export type CombatContactSeverity = "light" | "heavy";
 export interface CombatContactSnapshot {
   readonly status: "unmeasured" | "scanning" | ReviewContactResolution["status"];
   readonly result: ReviewContactResolution | null;
   readonly response: "none" | "reaction" | "death";
+  /** Where the measured contact landed in the defender's own frame; null until measured. */
+  readonly direction: CombatContactDirection | null;
+  /** Review-only severity read from the attack clip, never gameplay damage. */
+  readonly severity: CombatContactSeverity | null;
+}
+export type CombatReactionPolicy = "auto" | "manual";
+export interface CombatSparRow {
+  readonly actionId: string;
+  readonly label: string;
+  readonly window: string;
+  readonly status: CombatContactSnapshot["status"];
+  readonly timeSeconds: number | null;
+  readonly direction: CombatContactDirection | null;
+  readonly severity: CombatContactSeverity | null;
+  readonly reaction: string | null;
+  /** Centre-to-centre spacing at which the row was measured (closest tried on a miss). */
+  readonly separationMeters: number;
+  readonly evidence: string;
+}
+export interface CombatSparSnapshot {
+  readonly running: boolean;
+  readonly attackerDefinitionId: string;
+  readonly defenderDefinitionId: string;
+  readonly rows: readonly CombatSparRow[];
 }
 interface SlotState {
   definitionId: string; status: CombatSlotSnapshot["status"]; error: string | null;
@@ -96,6 +124,11 @@ export class CombatReviewController {
   private error: string | null = null;
   private contactResult: ReviewContactResolution | null = null;
   private contactResponse: CombatContactSnapshot["response"] = "none";
+  private contactDirection: CombatContactDirection | null = null;
+  private contactSeverity: CombatContactSeverity | null = null;
+  private reactionPolicy: CombatReactionPolicy = "auto";
+  private spar: { running: boolean; token: number; attackerDefinitionId: string; defenderDefinitionId: string; rows: CombatSparRow[] } =
+    { running: false, token: 0, attackerDefinitionId: "", defenderDefinitionId: "", rows: [] };
   private contactJob: { abort: AbortController; revision: number; sequenceId: string } | null = null;
   private projectiles: ReviewProjectiles | null = null;
   private projectileBound = false;
@@ -131,7 +164,41 @@ export class CombatReviewController {
       frame: this.clock?.snapshot() ?? null, error: this.error,
       projectiles: { bound: this.projectileBound, flights: this.projectiles?.flights ?? [], unavailableReason: this.projectileError },
       contact: { status: this.contactJob ? "scanning" : this.contactResult?.status ?? "unmeasured",
-        result: this.contactResult ? structuredClone(this.contactResult) : null, response: this.contactResponse } };
+        result: this.contactResult ? structuredClone(this.contactResult) : null, response: this.contactResponse,
+        direction: this.contactDirection, severity: this.contactSeverity },
+      reactionPolicy: this.reactionPolicy,
+      spar: { running: this.spar.running, attackerDefinitionId: this.spar.attackerDefinitionId,
+        defenderDefinitionId: this.spar.defenderDefinitionId, rows: this.spar.rows.map((row) => ({ ...row })) } };
+  }
+
+  /** Contact position classified in the defender's own frame (+Z forward, +X left). */
+  static classifyContactDirection(defender: ReviewActorAdapter, position: readonly [number, number, number]): CombatContactDirection {
+    defender.root.updateMatrixWorld(true);
+    const local = defender.root.worldToLocal(new THREE.Vector3(position[0], position[1], position[2]));
+    const angle = Math.atan2(local.x, local.z) * 180 / Math.PI;
+    const magnitude = Math.abs(angle);
+    return magnitude <= 55 ? "front" : magnitude >= 125 ? "back" : angle > 0 ? "left" : "right";
+  }
+  /** Review-only severity from the attack clip's name; there is no damage model here. */
+  static classifyAttackSeverity(attack: ReviewAction): CombatContactSeverity {
+    return /jump|spin|heavy|smash|overhead|slam|charge|lunge|tail/i.test(`${attack.id} ${attack.label} ${attack.clipName}`) ? "heavy" : "light";
+  }
+  /** Pick the defender's reaction clip that names the contact side/severity; null keeps the current one. */
+  static pickReactionClip(actions: readonly ReviewAction[], direction: CombatContactDirection, severity: CombatContactSeverity): string | null {
+    const reactions = actions.filter((action) => action.semantic === "reaction" && !action.unavailableReason);
+    if (!reactions.length) return null;
+    const name = (action: ReviewAction) => `${action.id} ${action.clipName}`;
+    const sided = (test: RegExp) => reactions.find((action) => test.test(name(action)))?.id ?? null;
+    if (direction === "left") return sided(/left/i);
+    if (direction === "right") return sided(/right/i);
+    if (direction === "back") return sided(/back|behind/i);
+    if (severity === "heavy") { const heavy = sided(/heavy|big|large|strong/i); if (heavy) return heavy; }
+    return reactions.find((action) => !/left|right|back|behind|heavy|big|large|strong/i.test(name(action)))?.id ?? reactions[0]!.id;
+  }
+  setReactionPolicy(policy: CombatReactionPolicy): void {
+    this.assertLive();
+    if (policy !== "auto" && policy !== "manual") throw new Error("Unknown reaction policy.");
+    this.reactionPolicy = policy; this.revision++; this.emit();
   }
   actor(slot: CombatSlot): ReviewActorAdapter | null { return this.slots[slot].handle?.actor ?? null; }
   sequence(): ReviewSequence | null { return this.clock?.sequence ?? null; }
@@ -201,6 +268,15 @@ export class CombatReviewController {
       this.contactResult = structuredClone(result);
       if (result.status === "contact" && result.event) {
         this.contactResponse = response;
+        const attack = this.requireAction(this.attacker, this.slots[this.attacker].selected.action);
+        this.contactSeverity = CombatReviewController.classifyAttackSeverity(attack);
+        this.contactDirection = result.event.position
+          ? CombatReviewController.classifyContactDirection(this.actor(opposite(this.attacker))!, result.event.position) : null;
+        if (response === "reaction" && this.reactionPolicy === "auto" && this.contactDirection) {
+          const defenderSlot = this.slots[opposite(this.attacker)];
+          const pick = CombatReviewController.pickReactionClip(defenderSlot.actions, this.contactDirection, this.contactSeverity);
+          if (pick) defenderSlot.selected.reaction = pick;
+        }
         // Preserve the sampled target pose at impact, even if the last manual
         // cue used an immediate cut. A zero-time hit needs an initial ready track.
         if (response !== "none") this.cue = { kind: response, atSeconds: Math.max(1e-6, result.event.timeSeconds),
@@ -345,11 +421,76 @@ export class CombatReviewController {
     const frame = this.clock.advance(deltaSeconds); this.applyFrame(frame); this.emit(frame);
   }
 
+  /**
+   * Run every available attack of the current attacker against the defender with
+   * measured contact and list the results locally. Selection changes made by the
+   * user during the run stop it; the original attack selection is restored.
+   */
+  async runSparMatrix(): Promise<readonly CombatSparRow[]> {
+    this.assertLive();
+    if (!this.clock || !this.active) throw new Error("Both actors must be ready before a spar run.");
+    if (this.spar.running) throw new Error("A spar run is already in progress.");
+    const attackerSlot = this.slots[this.attacker], defenderSlot = this.slots[opposite(this.attacker)];
+    const attacks = attackerSlot.actions.filter((action) => (action.semantic === "attack" || action.semantic === "cast") && !action.unavailableReason);
+    const original = attackerSlot.selected.action;
+    const originalPlacement = { ...this.placement }, originalAuto = this.autoPlacement;
+    // a miss at the fitted spacing is retried closer, down to 0.7 m, so the matrix
+    // reports the range at which each attack actually lands
+    const ranges = [this.placement.separationMeters, ...[1.2, 1.0, 0.85, 0.7].filter((value) => value < this.placement.separationMeters - 1e-6)];
+    const token = ++this.spar.token;
+    this.spar = { running: true, token, attackerDefinitionId: attackerSlot.definitionId, defenderDefinitionId: defenderSlot.definitionId, rows: [] };
+    this.revision++; this.emit();
+    try {
+      for (const attack of attacks) {
+        if (this.disposed || this.spar.token !== token || !this.active) break;
+        this.setAction(this.attacker, "action", attack.id);
+        const profile = this.contactProfile();
+        const response: CombatContactSnapshot["response"] = defenderSlot.selected.reaction ? "reaction" : "none";
+        let result: ReviewContactResolution | null = null, separationMeters = this.placement.separationMeters;
+        for (const range of profile ? ranges : ranges.slice(0, 1)) {
+          if (this.spar.token !== token) break;
+          separationMeters = range;
+          if (Math.abs(this.placement.separationMeters - range) > 1e-9) this.setPlacement({ separationMeters: range });
+          try { result = await this.resolveContact({ response }); } catch (error) {
+            result = { status: "unavailable", sequenceId: this.clock?.sequence.id ?? "", profileId: profile?.id ?? null, samples: 0, sampleRate: 120,
+              toleranceMeters: 0.008, evidence: error instanceof Error ? error.message : String(error) };
+          }
+          if (result?.status !== "miss") break;
+        }
+        if (this.spar.token !== token) break;
+        const reaction = result?.status === "contact" && response === "reaction"
+          ? defenderSlot.actions.find((action) => action.id === defenderSlot.selected.reaction)?.label ?? null : null;
+        this.spar.rows.push({ actionId: attack.id, label: attack.label,
+          window: profile ? `${profile.startSeconds.toFixed(3)}–${profile.endSeconds.toFixed(3)} s` : "unbound",
+          status: result?.status ?? "unavailable", timeSeconds: result?.event?.timeSeconds ?? null,
+          direction: result?.status === "contact" ? this.contactDirection : null, severity: result?.status === "contact" ? this.contactSeverity : null,
+          reaction, separationMeters, evidence: result?.evidence ?? "" });
+        this.revision++; this.emit();
+      }
+    } finally {
+      if (this.spar.token === token) {
+        this.spar.running = false;
+        if (!this.disposed && this.active) {
+          this.placement = originalPlacement; this.autoPlacement = originalAuto; this.placeActors(); this.applyFrame();
+        }
+        if (!this.disposed && this.active && attackerSlot.actions.some((action) => action.id === original) && attackerSlot.selected.action !== original) {
+          this.setAction(this.attacker, "action", original);
+        }
+        if (!this.disposed) { this.revision++; this.emit(); }
+      }
+    }
+    return this.spar.rows.map((row) => ({ ...row }));
+  }
+  cancelSparRun(): void { if (this.spar.running) { this.spar.token++; this.spar.running = false; this.revision++; this.emit(); } }
+
   private recompose(): void {
     this.clock = null; this.error = null; this.releaseProjectiles();
     if (!SLOTS.every((slot) => this.slots[slot].status === "ready")) return;
     const attackSlot = this.slots[this.attacker], defenderSlot = this.slots[opposite(this.attacker)];
     const attack = this.requireAction(this.attacker, attackSlot.selected.action);
+    // A human weapon attack measures its own strike window from the clip (cached per
+    // actor instance); the live frame is re-applied at the end of composition.
+    if (attack.semantic === "attack") reviewContactProfile(attackSlot.handle!.actor, attack.id, { projectiles: true, deriveHuman: true });
     const ready = this.requireAction(this.attacker, attackSlot.selected.ready);
     const guard = this.requireAction(opposite(this.attacker), defenderSlot.selected.ready);
     const response = this.cue.kind === "none" ? undefined : defenderSlot.actions.find((action) => action.id === defenderSlot.selected[this.cue.kind as "reaction" | "death"]);
@@ -463,7 +604,7 @@ export class CombatReviewController {
   private invalidateContact(): void {
     this.cancelContactScan();
     const hadContact = this.contactResult?.status === "contact", hadResponse = this.contactResponse !== "none";
-    this.contactResult = null; this.contactResponse = "none";
+    this.contactResult = null; this.contactResponse = "none"; this.contactDirection = null; this.contactSeverity = null;
     if (hadResponse) this.cue.kind = "none";
     if (hadContact) {
       const held = this.clock?.snapshot(); this.recompose();

@@ -81,6 +81,9 @@ export function cinderboundWardenActionNames(kind: CinderboundWardenKind): reado
   return kind === "wayfarer" ? CINDERBOUND_WARDEN_ACTIONS : CINDERBOUND_WARDEN_LEGACY_ACTIONS;
 }
 
+/** Source meshes face +X; rotate them onto the +Z forward convention (radians). */
+export const CINDERBOUND_WARDEN_SOURCE_YAW_CORRECTION = -Math.PI / 2;
+
 export const CINDERBOUND_BREAKOFF_STAGES = Object.freeze([
   { meshName: "Breakoff_30_Shoulders", damageFraction: 0.3 },
   { meshName: "Breakoff_60_Forearms", damageFraction: 0.6 },
@@ -566,6 +569,10 @@ export function createBreachV2WardenRuntime(
     furnaceLight.name = `${placement.id}:furnace-light`;
     furnaceLight.position.set(0, asset.targetHeightMeters * 0.6, asset.targetHeightMeters * 0.06);
     root.add(furnaceLight);
+    // The warden meshes were modelled facing +X; the dungeon and Motion Forge treat +Z
+    // (rotated by placement.yaw) as forward, so the pivot turns the source into that
+    // convention once. Without it the boss stands and walks sideways to its facing.
+    pivot.rotation.y = CINDERBOUND_WARDEN_SOURCE_YAW_CORRECTION;
     pivot.add(model);
     root.add(pivot);
     scene.add(root);

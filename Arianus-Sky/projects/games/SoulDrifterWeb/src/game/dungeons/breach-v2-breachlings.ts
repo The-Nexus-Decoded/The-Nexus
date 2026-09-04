@@ -51,7 +51,7 @@ export const BREACHLING_RUNTIME_ASSETS: Readonly<Record<
 
 export const BREACHLING_BASE_ACTIONS = Object.freeze([
   "Idle", "CombatIdle", "Walk", "Run", "BiteAttack", "ClawAttack",
-  "TailWhip", "RecieveHit", "Death",
+  "LungeAttack", "TailWhip", "RecieveHit", "Death",
 ]);
 export const BREACHLING_UPPER_ACTIONS = Object.freeze([
   ...BREACHLING_BASE_ACTIONS,

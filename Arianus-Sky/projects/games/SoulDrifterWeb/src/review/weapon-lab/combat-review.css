@@ -21,6 +21,14 @@
 .combat-review .combat-contact .context-note { overflow-wrap: anywhere; }
 .combat-review .combat-contact [data-state="contact"] { color: var(--combat-b); }
 .combat-review .combat-contact [data-state="miss"], .combat-review .combat-contact [data-state="unavailable"] { border-left-color: var(--combat-a); }
+.combat-review .combat-spar { margin: 8px 0 0; padding: 0; list-style: none; font-size: 11px; line-height: 1.45; }
+.combat-review .combat-spar li { padding: 6px 0; border-bottom: 1px solid var(--studio-line, #394047); }
+.combat-review .combat-spar-head { display: flex; justify-content: space-between; gap: 8px; }
+.combat-review .combat-spar-head strong { font-weight: 600; overflow-wrap: anywhere; }
+.combat-review .combat-spar-result { flex: none; color: var(--studio-muted, #aeb3b5); }
+.combat-review .combat-spar li[data-state="contact"] .combat-spar-result { color: var(--combat-b); }
+.combat-review .combat-spar li[data-state="miss"] .combat-spar-result, .combat-review .combat-spar li[data-state="unavailable"] .combat-spar-result { color: var(--combat-a); }
+.combat-review .combat-spar-detail { display: block; color: var(--studio-muted, #aeb3b5); overflow-wrap: anywhere; }
 .combat-review .combat-calibration { margin-top: 8px; border-top: 1px solid var(--studio-line, #394047); }
 .combat-review .combat-calibration-group { padding: 0 3px 7px; }
 .combat-review .combat-calibration .combat-number { grid-template-columns: 99px minmax(0, 1fr) 40px; }

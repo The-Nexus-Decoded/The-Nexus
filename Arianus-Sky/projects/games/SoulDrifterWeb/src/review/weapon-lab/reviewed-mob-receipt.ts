@@ -1,4 +1,5 @@
 import { BREACHLING_RUNTIME_ASSETS, type BreachlingTier } from "../../game/dungeons/breach-v2-breachlings";
+import { COMPOSER_MOB_PACKS } from "./composer-mob-packs";
 
 export interface ReviewedMobReceipt {
   readonly variant: BreachlingTier;
@@ -43,7 +44,7 @@ export function reviewedMobNote(receipt: ReviewedMobReceipt): string {
 
 // Exact frozen exports authorized for isolated Motion Forge review.
 // Each variant/action remains absent until that exact export clears QA.
-export const REVIEWED_MOB_RECEIPTS = prepareReviewedMobReceipts({
+const LEGACY_REVIEWED_MOB_RECEIPTS: ReviewedMobReceipts = {
   base: {
     variant: "base", url: "/assets/weapon-lab/mobs/breachling-base-approved-attacks-v1.glb",
     runtimeSourceSha256: "00921227fb9a2c3049363c1a8bda35bb8acf20a73811e3ad86c6256bd91b0cc7",
@@ -80,7 +81,18 @@ export const REVIEWED_MOB_RECEIPTS = prepareReviewedMobReceipts({
     actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"],
     neutralHolds: [],
   },
-});
+};
+// Motion-composer packs (issue-458-motion-composer-v1) replace the earlier
+// per-variant receipts where present. They are review-only intake: exact
+// bytes, every clip revised, neutral holds recalibrated (14 deg rest gape,
+// anatomical elbow/knee poles). Owner sign-off and dungeon promotion are separate.
+const COMPOSER_REVIEWED_MOB_RECEIPTS: ReviewedMobReceipts = Object.fromEntries(
+  Object.entries(COMPOSER_MOB_PACKS).map(([variant, pack]) => [variant, {
+    variant: pack!.variant, url: pack!.url, runtimeSourceSha256: pack!.runtimeSourceSha256, bytes: pack!.bytes,
+    sha256: pack!.sha256, runtimeScale: pack!.runtimeScale, actions: [...pack!.actions], neutralHolds: [...pack!.neutralHolds],
+  }]),
+);
+export const REVIEWED_MOB_RECEIPTS = prepareReviewedMobReceipts({ ...LEGACY_REVIEWED_MOB_RECEIPTS, ...COMPOSER_REVIEWED_MOB_RECEIPTS });
 // Existing base-specific contact/provenance consumers retain their exact intake.
 export const REVIEWED_BASE_MOB_RECEIPT = REVIEWED_MOB_RECEIPTS.base!;
 export const REVIEWED_BASE_MOB_URL = REVIEWED_BASE_MOB_RECEIPT.url;

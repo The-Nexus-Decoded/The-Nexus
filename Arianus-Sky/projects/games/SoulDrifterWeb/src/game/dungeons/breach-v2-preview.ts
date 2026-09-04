@@ -4266,6 +4266,7 @@ export async function startDungeonPreview(
   let removedEnvironmentColliderIds: string[] = [];
   let debrisCleanupDeadlineMs = 0;
   let syncEnvironmentState: ((state: BreachV2EnvironmentState) => void) | null = null;
+  let syncWardenDamage: ((state: BreachV2RunState) => void) | null = null;
   const runId = `breach-v2:${options.seed}:${options.path}`;
   const previewUrl = new URL(window.location.href);
   const animationReviewEnabled = previewUrl.searchParams.get("animationReview") === "1";
@@ -4300,6 +4301,7 @@ export async function startDungeonPreview(
     savedState,
     onChange: (state) => {
       syncEnvironmentState?.(state.environment);
+      syncWardenDamage?.(state);
       void storyDatabase.saveDungeonRun(runId, state).catch((error: unknown) => {
         console.error("unable to persist BREACH-V2 run", error);
       });
@@ -4690,6 +4692,22 @@ export async function startDungeonPreview(
     resourceDisposalRegistry,
   );
   lifecycle.add(() => wardenRuntime.dispose());
+  // Gameplay HP drives the boss damage stages: break-off at 30/60/90 %, HitReact on
+  // each hit and DeathCollapse at 100 %. Only changes are forwarded so routine
+  // run commits never restart the boss clips.
+  let lastWardenDamageFraction = -1;
+  syncWardenDamage = (state) => {
+    const encounter = state.activeEncounter;
+    const fraction = state.bossDefeated
+      ? 1
+      : encounter?.kind === "boss" && encounter.enemyMaxHp > 0
+        ? 1 - encounter.enemyHp / encounter.enemyMaxHp
+        : 0;
+    if (fraction === lastWardenDamageFraction) return;
+    lastWardenDamageFraction = fraction;
+    wardenRuntime.setDamageFraction(fraction);
+  };
+  syncWardenDamage(gameplay.snapshot());
   await wardenRuntime.warmAt(playerPos.x, playerPos.z);
   guardCurrentGeneration();
   let wardenAnimationReview: BreachV2WardenReview | null = null;

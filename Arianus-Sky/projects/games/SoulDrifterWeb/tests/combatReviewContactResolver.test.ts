@@ -7,6 +7,7 @@ import { createReviewStrikeProbe, reviewContactProfile, validateReviewContactPro
 import { prepareReviewSequence } from "../src/review/weapon-lab/combat-review-timeline";
 import { createMobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
 import { MOB_CATALOG } from "../src/review/weapon-lab/mobs-stage";
+import { COMPOSER_MOB_PACKS } from "../src/review/weapon-lab/composer-mob-packs";
 import type { ReviewAction, ReviewSequence } from "../src/review/weapon-lab/combat-review-types";
 
 const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
@@ -227,7 +228,7 @@ describe("shared melee/ranged sampling loop", () => {
   });
 });
 
-it("binds the four frozen base profiles to actual indexed installed GLB skin, without source substitutions", async () => {
+it("binds the registered base composer strike profiles to actual indexed installed GLB skin, without source substitutions", async () => {
   const definition = MOB_CATALOG.find((entry) => entry.id === "breachling-base")!;
   const bytes = Uint8Array.from(readFileSync(new URL(`../public${definition.url}`, import.meta.url)));
   const original = Array.from(new Uint8Array(await webcrypto.subtle.digest("SHA-256", bytes)));
@@ -242,7 +243,10 @@ it("binds the four frozen base profiles to actual indexed installed GLB skin, wi
   });
   const actor = await createMobReviewActor({ instanceId: "exact-base-probes", definitionId: definition.id });
   try {
-    for (const [id, ids] of Object.entries({ BiteAttack: [22577], ClawAttack: [389], LungeAttack: [14545, 3], TailWhip: [36325] })) {
+    // strike tips come from the registered composer pack (reach-solved contact frames)
+    const strikes = Object.fromEntries(Object.entries(COMPOSER_MOB_PACKS.base!.strikes).map(([id, strike]) => [id, [...strike.vertices]]));
+    expect(Object.keys(strikes).sort()).toEqual(["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip"]);
+    for (const [id, ids] of Object.entries(strikes)) {
       const binding = reviewContactProfile(actor, id)!; expect(binding).not.toBeNull();
       expect(binding.surface).toMatchObject({ kind: "indexed", vertices: ids });
       actor.sample(id, binding.startSeconds); const probe = createReviewStrikeProbe(actor, binding);
@@ -258,7 +262,7 @@ it("binds the four frozen base profiles to actual indexed installed GLB skin, wi
   } finally { actor.dispose(); }
 }, 30_000);
 
-it("binds the frozen Oathbound Lunge, Claw and Bite profiles to their actual installed indexed tips", async () => {
+it("binds the registered Oathbound Lunge, Claw and Bite profiles to their actual installed indexed tips", async () => {
   const definition = MOB_CATALOG.find((entry) => entry.id === "breachling-oathbound")!;
   const bytes = Uint8Array.from(readFileSync(new URL(`../public${definition.url}`, import.meta.url)));
   vi.stubGlobal("document", { baseURI: "http://localhost:5179/weapon-lab.html" }); vi.stubGlobal("crypto", webcrypto);
@@ -272,26 +276,30 @@ it("binds the frozen Oathbound Lunge, Claw and Bite profiles to their actual ins
   });
   const actor = await createMobReviewActor({ instanceId: "exact-oathbound-strike-probes", definitionId: definition.id });
   try {
+    // the registered composer pack (reach-solved windows) or the frozen legacy intake
+    const pack = COMPOSER_MOB_PACKS.oathbound;
+    const expected = (action: string, legacy: { id: string; startSeconds: number; endSeconds: number; vertices: number[] }) => pack
+      ? { id: `${pack.strikes[action]!.revision}:${action}`, startSeconds: pack.strikes[action]!.start, endSeconds: pack.strikes[action]!.end,
+        definitionId: "breachling-oathbound", assetSha256: definition.sha256,
+        surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [...pack.strikes[action]!.vertices] } }
+      : { ...legacy, definitionId: "breachling-oathbound", assetSha256: definition.sha256,
+        surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: legacy.vertices } };
     const lunge = reviewContactProfile(actor, "LungeAttack")!;
-    expect(lunge).toMatchObject({ id: "oathbound-lunge-v1:LungeAttack", startSeconds: 0.52, endSeconds: 0.66,
-      definitionId: "breachling-oathbound", assetSha256: definition.sha256,
-      surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [12002, 1] } });
+    expect(lunge).toMatchObject(expected("LungeAttack", { id: "oathbound-lunge-v1:LungeAttack", startSeconds: 0.52, endSeconds: 0.66, vertices: [12002, 1] }));
     const claw = reviewContactProfile(actor, "ClawAttack")!;
-    expect(claw).toMatchObject({ id: "oathbound-claw-v7:ClawAttack", startSeconds: 2.30, endSeconds: 2.67,
-      definitionId: "breachling-oathbound", assetSha256: definition.sha256,
-      surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [1] } });
+    expect(claw).toMatchObject(expected("ClawAttack", { id: "oathbound-claw-v7:ClawAttack", startSeconds: 2.30, endSeconds: 2.67, vertices: [1] }));
     const bite = reviewContactProfile(actor, "BiteAttack")!;
-    expect(bite).toMatchObject({ id: "oathbound-bite-v1:BiteAttack", startSeconds: 3.05, endSeconds: 3.36,
-      definitionId: "breachling-oathbound", assetSha256: definition.sha256,
-      surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [17599] } });
+    expect(bite).toMatchObject(expected("BiteAttack", { id: "oathbound-bite-v1:BiteAttack", startSeconds: 3.05, endSeconds: 3.36, vertices: [17599] }));
     for (const binding of [lunge, claw, bite]) {
       actor.sample(binding.actionId, binding.startSeconds); const probe = createReviewStrikeProbe(actor, binding), start = probe.sample();
       actor.sample(binding.actionId, binding.endSeconds); const end = probe.sample();
-      expect(probe.vertexCount).toBe(binding.actionId === "LungeAttack" ? 2 : 1);
+      expect(probe.vertexCount).toBe(binding.surface.kind === "indexed" ? binding.surface.vertices.length : 0);
       expect(end).toHaveLength(probe.vertexCount);
       expect(end.every((point, index) => point.position.distanceTo(start[index]!.position) > 0.001)).toBe(true);
     }
-    for (const action of ["SpitAttack", "TailWhip"]) expect(reviewContactProfile(actor, action)).toBeNull();
+    // the ranged spit is never a melee strike; the composer pack adds a reach-solved tail whip
+    expect(reviewContactProfile(actor, "SpitAttack")).toBeNull();
+    if (pack) expect(reviewContactProfile(actor, "TailWhip")!.surface.kind).toBe("indexed"); else expect(reviewContactProfile(actor, "TailWhip")).toBeNull();
     expect(reviewContactProfile({ ...actor, definition: { sha256: "wrong" } } as typeof actor, "LungeAttack")).toBeNull();
   } finally { actor.dispose(); }
 }, 30_000);

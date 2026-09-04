@@ -331,3 +331,117 @@ Do not accept a per-character or per-button patch when the same skill or archety
 - [ ] Provenance, diagnostics, and validation files are updated.
 
 If any box is unchecked, the animation is not production-ready.
+
+
+## Creature animation lessons (issue #458, September 2026)
+
+Owner rule: every lesson below is mandatory for future creature, boss, NPC and
+mount animation passes. Do not rediscover them; apply them from the first build.
+
+### Modelling and rigging
+- Generate every animated subject from a four-view reference set (see the 3D AI
+  Studio runbook). A single-view Tripo model gives skewed heads and jaw hinges.
+- Living paws need real toe bones: four front / three rear on the Breachling
+  family. Add them with the lane's GLB surgery (`lib/toe-rig.mjs`), never by a
+  full Blender re-export; mesh bytes stay untouched, only the skin accessors and
+  appended inverse-bind matrices change. Find claws as mesh-connected islands
+  outside a wrist-centred sphere; mirrored paws share the left paw's core radius.
+- Recalibrate the jaw hinge on every body: 14 degree rest gape about the true
+  lateral axis. A transferred jaw rotation on a yawed source (Ravager) twists.
+- Check the source forward axis before the first clip: the runtime and Motion
+  Forge treat +Z (rotated by placement yaw) as forward. A mesh modelled facing
+  +X (the Cinderbound Wardens) walks sideways until a fixed pivot rotation turns
+  it onto the convention; correct it once in the shared actor factory, never
+  per clip.
+- Use anatomical limb poles (elbow back and slightly up, knee forward) kept close
+  to the body line, and re-solve the neutral stance so idles, clip endpoints and
+  IK share one limb configuration. A lateral pole component of 0.35 put the
+  elbows 6-10 cm outside the shoulders and read as splayed, rubbery arms; 0.1
+  keeps them under the shoulder like a cat's.
+- Keep gait swings low: paw lift 5-6 cm in a walk, 9 cm in a trot, and only a
+  shallow fold toward the limb root (fold 0.2-0.3). A high tuck folds the elbow
+  past 45 degrees every step, which is the main "rubber arm" impression.
+- Skin that hangs below a limb joint (heel/pastern weighted to the shin) must be
+  part of the paw contact region, measured on the re-solved neutral, or it
+  drags under the floor while the sole sits perfectly planted (Ravager RR).
+
+### Solver
+- Two-bone IK must be twist-consistent: build each bone's orientation from the
+  limb-plane normal (hip-to-ankle direction x pole), never from the pose the
+  solve started from. `setFromUnitVectors` chains flip 180 degrees.
+- A planted paw keeps the orientation it landed with; only its height is fitted.
+  Swings interpolate body-relative offsets from lift-off to landing, so pivots
+  and fast drives never drag a paw out of reach.
+- Plan footsteps automatically from per-frame IK feasibility on the posed body,
+  plus a twist rule (step once the body has turned more than 50 degrees since
+  landing) and flight phases (no landing while nothing is feasible). Hand-timed
+  steps do not survive reach solving.
+- Keep floor guards separate and narrow: tail guard, head guard (neck/head
+  pitch), torso-only body guard, free-limb corrective about a world axis, and a
+  direction-agnostic toe guard. A guard that lifts the whole body to save a limb
+  locks the legs.
+- Limb segments that must rest on the floor (forearms and shins of a collapse)
+  are guarded only after the feet are solved; their FK pose before the solve is
+  meaningless and lifts the body by whole leg lengths.
+- Every floor guard (tail, head, torso, planted limbs) is neutral-aware: its
+  margin never exceeds what the body's own neutral pose already has, or the
+  first frame of every one-shot is lifted away from the neutral and the
+  clip fails its own endpoint gate (the Stalker's low tail did exactly that).
+- Bodies with a source-rig defect (a knee placed below its skin, Ravager right
+  rear) get a documented per-body floor tolerance and a sink-capacity clamp
+  instead of guard pops; the real fix is the remodel.
+- Give every limb a fallback pole for the singular configuration (limb line
+  parallel to the pole, e.g. a resting sphinx forelimb whose shoulder dropped to
+  paw height): the joint goes down so the segment lies on the floor, and the
+  limb plane keeps the side it used last frame instead of spinning.
+- At free-window edges blend the paw target from the solved IK end to the FK
+  end without re-applying lift, follow or curl: those are already inside the
+  solved end, and a second lift raises the paw by the whole swing clearance in
+  one frame.
+
+### Choreography
+- Attacks run 1.2 to 1.6 s: slow anticipation, a strike of 4 to 6 frames on a
+  frame boundary, overshoot, recovery. Solve reach against the real 1.75 m
+  adjacent-cell target and cap the extra travel; never fake contact at runtime.
+- Loops must close exactly (idle breathing, tail spring lag, loop-safe noise).
+- A quadruped collapse pivots at the pelvis and settles belly-down with feet
+  planted; a lateral roll with planted feet is infeasible for these legs.
+- Claws articulate: extend in swing, splay when planted, rake through strikes.
+- A leap is not a tall step: open free windows for the rear legs before the
+  launch and author the airborne tuck (thighs forward, shins folded); planner
+  swings only arc toward a floor landing and leave the legs hanging. Let the
+  planner re-plant everything on landing.
+- An attack advances with a step, never a glide: authored root travel of about
+  a quarter body length plus at most 0.2-0.3 m of reach solve. Sliding the body
+  0.8 m to touch a far target reads as skating even when every planted paw
+  passes the slide gate. Combat Review finds the true landing range instead.
+- Strike surfaces aim at knee height or higher on a human target; a bite or
+  swipe at the ankle reads as a slap. Keep the muzzle up at a spit release and
+  above the floor at a pounce landing.
+- A tail whip turns the body about 140 degrees with the tail extended through
+  the target; a full 360 spin on skating paws reads as a pirouette.
+- Locomotion cycles: keep vertical head pump under ~10 cm and pelvis bob a few
+  centimetres; stacked half-period sines on root, spine, neck and head add up
+  to visible jitter.
+- Reactions need two or three frames of anticipation before the head drops;
+  a 40 cm head fall in two frames reads as a pop.
+- A collapse is a side lie, not a crouch: free all four paws once the legs
+  buckle, author limp limb FK, roll the body onto one side and let the torso
+  guard rest the ribs on the floor; head and neck settle last, then stillness.
+
+### Gates and review
+- Mechanical gates before any visual review: floor, sole-patch slide, IK clamps
+  and joint limits on planted limbs, per-frame rotation continuity, capsule
+  self-collision, reach at the contact frame, exact neutral or closed-loop ends.
+- Then an independent visual critic on contact sheets, then Motion Forge
+  (solo, combat pair, interaction), then owner sign-off. Nothing is promoted to
+  the dungeon runtime before that chain completes.
+- Combat Review measures human weapon strikes from the clip itself (primary
+  weapon tip speed peak, 80 ms before to 120 ms after) and sweeps the equipped
+  weapon mesh against the target skin; mob strikes use the pack's reach-solved
+  tip vertices. On a confirmed hit the defender's reaction is picked from the
+  contact side (front/left/right/back in the defender's frame) and the attack
+  weight (heavy names: jump, spin, heavy, smash, overhead, slam, charge, lunge,
+  tail). "Run every attack" lists every attack of the pairing with its window,
+  result, the closest range at which it lands, contact time, side, weight and
+  the reaction clip. All of it is review evidence, never gameplay damage.

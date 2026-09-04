@@ -1,3 +1,4 @@
+import { COMPOSER_MOB_PACKS } from "./composer-mob-packs";
 import * as THREE from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { MOB_CATALOG, MobsStage } from "./mobs-stage";
@@ -237,7 +238,9 @@ export class MobsPanel {
     element<HTMLOutputElement>("#speedOut").textContent = `${Number(this.speed.value).toFixed(1)}x`;
     const family = this.stage.definition.family;
     this.context.textContent = family === "breachling"
-      ? "Quadruped rig · paws, forelimbs, hindlimbs, jaw and tail. No individual finger/claw bones. Known source motion/contact defects remain visible."
+      ? ((COMPOSER_MOB_PACKS[this.stage.definition.variant as keyof typeof COMPOSER_MOB_PACKS]?.toeBones.length ?? 0) > 0
+        ? "Quadruped rig · paws, forelimbs, hindlimbs, jaw and tail · articulated claws (toe bones per paw). Motion composer pack: review-only until owner sign-off."
+        : "Quadruped rig · paws, forelimbs, hindlimbs, jaw and tail. No individual finger/claw bones. Known source motion/contact defects remain visible.")
       : "Warden rig · arm, forearm/blade, weighted left hand and body. Right hand has no skin weights; tune the blade forearm instead. Existing boss motion remains under review.";
     this.status.textContent = [
       `${this.stage.definition.label} · shared #458 game controller`,

@@ -5,6 +5,7 @@ import { BREACHLING_RUNTIME_ASSETS } from "../src/game/dungeons/breach-v2-breach
 import { CINDERBOUND_WARDEN_ASSETS,
   cinderboundWardenActionNames } from "../src/game/dungeons/breach-v2-wardens";
 import { MOB_CATALOG, MobsStage, mobCalibrationKey, type MobDefinition } from "../src/review/weapon-lab/mobs-stage";
+import { COMPOSER_MOB_PACKS } from "../src/review/weapon-lab/composer-mob-packs";
 import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL, REVIEWED_MOB_RECEIPTS,
   prepareReviewedMobReceipts, reviewedMobNote, type ReviewedMobReceipt } from "../src/review/weapon-lab/reviewed-mob-receipt";
 import { createMobReviewActor, type MobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
@@ -238,10 +239,13 @@ describe("Mobs stage exact installed asset contract", () => {
       } else expect(definition).toMatchObject({ label: catalog.label, url: catalog.url });
       const header = glbHeader(definition);
       expect(header.skins).toHaveLength(1);
-      expect(header.skins[0]?.joints).toHaveLength(definition.family === "breachling" ? 24 : 18);
+      const composer = definition.family === "breachling" ? COMPOSER_MOB_PACKS[definition.variant as keyof typeof COMPOSER_MOB_PACKS] : undefined;
+      // composer packs add toe bones (4 front + 3 rear per side) and appended reaction clips
+      expect(header.skins[0]?.joints).toHaveLength(definition.family === "breachling" ? (composer ? 38 : 24) : 18);
       expect(header.meshes).toHaveLength(definition.family === "breachling" ? 1 : 4);
       expect(header.animations).toHaveLength(definition.family === "breachling"
-        ? 12 : cinderboundWardenActionNames(definition.variant as "wayfarer" | "oathbreaker").length);
+        ? (composer ? 12 + composer.actions.filter((name) => /^RecieveHit./.test(name)).length : 12)
+        : cinderboundWardenActionNames(definition.variant as "wayfarer" | "oathbreaker").length);
     }
   });
 
@@ -264,14 +268,17 @@ describe("Mobs stage exact installed asset contract", () => {
       .filter((name) => name !== "SwordSlashOutward").sort());
     expect(value.snapshot()).toMatchObject({ currentClip: "CombatIdle", playbackSpeed: 0.6, reviewLoop: true });
     const audit = value.overlay!.audit();
-    expect(audit.bones).toHaveLength(definition.family === "breachling" ? 24 : 18);
+    expect(audit.bones).toHaveLength(definition.family === "breachling"
+      ? (COMPOSER_MOB_PACKS[definition.variant as keyof typeof COMPOSER_MOB_PACKS] ? 38 : 24) : 18);
     expect(audit.skinnedMeshCount).toBe(definition.family === "breachling" ? 1 : 4);
     if (definition.family === "breachling") {
       expect(actor.model.getObjectByName("front_handR")).toBeInstanceOf(THREE.Bone);
       expect(audit.availableControls).toEqual(expect.arrayContaining(["rightPawPitch", "leftPawPitch", "jawOpen", "tail5Sweep"]));
-      expect(value.actionLabel("LungeAttack")).toContain("inspection only");
+      expect(value.actionLabel("LungeAttack")).not.toContain("inspection only");
       expect(value.actionLabel("SpitAttack").includes("inspection only")).toBe(["base", "stalker"].includes(definition.variant));
-      expect(value.actionLabel("RecieveHit")).toBe(definition.reviewedMotion ? "Receive hit · source · not revised" : "Receive hit");
+      expect(value.actionLabel("RecieveHit")).toBe(definition.reviewedMotion
+        ? (definition.reviewedMotion.actions.includes("RecieveHit") ? "Receive hit · revised motion · review" : "Receive hit · source · not revised")
+        : "Receive hit");
     } else {
       expect(value.actions()).toEqual([...cinderboundWardenActionNames(
         definition.variant as "wayfarer" | "oathbreaker",
@@ -477,7 +484,8 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     expect(value.actionLabel("CombatIdle")).toContain("approved neutral hold");
     expect(value.actionLabel("SpitAttack")).toContain("projectile pending");
     for (const clip of ["Walk", "Run", "Death", "RecieveHit"]) {
-      expect(value.actionLabel(clip)).toContain("source · not revised");
+      // composer packs revise the whole clip set; legacy intakes leave these as source
+      expect(value.actionLabel(clip)).toContain(REVIEWED_BASE_MOB_RECEIPT!.actions.includes(clip) ? "revised motion" : "source · not revised");
     }
     expect(value.actions()).not.toContain("SwordSlashOutward");
     value.setAction("SpitAttack");
@@ -494,8 +502,10 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     expect(value.actionLabel("LungeAttack")).toContain("revised motion");
     expect(value.actionLabel("ClawAttack")).toContain("revised motion");
     expect(value.actionLabel("BiteAttack")).toContain("revised motion");
-    expect(value.actionLabel("Walk")).toContain("source · not revised");
-    expect(value.actionLabel("RecieveHit")).toContain("source · not revised");
+    // a registered composer pack revises the whole motion set; the legacy intake left Walk and the reaction untouched
+    const oathboundPack = COMPOSER_MOB_PACKS.oathbound;
+    expect(value.actionLabel("Walk")).toContain(oathboundPack?.actions.includes("Walk") ? "revised motion" : "source · not revised");
+    expect(value.actionLabel("RecieveHit")).toContain(oathboundPack?.actions.includes("RecieveHit") ? "revised motion" : "source · not revised");
     expect(value.actionLabel("SpitAttack")).toContain("revised motion · projectile pending");
     value.setAction("SpitAttack");
     value.pose(0.5);
@@ -595,32 +605,32 @@ describe("Per-variant review-only receipt intake", () => {
   it("retains only the exact installed review intakes and rejects variant/url/hash/schema mismatches", () => {
     expect(Object.keys(REVIEWED_MOB_RECEIPTS).sort()).toEqual(["base", "oathbound", "ravager", "stalker"]);
     expect(REVIEWED_MOB_RECEIPTS.base).toBe(REVIEWED_BASE_MOB_RECEIPT);
-    expect(REVIEWED_BASE_MOB_RECEIPT).toMatchObject({ url: REVIEWED_BASE_MOB_URL, bytes: 8823468,
-      sha256: "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217", neutralHolds: ["Idle", "CombatIdle"] });
-    expect(REVIEWED_MOB_RECEIPTS.oathbound).toMatchObject({
-      url: "/assets/weapon-lab/mobs/breachling-oathbound-approved-lunge-spit-claw-bite-v1.glb",
-      runtimeSourceSha256: "077e130cd8a9fa0a755aed1c1efe1f268f8ef08470762adead1b7bf0e2948939",
-      bytes: 11473984,
-      sha256: "b4039fcd931dcb2dadd48a2a9ee6eea2b123d3c1ddd0a85cc439cacc2f777747",
-      runtimeScale: 2.05656927752596,
-      actions: ["LungeAttack", "SpitAttack", "ClawAttack", "BiteAttack"], neutralHolds: ["Idle", "CombatIdle"],
-    });
-    expect(REVIEWED_MOB_RECEIPTS.stalker).toMatchObject({
-      url: "/assets/weapon-lab/mobs/breachling-stalker-approved-attacks-v1.glb",
-      runtimeSourceSha256: "1f61df8716b60dd376959dbff1295c708f770d3601cf9781263d1996f808a641",
-      bytes: 9764884,
-      sha256: "068d46cc64c17b7480870f8fa836602a2042ae32b7e6c338747f923d5efdca42",
-      runtimeScale: 2.253428958684859,
-      actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"], neutralHolds: [],
-    });
-    expect(REVIEWED_MOB_RECEIPTS.ravager).toMatchObject({
-      url: "/assets/weapon-lab/mobs/breachling-ravager-approved-attacks-v1.glb",
-      runtimeSourceSha256: "cd8fa4f5daf6f789e80322fad2ed7df15cb7b6dcea0dec19c0d869478f08e22c",
-      bytes: 8606112,
-      sha256: "11f567a98d810001d262315bb97f7ec56789f502c2fe5e4fd6732966e147d97d",
-      runtimeScale: 1.6278343683021053,
-      actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"], neutralHolds: [],
-    });
+    const basePack = COMPOSER_MOB_PACKS.base;
+    expect(REVIEWED_BASE_MOB_RECEIPT).toMatchObject(basePack
+      ? { url: basePack.url, bytes: basePack.bytes, sha256: basePack.sha256, neutralHolds: ["Idle", "CombatIdle"] }
+      : { url: REVIEWED_BASE_MOB_URL, bytes: 8823468, sha256: "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217", neutralHolds: ["Idle", "CombatIdle"] });
+    // each variant is either its registered composer pack or the frozen legacy intake
+    const legacy = {
+      oathbound: { url: "/assets/weapon-lab/mobs/breachling-oathbound-approved-lunge-spit-claw-bite-v1.glb",
+        runtimeSourceSha256: "077e130cd8a9fa0a755aed1c1efe1f268f8ef08470762adead1b7bf0e2948939", bytes: 11473984,
+        sha256: "b4039fcd931dcb2dadd48a2a9ee6eea2b123d3c1ddd0a85cc439cacc2f777747", runtimeScale: 2.05656927752596,
+        actions: ["LungeAttack", "SpitAttack", "ClawAttack", "BiteAttack"], neutralHolds: ["Idle", "CombatIdle"] },
+      stalker: { url: "/assets/weapon-lab/mobs/breachling-stalker-approved-attacks-v1.glb",
+        runtimeSourceSha256: "1f61df8716b60dd376959dbff1295c708f770d3601cf9781263d1996f808a641", bytes: 9764884,
+        sha256: "068d46cc64c17b7480870f8fa836602a2042ae32b7e6c338747f923d5efdca42", runtimeScale: 2.253428958684859,
+        actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"], neutralHolds: [] },
+      ravager: { url: "/assets/weapon-lab/mobs/breachling-ravager-approved-attacks-v1.glb",
+        runtimeSourceSha256: "cd8fa4f5daf6f789e80322fad2ed7df15cb7b6dcea0dec19c0d869478f08e22c", bytes: 8606112,
+        sha256: "11f567a98d810001d262315bb97f7ec56789f502c2fe5e4fd6732966e147d97d", runtimeScale: 1.6278343683021053,
+        actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"], neutralHolds: [] },
+    } as const;
+    for (const variant of ["oathbound", "stalker", "ravager"] as const) {
+      const pack = COMPOSER_MOB_PACKS[variant];
+      expect(REVIEWED_MOB_RECEIPTS[variant]).toMatchObject(pack
+        ? { url: pack.url, bytes: pack.bytes, sha256: pack.sha256, runtimeSourceSha256: legacy[variant].runtimeSourceSha256,
+          actions: [...pack.actions], neutralHolds: ["Idle", "CombatIdle"] }
+        : legacy[variant]);
+    }
     for (const patch of [
       { variant: "stalker" }, { url: BREACHLING_RUNTIME_ASSETS.base.url },
       { url: "/assets/weapon-lab/mobs/breachling-stalker-approved.glb" },

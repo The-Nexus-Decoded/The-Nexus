@@ -16,6 +16,7 @@ import {
   cinderboundWardenActionNames,
   createBreachV2WardenRuntime,
   inspectCinderboundWardenMaterialReadiness,
+  CINDERBOUND_WARDEN_SOURCE_YAW_CORRECTION,
 } from "../src/game/dungeons/breach-v2-wardens";
 import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout";
 import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog";
@@ -159,6 +160,14 @@ describe("BREACH-V2 Cinderbound Warden runtime", () => {
     });
     await runtime.warmAt(placement.x, placement.z);
     expect(runtime.reviewActor()?.root.name).toBe("review-warden");
+    // the +X-facing source mesh is turned onto the +Z forward convention by the pivot,
+    // so the boss faces its placement yaw instead of standing sideways to it
+    const facingActor = runtime.reviewActor()!;
+    expect(facingActor.model.parent!.rotation.y).toBeCloseTo(CINDERBOUND_WARDEN_SOURCE_YAW_CORRECTION, 8);
+    facingActor.root.updateMatrixWorld(true);
+    const meshForward = new THREE.Vector3(1, 0, 0).transformDirection(facingActor.model.matrixWorld);
+    expect(meshForward.x).toBeCloseTo(0, 6);
+    expect(meshForward.z).toBeCloseTo(1, 6);
     runtime.setReviewPlayback({ speed: 0.5, loop: true });
     runtime.play("BladeSweep", { immediate: true });
     runtime.update(placement.x, placement.z, 0.5);

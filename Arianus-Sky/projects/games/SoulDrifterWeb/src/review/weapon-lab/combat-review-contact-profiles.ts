@@ -5,6 +5,7 @@ import type { ReviewActorAdapter } from "./combat-review-types";
 import { REVIEWED_BASE_SHA as BASE_SHA, reviewActorSourceSha as sourceSha, reviewProjectileBinding,
   type ReviewProjectileEmitter } from "./combat-review-projectiles";
 import { REVIEWED_MOB_RECEIPTS } from "./reviewed-mob-receipt";
+import { COMPOSER_MOB_PACKS } from "./composer-mob-packs";
 
 export type ReviewStrikeSurface =
   | { readonly kind: "indexed"; readonly meshName: string; readonly vertices: readonly number[] }
@@ -46,12 +47,90 @@ const REVIEWED_STRIKE_SOURCES = {
     } },
 } as const;
 
-export function reviewContactProfile(actor: ReviewActorAdapter, actionId: string, options: { projectiles?: boolean } = {}): ReviewContactProfile | null {
+/** Measured human melee windows, derived once per loaded actor instance and action. */
+interface HumanStrikeWindow { readonly start: number; readonly end: number; readonly evidence: string }
+const humanStrikeWindows = new WeakMap<object, Map<string, HumanStrikeWindow | null>>();
+type EquippedActor = ReviewActorAdapter & { sockets?: readonly { role: string; asset: string; socket: THREE.Object3D; prepared: { visual: THREE.Object3D } }[] };
+
+/**
+ * A human weapon attack has no authored strike keys. The window is measured from the
+ * clip itself: the equipped primary weapon's far tip is sampled through the whole
+ * action and the strike is the peak of its speed. The interval is 80 ms before to
+ * 120 ms after that peak. Sampling re-poses the actor, so the caller re-applies its
+ * live frame afterwards; results are cached per actor instance and action.
+ */
+export function deriveHumanStrikeWindow(actor: ReviewActorAdapter, actionId: string): HumanStrikeWindow | null {
+  let cache = humanStrikeWindows.get(actor);
+  if (!cache) { cache = new Map(); humanStrikeWindows.set(actor, cache); }
+  if (cache.has(actionId)) return cache.get(actionId)!;
+  const action = actor.actions().find((entry) => entry.id === actionId);
+  const equipped = actor as EquippedActor;
+  const weapon = equipped.sockets?.find((entry) => entry.role === "primary");
+  let result: HumanStrikeWindow | null = null;
+  if (action && action.semantic === "attack" && !action.unavailableReason && weapon && action.durationSeconds > 0.2) {
+    const rate = 60, count = Math.max(8, Math.ceil(action.durationSeconds * rate));
+    const grip = new THREE.Vector3(), center = new THREE.Vector3(), tip = new THREE.Vector3(), box = new THREE.Box3();
+    const tips: THREE.Vector3[] = [], times: number[] = [];
+    try {
+      for (let index = 0; index <= count; index++) {
+        const time = action.durationSeconds * index / count;
+        actor.sample(actionId, time);
+        actor.root.updateMatrixWorld(true);
+        weapon.socket.getWorldPosition(grip);
+        box.setFromObject(weapon.prepared.visual, true);
+        if (box.isEmpty()) { tips.length = 0; break; }
+        box.getCenter(center);
+        // the far tip lies beyond the bounding centre on the grip-to-centre line
+        tip.copy(center).sub(grip).multiplyScalar(2).add(grip);
+        tips.push(tip.clone()); times.push(time);
+      }
+    } finally { actor.reset(); }
+    if (tips.length > 2) {
+      let peak = 0, peakSpeed = 0;
+      for (let index = 1; index < tips.length; index++) {
+        const speed = tips[index]!.distanceTo(tips[index - 1]!) / (times[index]! - times[index - 1]!);
+        if (speed > peakSpeed) { peakSpeed = speed; peak = index; }
+      }
+      if (peakSpeed >= 1.5) {
+        const at = times[peak]!;
+        const start = Number(Math.max(0, at - 0.08).toFixed(4)), end = Number(Math.min(action.durationSeconds, at + 0.12).toFixed(4));
+        if (end > start) result = { start, end, evidence: `${weapon.asset} tip speed peak ${peakSpeed.toFixed(1)} m/s at ${at.toFixed(3)} s (measured from the clip, ${rate} Hz); strike window ${start}–${end} s` };
+      }
+    }
+  }
+  cache.set(actionId, result);
+  return result;
+}
+
+export function reviewContactProfile(actor: ReviewActorAdapter, actionId: string, options: { projectiles?: boolean; deriveHuman?: boolean } = {}): ReviewContactProfile | null {
+  // Equipped humans carry attachment sockets; every mob adapter is socket-less.
+  if (actor.definitionId.startsWith("human:") || Array.isArray((actor as EquippedActor).sockets)) {
+    const projectile = options.projectiles ? reviewProjectileBinding(actor, actionId) : null;
+    if (projectile) return { id: `${projectile.emitter}:${actionId}`, actionId,
+      startSeconds: projectile.releaseSeconds, endSeconds: projectile.endSeconds,
+      surface: { kind: "projectile", emitter: projectile.emitter }, evidence: projectile.evidence,
+      definitionId: actor.definitionId, assetSha256: sourceSha(actor) };
+    const cached = humanStrikeWindows.get(actor)?.get(actionId);
+    const window = cached !== undefined ? cached : options.deriveHuman ? deriveHumanStrikeWindow(actor, actionId) : null;
+    if (!window) return null;
+    return { id: `human-weapon-measured:${actionId}:${window.start}-${window.end}`, actionId, startSeconds: window.start, endSeconds: window.end,
+      surface: { kind: "weapon", role: "primary" }, definitionId: actor.definitionId, assetSha256: sourceSha(actor),
+      evidence: `${window.evidence}; equipped primary weapon mesh against actual target skin; sampled mesh contact required` };
+  }
   const projectile = options.projectiles ? reviewProjectileBinding(actor, actionId) : null;
   if (projectile) return { id: `${projectile.emitter}:${actionId}`, actionId,
     startSeconds: projectile.releaseSeconds, endSeconds: projectile.endSeconds,
     surface: { kind: "projectile", emitter: projectile.emitter }, evidence: projectile.evidence,
     definitionId: actor.definitionId, assetSha256: sourceSha(actor) };
+  const composer = COMPOSER_MOB_PACKS[actor.definitionId.replace("breachling-", "") as keyof typeof COMPOSER_MOB_PACKS];
+  if (composer && sourceSha(actor) === composer.sha256) {
+    const strike = composer.strikes[actionId];
+    if (!strike) return null;
+    return { id: `${strike.revision}:${actionId}`, actionId, startSeconds: strike.start, endSeconds: strike.end,
+      definitionId: actor.definitionId, assetSha256: composer.sha256,
+      surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [...strike.vertices] },
+      evidence: `${strike.revision} ${composer.sha256.slice(0, 8)} reach-solved contact window: ${strike.phase}; sampled mesh contact required` };
+  }
   const source = REVIEWED_STRIKE_SOURCES[actor.definitionId as keyof typeof REVIEWED_STRIKE_SOURCES];
   if (!source || sourceSha(actor) !== source.sha256) return null;
   const strike = (source.strikes as Partial<Record<string, { start: number; end: number; vertices: readonly number[];

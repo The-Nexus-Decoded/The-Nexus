@@ -7,6 +7,7 @@ import { CombatReviewPanel } from "../src/review/weapon-lab/combat-review-panel"
 import type { ReviewAction, ReviewActorAdapter } from "../src/review/weapon-lab/combat-review-types";
 import { createMobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
 import { MOB_CATALOG } from "../src/review/weapon-lab/mobs-stage";
+import { COMPOSER_MOB_PACKS } from "../src/review/weapon-lab/composer-mob-packs";
 import { resolveReviewContact, type ReviewContactResolution } from "../src/review/weapon-lab/combat-review-contact-resolver";
 import { sampleReviewMeshVertices } from "../src/review/weapon-lab/combat-review-contact";
 import type { ReviewContactProfile } from "../src/review/weapon-lab/combat-review-contact-profiles";
@@ -15,7 +16,7 @@ import { DomNode, domFixture } from "./helpers/reviewDomFixture";
 import { createHumanReviewActorFactory } from "../src/review/weapon-lab/human-review-actor.js";
 // @ts-expect-error Existing immutable shared bow action catalog.
 import { BOW_RELEASE_NAME, BOW_TRIPLE_SHOT_NAME } from "../src/review/weapon-lab/human-review-catalog.js";
-import { sampleReviewProjectileFlight } from "../src/review/weapon-lab/combat-review-projectiles";
+import { SPIT_PROJECTILE_MOTION, sampleReviewProjectileFlight } from "../src/review/weapon-lab/combat-review-projectiles";
 
 // Browser tsconfig has no ambient Node types; limit host declarations to this test.
 const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
@@ -677,7 +678,8 @@ it("replays actual pinned base GLB attack and source reaction/death on the same 
     instanceId, signal, definitionId: definition.id,
   }) }), { a: "base", b: "base" });
   await value.enter(); expect(value.snapshot().ready, JSON.stringify(value.snapshot().slots.map((slot) => slot.error))).toBe(true);
-  expect(value.snapshot().slots[0]!.actions.filter((entry) => entry.approvalStatus === "continuous-reviewed")).toHaveLength(5);
+  // every composer clip except the neutral holds is a reviewed motion
+  expect(value.snapshot().slots[0]!.actions.filter((entry) => entry.approvalStatus === "continuous-reviewed")).toHaveLength(COMPOSER_MOB_PACKS.base!.actions.length);
   value.setAction("a", "action", "LungeAttack"); value.setManualCue({ kind: "reaction", atSeconds: 0.55, blendSeconds: 0.08 });
   value.seek(0.59); const pose = [bonePose(value, "a"), bonePose(value, "b")];
   value.seek(1.15); expect(bonePose(value, "a")).not.toEqual(pose[0]);
@@ -689,7 +691,7 @@ it("replays actual pinned base GLB attack and source reaction/death on the same 
   value.restart(); expect(value.snapshot().frame!.actors[1]!.terminal).toBe("none");
   value.setManualCue({ kind: "none" }); value.setAction("a", "action", "SpitAttack");
   const flight = value.snapshot().projectiles.flights[0]!;
-  expect(flight.releaseSeconds).toBe(0.64); expect(flight.endSeconds).toBeCloseTo(1.44);
+  expect(flight.releaseSeconds).toBe(COMPOSER_MOB_PACKS.base!.spit!.releaseSeconds); expect(flight.endSeconds).toBeCloseTo(COMPOSER_MOB_PACKS.base!.spit!.releaseSeconds + SPIT_PROJECTILE_MOTION.flightSeconds);
   expect(value.sequence()!.events).toEqual([expect.objectContaining({ kind: "release", result: "unmeasured" })]);
   const fluid = value.root.getObjectByName("review-poison-fluid") as THREE.Mesh;
   const dispose = vi.spyOn(fluid.geometry, "dispose"); expect(fluid.visible).toBe(false);
@@ -703,6 +705,8 @@ it("replays actual pinned base GLB attack and source reaction/death on the same 
   expect(value.snapshot().projectiles.flights[0]!.direction).toEqual(flight.direction);
   expect(value.snapshot().projectiles.flights[0]!.origin).toEqual(flight.origin);
   value.setPlacement({ yawADegrees: 90 });
-  expect(value.snapshot().projectiles.flights[0]!.direction[0]).toBeCloseTo(Math.cos(8 * Math.PI / 180), 5);
+  // the emission turns with the actor: after a 90° yaw it points along +X with only its own pitch left
+  const turned = value.snapshot().projectiles.flights[0]!.direction;
+  expect(turned[2]).toBeCloseTo(0, 5); expect(turned[0]).toBeCloseTo(Math.sqrt(1 - turned[1] * turned[1]), 5); expect(turned[0]).toBeGreaterThan(0.9);
   value.setAction("a", "action", "Idle"); expect(value.root.getObjectByName("review-poison-fluid")).toBeUndefined();
 }, 30_000);

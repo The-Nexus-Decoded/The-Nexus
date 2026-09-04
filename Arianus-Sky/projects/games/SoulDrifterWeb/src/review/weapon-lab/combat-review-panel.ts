@@ -1,4 +1,4 @@
-import { CombatReviewController, type CombatActionRole, type CombatContactSnapshot, type CombatReviewSnapshot, type CombatSlot, type CombatSlotSnapshot } from "./combat-review-controller";
+import { CombatReviewController, type CombatActionRole, type CombatContactSnapshot, type CombatReviewSnapshot, type CombatSlot, type CombatSlotSnapshot, type CombatSparRow } from "./combat-review-controller";
 import type { ReviewAction } from "./combat-review-types";
 
 interface ActorFields {
@@ -42,6 +42,11 @@ export class CombatReviewPanel {
   private readonly jump: HTMLButtonElement;
   private readonly release: HTMLButtonElement;
   private readonly projectileStatus: HTMLElement;
+  private readonly reactionPolicy: HTMLInputElement;
+  private readonly sparRun: HTMLButtonElement;
+  private readonly sparStatus: HTMLElement;
+  private readonly sparList: HTMLOListElement;
+  private sparKey = "";
   private readonly scanContact: (response: CombatContactSnapshot["response"]) => Promise<unknown>;
   private readonly error: HTMLElement;
   private readonly unsubscribe: () => void;
@@ -71,6 +76,11 @@ export class CombatReviewPanel {
     this.contactBinding = this.node("p", "context-note"); contact.append(this.contactBinding);
     this.measuredResponse = this.selectField(contact, "Next response", "contact-response");
     this.measuredClip = this.selectField(contact, "Response clip", "contact-clip"); this.measuredClipRow = this.measuredClip.closest("label")!;
+    const policyRow = this.node("label", "combat-check");
+    this.reactionPolicy = this.node("input"); this.reactionPolicy.type = "checkbox"; this.reactionPolicy.dataset.command = "reaction-policy";
+    this.reactionPolicy.id = "combat-reaction-policy";
+    policyRow.append(this.reactionPolicy, this.node("span", "", "Pick the reaction clip from the measured contact side and attack weight"));
+    contact.append(policyRow);
     const contactButtons = this.node("div", "buttons");
     this.scan = this.button("Scan contact", "contact-scan"); this.jump = this.button("Go to contact", "contact-jump");
     this.release = this.button("Go to release", "projectile-release");
@@ -92,7 +102,15 @@ export class CombatReviewPanel {
     this.numberField(placement, "A facing", "yaw-a", -360, 360, 5, "°");
     this.numberField(placement, "B facing", "yaw-b", -360, 360, 5, "°");
     placement.append(this.node("p", "context-note", "Center-to-center spacing. Changing distance does not guarantee contact or retarget a source motion."));
-    const transport = this.card("05", "Shared playback");
+    const spar = this.card("05", "Spar matrix");
+    spar.append(this.node("p", "context-note", "Runs every available attack of the current attacker against the defender with measured contact and lists the results here. Review evidence only; no damage or gameplay approval."));
+    const sparButtons = this.node("div", "buttons");
+    this.sparRun = this.button("Run every attack", "spar-run"); sparButtons.append(this.sparRun); spar.append(sparButtons);
+    this.sparStatus = this.node("p", "context-note"); this.sparStatus.setAttribute("role", "status"); this.sparStatus.setAttribute("aria-live", "polite");
+    spar.append(this.sparStatus);
+    this.sparList = this.node("ol", "combat-spar"); this.sparList.hidden = true; this.sparList.setAttribute("aria-label", "Spar matrix results");
+    spar.append(this.sparList);
+    const transport = this.card("06", "Shared playback");
     const timelineRow = this.node("label", "timeline-field");
     timelineRow.append(this.node("span", "", "Sequence"));
     this.time = this.node("output"); this.time.htmlFor = "combat-time"; timelineRow.append(this.time);
@@ -188,6 +206,13 @@ export class CombatReviewPanel {
         });
         break;
       case "contact-jump": if (snapshot.contact.result?.event) this.controller.seek(snapshot.contact.result.event.timeSeconds); break;
+      case "reaction-policy": this.controller.setReactionPolicy((control as HTMLInputElement).checked ? "auto" : "manual"); break;
+      case "spar-run":
+        if (snapshot.spar.running) this.controller.cancelSparRun();
+        else void this.controller.runSparMatrix().catch((error) => {
+          if (!this.abort.signal.aborted) this.error.textContent = error instanceof Error ? error.message : String(error);
+        });
+        break;
       case "projectile-release": if (snapshot.projectiles.flights[0]) this.controller.seek(snapshot.projectiles.flights[0].releaseSeconds); break;
       case "cue-time": this.controller.setManualCue({ atSeconds: Number(value) }); break;
       case "cue-blend": this.controller.setManualCue({ blendSeconds: Number(value) }); break;
@@ -230,6 +255,7 @@ export class CombatReviewPanel {
       this.error.textContent = snapshot.error ?? "";
     } else for (const value of snapshot.slots) this.renderActor(value, true);
     this.renderContact(snapshot);
+    this.renderSpar(snapshot);
     this.evidence.textContent = snapshot.contact.response !== "none"
       ? `Measured ${snapshot.contact.response} · begins at confirmed surface contact with a preserving blend. Review response only; no damage or health simulation.`
       : snapshot.cue.kind !== "none" ? "Manual cue · not measured contact. This response previews timing only; it does not establish a hit, damage or gameplay synchronization."
@@ -277,9 +303,14 @@ export class CombatReviewPanel {
     this.projectileStatus.textContent = unavailableReason ? `Emission unavailable · ${unavailableReason}` : flight
       ? `${flights.length} ${projectileLabel} projectile${flights.length === 1 ? "" : "s"} · ${now < flight.releaseSeconds ? "before release" : now > flight.endSeconds ? "flight ended" : stopped ? `${stopped} stopped at measured contact` : "in flight; no hit assumed"}. Release ${flight.releaseSeconds.toFixed(3)} s; flight ${(flight.endSeconds - flight.releaseSeconds).toFixed(3)} s. ${flight.evidence}.`
       : "No eligible emitted geometry. This is unavailable, not a miss.";
+    this.reactionPolicy.checked = snapshot.reactionPolicy === "auto"; this.reactionPolicy.disabled = !snapshot.ready;
     const { status, result } = snapshot.contact;
+    const side = snapshot.contact.direction ? ` · from the ${snapshot.contact.direction}` : "";
+    const weight = snapshot.contact.severity ? ` · ${snapshot.contact.severity} attack` : "";
+    const reactionClip = snapshot.contact.response === "reaction"
+      ? defender.actions.find((entry) => entry.id === defender.selected.reaction)?.label ?? defender.selected.reaction : "";
     const message = status === "scanning" ? "Scanning current poses… Pause, seek or change an actor setting to cancel."
-      : status === "contact" ? `Measured contact · ${result!.event!.timeSeconds.toFixed(3)} s · ${snapshot.contact.response === "none" ? "no response requested" : snapshot.contact.response + " scheduled"}.`
+      : status === "contact" ? `Measured contact · ${result!.event!.timeSeconds.toFixed(3)} s${side}${weight} · ${snapshot.contact.response === "none" ? "no response requested" : snapshot.contact.response + " scheduled" + (reactionClip ? ` → ${reactionClip}` : "")}.`
       : status === "miss" ? `Measured miss · no eligible ${ranged ? "projectile surface" : "strike point"} reached target skin in the bound window. No response scheduled.`
       : status === "unavailable" ? `Contact unavailable · ${result!.evidence}`
       : "Not measured · scan the current spacing, facing, ready pose and calibration. No hit is assumed.";
@@ -289,6 +320,30 @@ export class CombatReviewPanel {
     this.scan.disabled = !snapshot.ready; this.scan.setAttribute("aria-busy", String(status === "scanning"));
     this.jump.disabled = status !== "contact"; this.contactDetails.hidden = !result;
     this.contactEvidence.textContent = result ? `${result.evidence} ${result.event?.evidence ?? ""} ${result.samples} pose samples; ${result.sampleRate} Hz; ${(result.toleranceMeters * 1000).toFixed(1)} mm tolerance. Not gameplay approval.` : "";
+  }
+  private renderSpar(snapshot: CombatReviewSnapshot): void {
+    const { spar } = snapshot;
+    this.sparRun.textContent = spar.running ? "Cancel spar run" : "Run every attack";
+    this.sparRun.disabled = !snapshot.ready; this.sparRun.setAttribute("aria-busy", String(spar.running));
+    const attacker = this.controller.definitions.find((entry) => entry.id === spar.attackerDefinitionId)?.label ?? "";
+    const defender = this.controller.definitions.find((entry) => entry.id === spar.defenderDefinitionId)?.label ?? "";
+    this.sparStatus.textContent = spar.running ? `Running · ${spar.rows.length} attack${spar.rows.length === 1 ? "" : "s"} measured so far (${attacker} → ${defender})…`
+      : spar.rows.length ? `${spar.rows.length} attack${spar.rows.length === 1 ? "" : "s"} measured · ${spar.rows.filter((row) => row.status === "contact").length} contact · ${spar.rows.filter((row) => row.status === "miss").length} miss · ${spar.rows.filter((row) => row.status === "unavailable").length} unbound (${attacker} → ${defender})`
+      : "No spar run yet.";
+    const key = JSON.stringify(spar.rows);
+    if (key === this.sparKey) return;
+    this.sparKey = key; this.sparList.hidden = !spar.rows.length;
+    this.sparList.replaceChildren(...spar.rows.map((row: CombatSparRow) => {
+      const item = this.node("li"); item.dataset.state = row.status; item.title = row.evidence;
+      const head = this.node("div", "combat-spar-head");
+      head.append(this.node("strong", "", row.label), this.node("span", "combat-spar-result", `${row.status} · ${row.separationMeters.toFixed(2)} m`));
+      const detail = row.status === "contact"
+        ? `${row.timeSeconds == null ? "" : `hit at ${row.timeSeconds.toFixed(3)} s · `}${row.direction ?? "side unknown"} · ${row.severity ?? "weight unknown"}${row.reaction ? ` → ${row.reaction}` : ""}`
+        : row.status === "miss" ? `window ${row.window} · no strike surface reached the target down to ${row.separationMeters.toFixed(2)} m`
+        : `window ${row.window} · ${row.evidence}`;
+      item.append(head, this.node("span", "combat-spar-detail", detail));
+      return item;
+    }));
   }
   private renderActor(value: CombatSlotSnapshot, calibrationOnly = false): void {
     const fields = this.actorFields[value.slot];
