@@ -428,6 +428,13 @@ mount animation passes. Do not rediscover them; apply them from the first build.
 - A collapse is a side lie, not a crouch: free all four paws once the legs
   buckle, author limp limb FK, roll the body onto one side and let the torso
   guard rest the ribs on the floor; head and neck settle last, then stillness.
+  Roll the body about the PELVIS (not the root at the floor), roll to a full
+  ~88 degrees, and adduct the limbs to the midline (roll about the body's
+  forward axis) or the wide-stance lateral splay points straight into the
+  floor and props the corpse up on a foot. The rest guard rests on the
+  torso, limbs and paws with the claws posed first and re-applied after every
+  rig reset; disable the free-limb correctives and toe curling during the
+  collapse, since raising a resting limb lifts the body off the floor with it.
 
 ### Gates and review
 - Mechanical gates before any visual review: floor, sole-patch slide, IK clamps
