@@ -24,11 +24,11 @@ function wayfarer(overrides: Partial<ReviewedWardenReceipt> = {}): ReviewedWarde
 
 describe("Rebuilt Warden review intake", () => {
   it("lists exactly the rebuilt Warden bodies that cleared their gates", () => {
-    expect(Object.keys(REVIEWED_FOURVIEW_WARDEN_RECEIPTS)).toEqual(["wayfarer"]);
+    expect(Object.keys(REVIEWED_FOURVIEW_WARDEN_RECEIPTS).sort()).toEqual(["oathbreaker", "wayfarer"]);
     expect(Object.isFrozen(REVIEWED_FOURVIEW_WARDEN_RECEIPTS)).toBe(true);
     const listed = MOB_CATALOG.filter((entry) => entry.id.startsWith("warden-") && entry.id.endsWith("-4v"));
-    expect(listed.map((entry) => entry.id)).toEqual(["warden-wayfarer-4v"]);
-    const rebuilt = listed[0]!;
+    expect(listed.map((entry) => entry.id).sort()).toEqual(["warden-oathbreaker-4v", "warden-wayfarer-4v"]);
+    const rebuilt = listed.find((entry) => entry.id === "warden-wayfarer-4v")!;
     // the rebuilt body is served from its own review url and never over the shipped asset
     expect(rebuilt.url).toBe(REVIEWED_FOURVIEW_WARDEN_RECEIPTS.wayfarer!.url);
     expect(rebuilt.runtimeUrl).toBe("/assets/3d/creatures/cinderbound-wardens/cinderbound-warden.glb");

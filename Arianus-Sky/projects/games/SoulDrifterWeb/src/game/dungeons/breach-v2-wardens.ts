@@ -112,6 +112,60 @@ const LOOPING_ACTIONS: ReadonlySet<string> = new Set([
 ]);
 const ACTION_TRANSITION_SECONDS = 0.32;
 
+/**
+ * Clips the motion composer authors with a `terminal: "yawed"` end pose: the whole
+ * body has stepped around and the last frame leaves the root bone spun onto the new
+ * heading. Every other clip must end where it started, so no other clip may hand a
+ * heading to the actor root.
+ */
+const TERMINAL_YAW_ACTIONS: ReadonlySet<string> = new Set(["TurnLeft", "TurnRight"]);
+/** Below this a terminal yaw is authoring noise, not a heading (0.06 degrees). */
+const TERMINAL_YAW_EPSILON_RADIANS = 1e-3;
+/** A terminal pose that is not a clean spin about +Y cannot move onto the actor root. */
+const TERMINAL_YAW_TILT_EPSILON = 1e-4;
+/** An action faded below this contributes no measurable pose. */
+const SETTLED_ACTION_WEIGHT = 1e-4;
+
+const signedAngle = (radians: number): number => Math.atan2(Math.sin(radians), Math.cos(radians));
+
+/** The skinned hierarchy's topmost bone — the joint the composer writes its root track to. */
+export function cinderboundWardenRootBone(model: THREE.Object3D): THREE.Bone | null {
+  let rootBone: THREE.Bone | null = null;
+  model.traverse((object) => {
+    if (rootBone || !(object instanceof THREE.Bone)) return;
+    if (object.parent instanceof THREE.Bone) return;
+    rootBone = object;
+  });
+  return rootBone;
+}
+
+/**
+ * Net heading (radians about +Y) a terminal-yaw clip bakes into the root bone track,
+ * measured as the signed yaw between its first and last key. Returns 0 for every clip
+ * that encodes no turn — including the shipped Warden packs, whose TurnLeft/TurnRight
+ * root track starts and ends at yaw 0 and therefore has no heading to hand over.
+ */
+export function measureCinderboundWardenTerminalYaw(
+  clip: THREE.AnimationClip,
+  rootBoneName: string,
+): number {
+  if (!TERMINAL_YAW_ACTIONS.has(clip.name)) return 0;
+  const track = clip.tracks.find((candidate) => candidate.name === `${rootBoneName}.quaternion`);
+  if (!track || track.getValueSize() !== 4 || track.values.length < 8) return 0;
+  const values = track.values;
+  const end = values.length - 4;
+  // Folding a tilted terminal pose into a yaw would lay the boss over on the frame it
+  // is applied, so only a pose that is purely a spin about +Y is ever moved.
+  const tilted = (offset: number): boolean =>
+    Math.abs(values[offset]!) > TERMINAL_YAW_TILT_EPSILON
+    || Math.abs(values[offset + 2]!) > TERMINAL_YAW_TILT_EPSILON;
+  if (tilted(0) || tilted(end)) return 0;
+  const heading = signedAngle(
+    2 * Math.atan2(values[end + 1]!, values[end + 3]!) - 2 * Math.atan2(values[1]!, values[3]!),
+  );
+  return Math.abs(heading) < TERMINAL_YAW_EPSILON_RADIANS ? 0 : heading;
+}
+
 export interface CinderboundWardenPlacement {
   id: string;
   kind: CinderboundWardenKind;
@@ -144,6 +198,13 @@ export interface CinderboundWardenSnapshot extends CinderboundWardenPlacement, B
   activeEffects: CinderboundWardenEffectStatus[];
   groundingStatus: string;
   groundingClearanceMeters: number | null;
+  /**
+   * World heading of the actor root (radians). It starts at the placement yaw and
+   * keeps every heading a completed turn handed over, so it accumulates across turns.
+   */
+  facingYaw: number;
+  /** Heading still bleeding out of the mixer while a finished turn fades (radians). */
+  settlingTurnYaw: number;
 }
 
 export interface BreachV2WardenRuntime {
@@ -211,6 +272,17 @@ interface RuntimeActor {
   vfxResources: WardenVfxResources;
   effects: CinderboundWardenEffectSystem;
   review: BreachV2AnimationReviewState;
+  /** Net heading each terminal-yaw clip of this pack bakes into the root bone (radians). */
+  terminalYaw: ReadonlyMap<string, number>;
+  /**
+   * Headings already moved onto the root that the mixer is still posing out of the
+   * bones. Each drains with its own action's weight, so the pivot can cancel exactly
+   * the double-count and nothing else.
+   */
+  headingSettles: { action: THREE.AnimationAction; headingRadians: number }[];
+  /** Bumped by every play so one finish can only hand over its heading once. */
+  playId: number;
+  headingCommittedPlayId: number;
 }
 
 export interface CinderboundWardenMaterialReadiness {
@@ -503,9 +575,57 @@ export function createBreachV2WardenRuntime(
     actor.presentationMaterials.forEach((material) => material.dispose());
     actor = null;
   };
+  /**
+   * A finished turn keeps posing its terminal yaw out of the bones for the whole
+   * crossfade, so the heading we moved onto the root would be applied twice. Cancel
+   * exactly the part the bones are still contributing on the pivot and let it drain
+   * with the action's own weight: the frame the heading lands is pose-identical to the
+   * frame before it, and the pivot is back on its source correction once the fade ends.
+   */
+  const settleTurnHeading = (runtimeActor: RuntimeActor): number => {
+    let residualRadians = 0;
+    for (let index = runtimeActor.headingSettles.length - 1; index >= 0; index -= 1) {
+      const settle = runtimeActor.headingSettles[index]!;
+      const weight = settle.action.getEffectiveWeight();
+      if (!(weight > SETTLED_ACTION_WEIGHT)) {
+        runtimeActor.headingSettles.splice(index, 1);
+        continue;
+      }
+      residualRadians += settle.headingRadians * weight;
+    }
+    runtimeActor.pivot.rotation.y = CINDERBOUND_WARDEN_SOURCE_YAW_CORRECTION - residualRadians;
+    return residualRadians;
+  };
+  const commitTurnHeading = (runtimeActor: RuntimeActor, action: THREE.AnimationAction): void => {
+    if (runtimeActor.headingCommittedPlayId === runtimeActor.playId) return;
+    runtimeActor.headingCommittedPlayId = runtimeActor.playId;
+    const headingRadians = runtimeActor.terminalYaw.get(action.getClip().name) ?? 0;
+    if (headingRadians === 0) return;
+    runtimeActor.root.rotation.y += headingRadians;
+    runtimeActor.headingSettles.push({ action, headingRadians });
+    settleTurnHeading(runtimeActor);
+  };
   const playActor = (runtimeActor: RuntimeActor, clipName: string, immediate = false): number => {
     const action = runtimeActor.actions.get(clipName);
     if (!action) throw new Error(`${asset.label} does not provide ${clipName}.`);
+    runtimeActor.playId += 1;
+    // A settle cancels a heading the bones are still posing while the finished action
+    // fades. Both paths below end that pose: stopAllAction drops its weight, and a
+    // replayed action restarts on its neutral first frame. The cancellation has to be
+    // dropped with it, but the bones only adopt the new pose on the next mixer
+    // evaluation, so the drop is finished after that evaluation rather than here.
+    let prunedHeading = false;
+    if (immediate) {
+      prunedHeading = runtimeActor.headingSettles.length > 0;
+      runtimeActor.headingSettles.length = 0;
+    } else {
+      for (let index = runtimeActor.headingSettles.length - 1; index >= 0; index -= 1) {
+        if (runtimeActor.headingSettles[index]!.action === action) {
+          runtimeActor.headingSettles.splice(index, 1);
+          prunedHeading = true;
+        }
+      }
+    }
     runtimeActor.review.hooks?.restore();
     const loops = runtimeActor.review.loop ?? LOOPING_ACTIONS.has(clipName);
     if (immediate) {
@@ -524,11 +644,19 @@ export function createBreachV2WardenRuntime(
     action.play();
     runtimeActor.currentAction = action;
     runtimeActor.currentClip = clipName;
+    if (prunedHeading) {
+      // Settle the bones onto the frame this action now holds before the pivot stops
+      // cancelling. Without this the pivot releases a heading the skeleton is still
+      // posing and the body snaps by the full turn for one frame.
+      runtimeActor.mixer.update(0);
+      settleTurnHeading(runtimeActor);
+    }
     runtimeActor.effects.beginClip(clipName);
     runtimeActor.groundingStatus = "pending";
     runtimeActor.groundingFrames = 0;
     runtimeActor.groundingClearanceMeters = null;
     if (immediate) evaluateBreachV2AnimationReviewPose(runtimeActor.review, runtimeActor.mixer, 0, true);
+    settleTurnHeading(runtimeActor);
     return action.getClip().duration;
   };
   const detachStage = (runtimeActor: RuntimeActor, stage: number): void => {
@@ -644,6 +772,23 @@ export function createBreachV2WardenRuntime(
       if (!section) throw new Error(`${asset.label} is missing ${stage.meshName}.`);
       breakoffMeshes.set(stage.damageFraction * 100, section);
     });
+    // Which turns actually carry a heading is a property of the loaded pack, not of the
+    // clip name: the shipped bodies author TurnLeft/TurnRight with a root track that
+    // starts and ends at yaw 0, so they hand over nothing and are skipped outright.
+    const rootBone = cinderboundWardenRootBone(model);
+    const terminalYaw = new Map<string, number>();
+    source.animations.forEach((clip) => {
+      const headingRadians = rootBone ? measureCinderboundWardenTerminalYaw(clip, rootBone.name) : 0;
+      if (headingRadians !== 0) terminalYaw.set(clip.name, headingRadians);
+    });
+    diagnostics?.record("warden-terminal-yaw", {
+      label: asset.label,
+      url: asset.url,
+      rootBone: rootBone?.name ?? null,
+      headingDegrees: Object.fromEntries(
+        [...terminalYaw].map(([name, radians]) => [name, THREE.MathUtils.radToDeg(radians)]),
+      ),
+    });
     const idle = actions.get("Idle")!;
     const vfxResources = createWardenVfxResources();
     const effects = createCinderboundWardenEffectSystem({
@@ -676,9 +821,16 @@ export function createBreachV2WardenRuntime(
       vfxResources,
       effects,
       review: createBreachV2AnimationReviewState(),
+      terminalYaw,
+      headingSettles: [],
+      playId: 0,
+      headingCommittedPlayId: -1,
     };
     mixer.addEventListener("finished", (event) => {
       if (event.action !== runtimeActor.currentAction) return;
+      // The heading is handed over the moment the turn completes, whatever the review
+      // stage does next, so the dungeon and the Motion Forge end up facing the same way.
+      commitTurnHeading(runtimeActor, event.action);
       if (runtimeActor.review.loop !== null) return;
       if (runtimeActor.currentClip !== "DeathCollapse") playActor(runtimeActor, "CombatIdle");
     });
@@ -743,6 +895,9 @@ export function createBreachV2WardenRuntime(
       });
       if (actor) {
         evaluateBreachV2AnimationReviewPose(actor.review, actor.mixer, deltaSeconds);
+        // After the mixer, before any world matrix is rebuilt: the pivot must cancel
+        // this frame's residual, never the previous frame's.
+        settleTurnHeading(actor);
         actor.furnacePhaseSeconds += deltaSeconds;
         actor.damageHeat.value = damageFraction >= 1
           ? 0.25
@@ -848,6 +1003,8 @@ export function createBreachV2WardenRuntime(
       activeEffects: actor.effects.status(),
       groundingStatus: actor.groundingStatus,
       groundingClearanceMeters: actor.groundingClearanceMeters,
+      facingYaw: actor.root.rotation.y,
+      settlingTurnYaw: CINDERBOUND_WARDEN_SOURCE_YAW_CORRECTION - actor.pivot.rotation.y,
     }] : [],
     play: (clipName, playOptions) => playActor(actor ?? (() => { throw new Error("The Warden is not loaded."); })(), clipName, playOptions?.immediate),
     pose: (clipName, normalizedTime) => {
@@ -856,6 +1013,9 @@ export function createBreachV2WardenRuntime(
       actor.currentAction.paused = true;
       actor.currentAction.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * duration;
       evaluateBreachV2AnimationReviewPose(actor.review, actor.mixer, 0);
+      // A scrubbed turn never finishes, so it hands over no heading: the scrubbed root
+      // track is already showing the turn, and the pivot must stay on its correction.
+      settleTurnHeading(actor);
     },
     pause: (paused) => {
       if (!actor) throw new Error("The Warden is not loaded.");

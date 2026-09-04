@@ -79,4 +79,16 @@ export const REVIEWED_FOURVIEW_WARDEN_RECEIPTS: ReviewedWardenReceipts = prepare
       "DeathCollapse", "BladeSweep", "CinderSweep", "AshCall", "PalmFire", "SoulTax", "FurnaceShutdown",
     ],
   },
+  oathbreaker: {
+    kind: "oathbreaker",
+    url: "/assets/weapon-lab/wardens/oathbreaker-greater-cinderbound-warden-fourview-v3.glb",
+    runtimeSourceSha256: "244cefb9e478c8ce561722e479a2cafce9fb5c91c4ee42477c893ee8f91a5a3d",
+    bytes: 15_986_640,
+    sha256: "716ec29751baff93df4d8cf641ccc53619dfd8bca091d1c82cb5f23012fceb5b",
+    runtimeScale: 3.9985279615318867,
+    clips: [
+      "Idle", "CombatIdle", "HeadLook", "HeavyWalk", "HeavyRun", "TurnLeft", "TurnRight", "HitReact",
+      "DeathCollapse", "BladeSweep", "CinderSweep", "AshCall", "PalmFire",
+    ],
+  },
 });

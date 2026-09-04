@@ -225,7 +225,7 @@ describe("Mobs stage exact installed asset contract", () => {
     expect(MOB_CATALOG.map((definition) => definition.id)).toEqual([
       "breachling-base", "breachling-stalker", "breachling-oathbound", "breachling-ravager",
       "breachling-base-4v", "breachling-stalker-4v", "breachling-oathbound-4v", "breachling-ravager-4v",
-      "warden-wayfarer", "warden-oathbreaker", "warden-wayfarer-4v",
+      "warden-wayfarer", "warden-oathbreaker", "warden-wayfarer-4v", "warden-oathbreaker-4v",
     ]);
     for (const definition of MOB_CATALOG) {
       const bytes = bytesFor(definition);
