@@ -8,7 +8,7 @@
 
 Heartvale is the first complete outdoor campaign chapter after the First Breach. It must not feel like the player leaves the dungeon and is dropped into a decorative map with unrelated errands.
 
-The chapter begins with a live rescue at the Soul Well Basin, introduces Heartvale through an actual-map atlas reveal, teaches the core game systems through play, develops local factions and peoples, and advances one coherent mystery from level 2 to level 10.
+The chapter begins with a live rescue at the Soul Well Basin, introduces Heartvale through an actual-map atlas reveal, teaches the core game systems through play, develops several distinct **human** communities and factions, and advances one coherent mystery from level 2 to level 10.
 
 The complete chapter contains:
 
@@ -106,7 +106,7 @@ Every main quest must advance the Heartvale crisis and tag at least one readines
 Heartvale is the player’s first practical lesson in how the wider game works:
 
 - local problems are connected to larger realm instability;
-- different peoples and factions interpret the same crisis differently;
+- different human communities, institutions and factions can interpret the same crisis differently;
 - power comes from combat, knowledge, trade, alliances and infrastructure—not combat grinding alone;
 - choices affect reputation and later support;
 - a regional victory is one step toward preparing for the eventual return, not the end of the world story.
@@ -128,32 +128,37 @@ For any public or monetized release, do not reproduce protected dialogue, scenes
 
 ---
 
-# 3. Heartvale population and faction gate
+# 3. Heartvale human-only population and faction gate
 
-## Confirmed local peoples
+## Owner-locked population
 
-- Human presence is confirmed.
-- Drakkin presence is confirmed.
+**Heartvale is human-only for this chapter and POC.**
 
-Do not automatically make Elves the third Heartvale people. One or two additional local peoples remain `OWNER_DECISION_REQUIRED` and must be reconciled with #443, #428 and #430 before production population or faction assets are locked.
+- All settlement residents, named quest NPCs, merchants, guards, travelers, faction members and other social population in Heartvale are Human.
+- Drakkin do not appear in Heartvale. They are introduced in other locations later in the game.
+- Elves, Dwarves, Halflings and other peoples also do not appear as Heartvale residents or quest NPCs in this chapter.
+- Do not create a dragon, dragonkin or Drakkin faction, visitor, settlement, cameo or quest giver in Heartvale without a later explicit owner change.
+- Hostile wildlife and breach-born monsters may still exist, but no dragon/Drakkin creature or character is introduced here by assumption.
+
+Heartvale is intentionally used to demonstrate that one people can contain multiple competing institutions, interests, social groups and factions. Race and faction remain separate concepts globally, but Heartvale’s local faction differences are all **within human society**.
 
 ## Faction design rules
 
-- A race is not one monolithic faction.
-- Factions may be mixed-race while retaining a cultural majority or historical origin.
-- Heartvale should expose 3–4 local power centers, but the exact names and membership require owner/canon approval.
+- Heartvale should expose 3–4 human local power centers, but the exact display names, leaders and politics require owner/canon approval.
+- Factions may recruit across profession, class, settlement, religion, trade, military duty or philosophy while remaining human in this chapter.
 - The player learns the faction system in Heartvale without being permanently locked out of half the chapter from one early choice.
 - Main quests usually advance broad Heartvale stability; side and optional quests may shift individual faction reputation more strongly.
 - Reputation effects must be visible and persisted.
+- Drakkin and other peoples receive their own proper introductions in later locations rather than being inserted into Heartvale as token cameos.
 
-## Working faction slots — proposals, not final canon
+## Working human faction slots — proposals, not final canon
 
-1. `HV-FACTION-BASIN-WARDENS` — protectors and maintainers of the Soul Well and immediate basin.
-2. `HV-FACTION-ANWEL-COMPACT` — village leadership, craftspeople, farmers and merchants.
-3. `HV-FACTION-DRAKKIN-WAYGUARD` — Drakkin-led travelers/wardens focused on dangerous routes, old threats and martial readiness.
-4. `HV-FACTION-ROOTWARDEN-CIRCLE` — mixed local keepers of old groves, memory sites, watercourses and ecological balance.
+1. `HV-FACTION-BASIN-WARDENS` — human protectors and maintainers of the Soul Well and immediate basin.
+2. `HV-FACTION-ANWEL-COMPACT` — human village leadership, craftspeople, farmers and merchants.
+3. `HV-FACTION-HEARTVALE-ROADWARDENS` — human road wardens, scouts and defenders focused on dangerous routes, waystones and old threats.
+4. `HV-FACTION-ROOTWARDEN-CIRCLE` — human keepers of old groves, memory sites, watercourses and ecological balance.
 
-The display names, leaders, race mix, politics and final count remain owner/canon gates.
+The display names, leaders, politics and final count remain owner/canon gates. Their members are Human unless the owner later changes Heartvale’s population rule.
 
 ## Reputation contract
 
@@ -163,7 +168,7 @@ Each faction record requires:
 factionId
 version
 name/status
-member-peoples and cultural origin
+human membership and cultural/institutional origin
 starting disposition
 tier thresholds
 quest/event reputation sources
@@ -229,7 +234,7 @@ Trigger:
 Sequence:
 
 1. A short skippable shot establishes daylight, the Soul Well Basin and the player’s arrival.
-2. The camera reveals one or more local NPCs under attack while Wellkeeper Sef is occupied stabilizing the Soul Well.
+2. The camera reveals one or more **human** local NPCs under attack while Wellkeeper Sef is occupied stabilizing the Soul Well.
 3. Control returns quickly; the player joins the live encounter using real-time combat by default or tactical/turn-based when selected.
 4. The player helps save the NPCs and learns targeting, basic attacks, class actions, hit reactions, healing/consumables where relevant, loot/pickup and post-combat interaction.
 5. Required NPCs cannot permanently die. Player defeat resets to a safe checkpoint.
@@ -240,7 +245,7 @@ Sequence:
 
 After the rescue:
 
-- Sef explains the Soul Well, Heartvale, nearby settlements, current dangers and why the incidents may be connected.
+- Sef explains the Soul Well, Heartvale, nearby human settlements, current dangers and why the incidents may be connected.
 - The camera transitions to an atlas-style overview generated from the accepted Heartvale map and stable location IDs.
 - It reveals only known destinations, major roads and public landmarks; secrets remain hidden.
 - The view returns to the player with the map/journal entry unlocked.
@@ -262,12 +267,12 @@ These choices change recommendations and dialogue emphasis, not permanent access
 | `HV-MQ-01` | **Trouble at the Basin** | 2 | Arrival rescue, combat, loot, checkpoint and immediate stakes | First Breach complete | Power, Alliances |
 | `HV-MQ-02` | **The Vale Revealed** | 2–3 | Sef briefing, actual-map atlas reveal, journal and route choice | MQ-01 | Knowledge, Access |
 | `HV-MQ-03` | **The Road to Anwel** | 3 | Roads, waystones, gathering samples, hazards and town arrival | MQ-02 | Access, Stability |
-| `HV-MQ-04` | **A Village Under Strain** | 3–4 | Services, inventory/vendor/equipment tutorial, local factions and linked shortages | MQ-03 | Alliances, Resources |
+| `HV-MQ-04` | **A Village Under Strain** | 3–4 | Services, inventory/vendor/equipment tutorial, human local factions and linked shortages | MQ-03 | Alliances, Resources |
 | `HV-MQ-05` | **Tracks Beyond the Fields** | 4–5 | Wildlife/monster behavior, tracking, protect livestock and find first shared clue | MQ-04 | Power, Stability |
 | `HV-MQ-06` | **The Orchard Remembers** | 5–6 | Memory/root disturbance, lore investigation and alternate combat/noncombat path | MQ-05 | Knowledge, Stability |
 | `HV-MQ-07` | **Cargo on Dark Water** | 6–7 | Trade route, cargo recovery/escort and water/shoreline traversal with accessible alternative | MQ-06 | Resources, Access |
 | `HV-MQ-08` | **Proof in the Ruins** | 7–8 | Search/interact/destruction in ruins, identify a common Echo-Wound signature | MQ-07 | Knowledge, Power |
-| `HV-MQ-09` | **Hold the Old Road** | 8–9 | Multi-faction route defense/repair, reliable waystone/checkpoint/fast-travel unlock | MQ-08 | Alliances, Access, Stability |
+| `HV-MQ-09` | **Hold the Old Road** | 8–9 | Multi-faction human route defense/repair, reliable waystone/checkpoint/fast-travel unlock | MQ-08 | Alliances, Access, Stability |
 | `HV-MQ-10` | **The Vale’s First Wound** | 9–10 | Chapter approach, major encounter, contain/redirect the wound, consequence choice and next-region unlock | MQ-09 | All six vectors |
 
 Final origin, villain, ancient mechanism and consequence options remain `PROPOSAL` until #428/#430 and owner approval.
@@ -291,6 +296,8 @@ Side quests are NPC-authored stories with dialogue, state and meaningful local c
 | `HV-SQ-09` | **Owyn’s Roadside Mercy** | MQ-06 | Healing/support, status recovery and nonviolent dialogue resolution | blessing/support item, lore |
 | `HV-SQ-10` | **The Broken Waystone** | MQ-03 or MQ-09 prelude | Repair/attune travel marker, map pin and return-travel rules | fast-travel convenience |
 
+All named quest NPCs and local quest-giving communities in these quests are Human.
+
 Side quests remain available after direct travel to Anwel unless world state logically transforms them. A transformed quest receives an alternate state/version rather than silently disappearing.
 
 ---
@@ -303,12 +310,12 @@ Optional quests are discovered through exploration, objects, rumors, faction boa
 |---|---|---|---|---|
 | `HV-OQ-01` | **A Better Pack** | Anwel packmaker/vendor after MQ-04 | Gather/craft or earn the first inventory-expansion token; teach capacity and reservations | first +5-slot entitlement or token |
 | `HV-OQ-02` | **Stones That Remember** | inspect old markers/reliefs | Lore collection and historical contradictions | journal lore, Knowledge |
-| `HV-OQ-03` | **The Wayguard’s Measure** | Drakkin-led faction contact | Optional duel/trial, block/dodge/resource use and faction introduction | reputation, class-appropriate reward |
+| `HV-OQ-03` | **The Roadwarden’s Measure** | human Heartvale Roadwarden contact | Optional duel/trial, block/dodge/resource use and faction introduction | reputation, class-appropriate reward |
 | `HV-OQ-04` | **Quiet Water, Deep Teeth** | shoreline rumor/incident | Fishing or gathering plus water-hazard awareness and alternate solution | food/materials, water consumable |
 | `HV-OQ-05` | **The Hidden Cellar** | destructible clue or local rumor | Secret discovery, protected vs breakable structure and contained loot space | cache, exploration XP |
 | `HV-OQ-06` | **The Long Way Around** | blocked minor route | Alternate traversal using bridge, climb, tool or repair path | shortcut, Access |
 | `HV-OQ-07` | **Echoes on the Wind** | waystone circuit | Timed or ordered navigation challenge and fast-travel reinforcement | travel convenience, currency |
-| `HV-OQ-08` | **The Unclaimed Banner** | abandoned camp | Choose which local power receives recovered authority/supplies | faction reputation and variant dialogue |
+| `HV-OQ-08` | **The Unclaimed Banner** | abandoned human camp | Choose which human local power receives recovered authority/supplies | faction reputation and variant dialogue |
 | `HV-OQ-09` | **The Beast That Would Not Fight** | unusual creature encounter | Read behavior and solve by calming, luring, healing or combat only as fallback | companion/wildlife lore, materials |
 | `HV-OQ-10` | **A Name from Before** | memory shard/ruin | Recover one personal or realm-memory fragment tying Heartvale to the wider return-preparation arc | lore, Knowledge, future hook |
 
@@ -452,7 +459,7 @@ Across the 30 quests, Heartvale must teach and verify:
 - wildlife, hostile creatures and environmental hazards;
 - water/shoreline rules with accessible alternative paths;
 - quest prerequisites, optional objectives and turn-in;
-- factions and visible reputation changes;
+- multiple human factions and visible reputation changes;
 - lore/journal/map discovery;
 - save/reload, re-entry and reward idempotency;
 - chapter completion and next-region readiness.
@@ -526,6 +533,15 @@ evidence and verifier status
 
 Every award and state transition uses stable idempotency keys. Reloading, replaying dialogue or cutscenes, re-entering triggers, reconnecting or changing combat modes cannot duplicate XP, currency, items, reputation, capacity tokens or unlocks.
 
+Every Heartvale social actor record also requires:
+
+```text
+speciesOrPeople: HUMAN
+heartvalePopulationRule: HUMAN_ONLY
+```
+
+The validator must reject Drakkin, Elf, Dwarf, Halfling or other social NPC population in this chapter unless the owner changes the rule in a later version.
+
 ---
 
 # 14. Acceptance gates
@@ -538,8 +554,8 @@ The chapter is not owner-ready until:
 4. the atlas is generated from accepted map/location data and does not reveal secrets;
 5. the main path reaches the level-10 target without grinding or mandatory optional quests;
 6. main-only, mixed and completionist simulations stay within approved pacing;
-7. faction reputation is visible, persisted and tied to actual quest choices;
-8. Human and Drakkin presence is represented while additional Heartvale peoples remain owner-approved rather than assumed;
+7. human faction reputation is visible, persisted and tied to actual quest choices;
+8. every Heartvale resident, named quest NPC, merchant, guard, traveler and faction member is Human; Drakkin and other peoples are reserved for later locations;
 9. base 20-slot inventory can complete the entire main campaign through quest reservations and safe reward claiming;
 10. no quest item is lost, sold, destroyed or duplicated incorrectly;
 11. inventory expansion tokens are idempotent, restorable and never required for the main path;
@@ -548,6 +564,6 @@ The chapter is not owner-ready until:
 14. population uses stable environment sockets without moving accepted roads/buildings/props ad hoc;
 15. performance, browser/mobile, accessibility and real-GPU gates pass;
 16. an independent verifier completes a fresh start-to-finale run and representative side/optional paths;
-17. the owner approves the chapter story, faction map, finale consequence and next-region hook.
+17. the owner approves the chapter story, human faction map, finale consequence and next-region hook.
 
 No merge or deployment occurs without owner authorization.
