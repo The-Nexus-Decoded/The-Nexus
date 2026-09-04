@@ -514,6 +514,43 @@ describe("character-creator modular appearance contract", () => {
     expect(Array.from(neck.values)).not.toEqual(Array.from(stabilized.tracks[0]!.values));
   });
 
+  // Regression: GLTFLoader runs node names through PropertyBinding.sanitizeNodeName,
+  // which strips ":" - so the loaded rig exposes "mixamorigHead", never
+  // "mixamorig:Head". The original matcher only recognised the authored colon
+  // form, so at runtime it flattened 0 of 195 tracks while this suite stayed
+  // green against hand-written colon-bearing names. Pin the runtime form.
+  it("holds neck and head tracks neutral using the sanitized runtime bone names", () => {
+    const sanitizedNeck = THREE.PropertyBinding.sanitizeNodeName("mixamorig:Neck");
+    expect(sanitizedNeck).toBe("mixamorigNeck");
+
+    const neck = new THREE.QuaternionKeyframeTrack(
+      `${sanitizedNeck}.quaternion`,
+      [0, 1],
+      [0, 0, 0, 1, 0.1, 0, 0, 0.995],
+    );
+    const headTop = new THREE.VectorKeyframeTrack(
+      `${THREE.PropertyBinding.sanitizeNodeName("mixamorig:HeadTop_End")}.position`,
+      [0, 1],
+      [0, 1.8, 0, 0, 1.84, 0.02],
+    );
+    const spine = new THREE.QuaternionKeyframeTrack(
+      `${THREE.PropertyBinding.sanitizeNodeName("mixamorig:Spine2")}.quaternion`,
+      [0, 1],
+      [0, 0, 0, 1, 0.02, 0, 0, 0.9998],
+    );
+
+    const stabilized = stabilizeCreatorRelaxedIdle(new THREE.AnimationClip("Idle", 1, [neck, headTop, spine]));
+
+    expect(Array.from(stabilized.tracks[0]!.values)).toEqual([0, 0, 0, 1, 0, 0, 0, 1]);
+    // Both keyframes collapse onto the first frame's value (Float32, so compare
+    // the halves rather than the authored literals).
+    expect(Array.from(stabilized.tracks[1]!.values.slice(3))).toEqual(
+      Array.from(stabilized.tracks[1]!.values.slice(0, 3)),
+    );
+    expect(Array.from(headTop.values.slice(3))).not.toEqual(Array.from(headTop.values.slice(0, 3)));
+    expect(Array.from(stabilized.tracks[2]!.values)).toEqual(Array.from(spine.values));
+  });
+
   it("resets inherited stage scroll after rendering a new creation step", () => {
     const stage = { scrollTop: 497, focusOwner: "appearance-heading" };
 

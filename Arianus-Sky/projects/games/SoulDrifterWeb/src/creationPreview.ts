@@ -34,7 +34,32 @@ export const CREATOR_RELAXED_IDLE_PACK = Object.freeze({
   url: "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-male-locomotion-01.glb",
   sourceClipName: "MaleLocomotion__Idle",
 });
-const CREATOR_IDLE_STABLE_HEAD_BONE = /(?:^|[:|_.])(?:Neck|Head|HeadTop_End)(?:\.|$)/i;
+/**
+ * GLTFLoader runs every node name through `PropertyBinding.sanitizeNodeName`,
+ * which strips ":" - so the rig's `mixamorig:Head` reaches the runtime as
+ * `mixamorigHead`. Matching only the authored colon form silently matches
+ * nothing, so build the variant set once and compare exactly.
+ */
+function boneNameVariants(...names: readonly string[]): ReadonlySet<string> {
+  const variants = new Set<string>();
+  for (const name of names) {
+    variants.add(name.toLowerCase());
+    variants.add(THREE.PropertyBinding.sanitizeNodeName(name).toLowerCase());
+  }
+  return variants;
+}
+
+const CREATOR_IDLE_STABLE_HEAD_BONES = boneNameVariants(
+  "mixamorig:Neck", "mixamorig:Head", "mixamorig:HeadTop_End",
+  "Neck", "Head", "HeadTop_End",
+);
+const CREATOR_HEAD_BONES = boneNameVariants("mixamorig:Head", "Head");
+
+/** Strips the trailing `.property` (or `.property[i]`) from an animation track name. */
+function trackNodeName(trackName: string): string {
+  const cut = trackName.lastIndexOf(".");
+  return cut === -1 ? trackName : trackName.slice(0, cut);
+}
 const CREATOR_BODY_FRONT_YAW = -Math.PI / 2;
 const CREATOR_FACE_FRONT_YAW = 0;
 
@@ -103,15 +128,20 @@ export function bodyPreviewFitDistance(
 }
 
 /**
- * The stock locomotion idle contains a repeated neck/head nod that makes face
- * inspection feel like an NPC acknowledgement loop. Keep the authored torso
- * and shoulder breathing, but hold the neck and head at the clip's neutral
- * first frame so the creator portrait remains relaxed and inspectable.
+ * Holds the neck and head at the clip's neutral first frame so the creator
+ * portrait stays still enough to inspect while the authored torso and shoulder
+ * tracks keep playing.
+ *
+ * Measured on `MaleLocomotion__Idle`, the source clip carries only 1.42 deg of
+ * head and 0.81 deg of neck rotation across its 8.37 s loop, so this is a
+ * guard against a livelier clip being swapped in later rather than a fix for a
+ * visible nod today. It is not the source of the creator's motion - see the
+ * additive breathing layer in `render()`.
  */
 export function stabilizeCreatorRelaxedIdle(clip: THREE.AnimationClip): THREE.AnimationClip {
   const tracks = clip.tracks.map((sourceTrack) => {
     const track = sourceTrack.clone();
-    if (!CREATOR_IDLE_STABLE_HEAD_BONE.test(track.name)) return track;
+    if (!CREATOR_IDLE_STABLE_HEAD_BONES.has(trackNodeName(track.name).toLowerCase())) return track;
 
     const valueSize = track.getValueSize();
     const neutral = Array.from(track.values.slice(0, valueSize));
@@ -402,7 +432,7 @@ export class CreationAvatarPreview {
     const boundsSize = bounds.getSize(new THREE.Vector3());
     let head: THREE.Object3D | undefined;
     this.model.traverse((node) => {
-      if (!head && /(?:^|[:|_])head$/i.test(node.name)) head = node;
+      if (!head && CREATOR_HEAD_BONES.has(node.name.toLowerCase())) head = node;
     });
     const headY = head?.getWorldPosition(new THREE.Vector3()).y ?? bounds.min.y + bodyHeight * 0.88;
     this.framing = { center, boundsSize, bodyHeight, headY };
