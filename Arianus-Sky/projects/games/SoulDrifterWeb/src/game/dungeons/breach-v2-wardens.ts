@@ -26,6 +26,23 @@ import {
   disposeBreachV2ObjectResources,
   type BreachV2ResourceDisposalRegistry,
 } from "./breach-v2-breachlings";
+import {
+  createCinderboundWardenEffectSystem,
+  type CinderboundWardenEffectListener,
+  type CinderboundWardenEffectStatus,
+  type CinderboundWardenEffectSystem,
+} from "./breach-v2-warden-effects";
+import {
+  CINDERBOUND_WARDEN_VFX_REFERENCE_HEIGHT_METERS,
+  createWardenEmberBurstVisual,
+  createWardenExposedCoreVisual,
+  createWardenScorchMarkVisual,
+  createWardenVfxResources,
+  type WardenEmberBurstVisual,
+  type WardenExposedCoreVisual,
+  type WardenScorchMarkVisual,
+  type WardenVfxResources,
+} from "../vfx/cinderbound-warden-vfx";
 
 export type CinderboundWardenKind = "wayfarer" | "oathbreaker";
 
@@ -105,6 +122,16 @@ export interface CinderboundWardenPlacement {
   yaw: number;
 }
 
+export interface CinderboundWardenBreakoffSnapshot {
+  stage: number;
+  /** The shell debris has landed on the floor. */
+  settled: boolean;
+  /** A scorch mark has been burnt where the debris landed. */
+  scorchMark: boolean;
+  /** The exposed body area under the shell carries its ember treatment. */
+  exposedCore: boolean;
+}
+
 export interface CinderboundWardenSnapshot extends CinderboundWardenPlacement, BreachV2AnimationReviewSnapshot {
   label: string;
   currentClip: string;
@@ -113,6 +140,8 @@ export interface CinderboundWardenSnapshot extends CinderboundWardenPlacement, B
   damageFraction: number;
   healthPercent: number;
   detachedStages: number[];
+  breakoff: CinderboundWardenBreakoffSnapshot[];
+  activeEffects: CinderboundWardenEffectStatus[];
   groundingStatus: string;
   groundingClearanceMeters: number | null;
 }
@@ -128,6 +157,12 @@ export interface BreachV2WardenRuntime {
   setReviewPlayback(playback: BreachV2AnimationReviewPlayback): void;
   setReviewPoseHooks(hooks: BreachV2AnimationReviewPoseHooks | null): void;
   setDamageFraction(damageFraction: number): void;
+  /**
+   * Attack effect events (telegraph, active, impact, end) with a geometric hit
+   * test. Damage itself stays with the run controller; the listener lets the
+   * caller route an impact into that existing path.
+   */
+  setEffectListener(listener: CinderboundWardenEffectListener | null): void;
   dispose(): void;
 }
 
@@ -137,13 +172,20 @@ export interface BreachV2WardenRuntimeOptions {
 }
 
 interface BreakoffDebris {
+  stage: number;
   root: THREE.Group;
   geometries: THREE.BufferGeometry[];
   velocity: THREE.Vector3;
   angularVelocity: THREE.Vector3;
   floorY: number;
   restingCenterY: number;
+  footprintRadius: number;
   settled: boolean;
+  settledSeconds: number;
+  ageSeconds: number;
+  embers: WardenEmberBurstVisual | null;
+  scorch: WardenScorchMarkVisual | null;
+  exposedCore: WardenExposedCoreVisual;
 }
 
 interface RuntimeActor {
@@ -155,7 +197,6 @@ interface RuntimeActor {
   actions: Map<string, THREE.AnimationAction>;
   currentAction: THREE.AnimationAction;
   currentClip: string;
-  effectFired: boolean;
   groundingStatus: string;
   groundingFrames: number;
   groundingClearanceMeters: number | null;
@@ -165,16 +206,11 @@ interface RuntimeActor {
   presentationMaterials: THREE.Material[];
   furnaceLight: THREE.PointLight;
   furnacePhaseSeconds: number;
+  /** Shared shader uniform: 0 intact, 1 fully broken open; drives the ember heat. */
+  damageHeat: { value: number };
+  vfxResources: WardenVfxResources;
+  effects: CinderboundWardenEffectSystem;
   review: BreachV2AnimationReviewState;
-}
-
-interface RuntimeEffect {
-  root: THREE.Mesh;
-  kind: "palm-fire" | "ash-ring";
-  velocity: THREE.Vector3;
-  ageSeconds: number;
-  lifetimeSeconds: number;
-  material?: THREE.MeshBasicMaterial;
 }
 
 export interface CinderboundWardenMaterialReadiness {
@@ -291,6 +327,7 @@ function roomIdAt(layout: BreachV2Layout, x: number, z: number): string | null {
 function prepareCinderboundWardenMaterials(
   model: THREE.Object3D,
   kind: CinderboundWardenKind,
+  damageHeat: { value: number },
 ): THREE.Material[] {
   const clonedMaterials = new Map<THREE.Material, THREE.Material>();
   model.traverse((object) => {
@@ -311,20 +348,26 @@ function prepareCinderboundWardenMaterials(
         clone.emissiveIntensity = kind === "oathbreaker" ? 0.38 : 0.33;
         clone.userData.cinderboundPresentation = "dark-iron-ember-v2";
         clone.onBeforeCompile = (shader) => {
-          shader.fragmentShader = shader.fragmentShader.replace(
-            "#include <emissivemap_fragment>",
-            [
+          shader.uniforms.cinderDamageHeat = damageHeat;
+          shader.fragmentShader = shader.fragmentShader
+            .replace("#include <common>", "#include <common>\nuniform float cinderDamageHeat;")
+            .replace(
               "#include <emissivemap_fragment>",
-              "#ifdef USE_MAP",
-              "  float cinderWarmDominance = diffuseColor.r - max(diffuseColor.g * 1.35, diffuseColor.b * 2.2);",
-              "  float cinderHeatMask = smoothstep(0.14, 0.42, cinderWarmDominance)",
-              "    * smoothstep(0.24, 0.64, diffuseColor.r);",
-              "  totalEmissiveRadiance += vec3(1.0, 0.16, 0.025) * cinderHeatMask * 1.65;",
-              "#endif",
-            ].join("\n"),
-          );
+              [
+                "#include <emissivemap_fragment>",
+                "#ifdef USE_MAP",
+                "  float cinderWarmDominance = diffuseColor.r - max(diffuseColor.g * 1.35, diffuseColor.b * 2.2);",
+                "  float cinderHeatMask = smoothstep(0.14, 0.42, cinderWarmDominance)",
+                "    * smoothstep(0.24, 0.64, diffuseColor.r);",
+                // Each torn-off shell exposes more of the furnace: the authored ember
+                // seams burn hotter and the surrounding warm metal starts to glow.
+                "  totalEmissiveRadiance += vec3(1.0, 0.16, 0.025) * cinderHeatMask * (1.65 + cinderDamageHeat * 2.2);",
+                "  totalEmissiveRadiance += vec3(1.0, 0.30, 0.06) * smoothstep(0.04, 0.36, cinderWarmDominance) * cinderDamageHeat * 0.55;",
+                "#endif",
+              ].join("\n"),
+            );
         };
-        clone.customProgramCacheKey = () => "cinderbound-dark-iron-ember-v2";
+        clone.customProgramCacheKey = () => "cinderbound-dark-iron-ember-v2-damage-heat";
       }
       clonedMaterials.set(source, clone);
       return clone;
@@ -340,6 +383,8 @@ function snapshotBreakoffGeometry(source: THREE.Object3D): {
   root: THREE.Group;
   geometries: THREE.BufferGeometry[];
   restingCenterY: number;
+  footprintRadius: number;
+  center: THREE.Vector3;
 } {
   source.updateWorldMatrix(true, false);
   const snapshots: Array<{
@@ -385,11 +430,29 @@ function snapshotBreakoffGeometry(source: THREE.Object3D): {
     root.add(mesh);
     geometries.push(snapshot.geometry);
   }
+  const size = worldBounds.getSize(new THREE.Vector3());
   return {
     root,
     geometries,
     restingCenterY: center.y - worldBounds.min.y,
+    footprintRadius: Math.max(0.2, Math.max(size.x, size.z) * 0.45),
+    center,
   };
+}
+
+function nearestAttachment(model: THREE.Object3D, point: THREE.Vector3): THREE.Object3D {
+  let nearest: THREE.Object3D = model;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  const probe = new THREE.Vector3();
+  model.traverse((object) => {
+    if (!(object instanceof THREE.Bone)) return;
+    const distance = object.getWorldPosition(probe).distanceToSquared(point);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = object;
+    }
+  });
+  return nearest;
 }
 
 export function createBreachV2WardenRuntime(
@@ -411,15 +474,9 @@ export function createBreachV2WardenRuntime(
   let activationToken = 0;
   let disposed = false;
   let damageFraction = 0;
-  const effects: RuntimeEffect[] = [];
+  let effectListener: CinderboundWardenEffectListener | null = null;
+  const vfxScale = asset.targetHeightMeters / CINDERBOUND_WARDEN_VFX_REFERENCE_HEIGHT_METERS;
   const latestPlayer = new THREE.Vector3();
-  const fireGeometry = new THREE.SphereGeometry(0.14, 12, 8);
-  const fireMaterial = new THREE.MeshStandardMaterial({
-    color: 0xff9b36,
-    emissive: 0xff3d0a,
-    emissiveIntensity: 3.2,
-  });
-  const ringGeometry = new THREE.RingGeometry(0.58, 0.76, 40);
   const disposeSource = (source: GLTF): void => {
     disposeBreachV2ObjectResources(source.scene, resourceDisposalRegistry);
   };
@@ -428,6 +485,9 @@ export function createBreachV2WardenRuntime(
     runtimeActor.debris.forEach((debris) => {
       debris.root.removeFromParent();
       debris.geometries.forEach((geometry) => geometry.dispose());
+      debris.embers?.dispose();
+      debris.scorch?.dispose();
+      debris.exposedCore.dispose();
     });
     runtimeActor.debris.length = 0;
   };
@@ -436,6 +496,8 @@ export function createBreachV2WardenRuntime(
     setBreachV2AnimationReviewPoseHooks(actor.review, null);
     actor.mixer.stopAllAction();
     clearDebris(actor);
+    actor.effects.dispose();
+    actor.vfxResources.dispose();
     disposeBreachV2ActorSkeletons(actor.model, resourceDisposalRegistry);
     actor.root.removeFromParent();
     actor.presentationMaterials.forEach((material) => material.dispose());
@@ -462,7 +524,7 @@ export function createBreachV2WardenRuntime(
     action.play();
     runtimeActor.currentAction = action;
     runtimeActor.currentClip = clipName;
-    runtimeActor.effectFired = false;
+    runtimeActor.effects.beginClip(clipName);
     runtimeActor.groundingStatus = "pending";
     runtimeActor.groundingFrames = 0;
     runtimeActor.groundingClearanceMeters = null;
@@ -478,12 +540,38 @@ export function createBreachV2WardenRuntime(
     snapshot.root.userData.damageStage = stage;
     scene.add(snapshot.root);
     const direction = stage === 30 ? -1 : stage === 60 ? 1 : -0.45;
+    const prefix = `${runtimeActor.placement.id}:breakoff-${stage}`;
+    // The shell tears free in a burst of embers ...
+    const embers = createWardenEmberBurstVisual(runtimeActor.vfxResources, vfxScale, snapshot.center, `${prefix}:embers`);
+    embers.update(0);
+    scene.add(embers.root);
+    // ... and the body area it covered is left as an exposed, glowing core that
+    // rides the nearest bone through every clip.
+    const attachment = nearestAttachment(runtimeActor.model, snapshot.center);
+    const exposedCore = createWardenExposedCoreVisual(
+      runtimeActor.vfxResources,
+      vfxScale,
+      attachment.getWorldScale(new THREE.Vector3()).x,
+      `${prefix}:exposed-core`,
+    );
+    exposedCore.root.position.copy(attachment.worldToLocal(snapshot.center.clone()));
+    exposedCore.setPulse(runtimeActor.furnacePhaseSeconds, damageFraction);
+    attachment.add(exposedCore.root);
     runtimeActor.debris.push({
-      ...snapshot,
+      stage,
+      root: snapshot.root,
+      geometries: snapshot.geometries,
+      restingCenterY: snapshot.restingCenterY,
+      footprintRadius: snapshot.footprintRadius,
       velocity: new THREE.Vector3(direction * 0.7, 1.4 + stage / 100, (stage === 60 ? -1 : 1) * 0.55),
       angularVelocity: new THREE.Vector3(0.9 + stage / 160, direction * 1.1, 0.7),
       floorY: runtimeActor.placement.floorElevation,
       settled: false,
+      settledSeconds: 0,
+      ageSeconds: 0,
+      embers,
+      scorch: null,
+      exposedCore,
     });
     runtimeActor.detachedStages.add(stage);
   };
@@ -497,43 +585,11 @@ export function createBreachV2WardenRuntime(
       if (damageFraction + 0.0001 >= stage.damageFraction) detachStage(runtimeActor, stage.damageFraction * 100);
     });
   };
-  const spawnPalmFire = (runtimeActor: RuntimeActor): void => {
-    const hand = runtimeActor.model.getObjectByName("hand_L") ?? runtimeActor.model;
-    const origin = hand.getWorldPosition(new THREE.Vector3());
-    const target = latestPlayer.clone().setY(latestPlayer.y + 0.85);
-    const velocity = target.sub(origin).normalize().multiplyScalar(8.5);
-    const root = new THREE.Mesh(fireGeometry, fireMaterial);
-    root.name = `${runtimeActor.placement.id}:palm-fire`;
-    root.position.copy(origin);
-    scene.add(root);
-    effects.push({ root, kind: "palm-fire", velocity, ageSeconds: 0, lifetimeSeconds: 1.8 });
-  };
-  const spawnAshRing = (runtimeActor: RuntimeActor): void => {
-    const material = new THREE.MeshBasicMaterial({
-      color: runtimeActor.currentClip === "CinderSweep" ? 0xff6a24 : 0x8f8074,
-      transparent: true,
-      opacity: 0.72,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-    const root = new THREE.Mesh(ringGeometry, material);
-    root.name = `${runtimeActor.placement.id}:${runtimeActor.currentClip.toLocaleLowerCase()}-effect`;
-    root.position.set(runtimeActor.placement.x, runtimeActor.placement.floorElevation + 0.04, runtimeActor.placement.z);
-    root.rotation.x = -Math.PI / 2;
-    scene.add(root);
-    effects.push({
-      root,
-      kind: "ash-ring",
-      velocity: new THREE.Vector3(),
-      ageSeconds: 0,
-      lifetimeSeconds: 0.9,
-      material,
-    });
-  };
   const createActor = (source: GLTF): RuntimeActor => {
     const model = cloneSkeleton(source.scene);
     model.name = `${asset.label} model`;
-    const presentationMaterials = prepareCinderboundWardenMaterials(model, path);
+    const damageHeat = { value: 0 };
+    const presentationMaterials = prepareCinderboundWardenMaterials(model, path, damageHeat);
     diagnostics?.record("warden-material-readiness", {
       label: asset.label,
       url: asset.url,
@@ -589,6 +645,15 @@ export function createBreachV2WardenRuntime(
       breakoffMeshes.set(stage.damageFraction * 100, section);
     });
     const idle = actions.get("Idle")!;
+    const vfxResources = createWardenVfxResources();
+    const effects = createCinderboundWardenEffectSystem({
+      scene,
+      actorRoot: root,
+      model,
+      ownerId: placement.id,
+      targetHeightMeters: asset.targetHeightMeters,
+    });
+    effects.setListener(effectListener);
     const runtimeActor: RuntimeActor = {
       placement,
       root,
@@ -598,7 +663,6 @@ export function createBreachV2WardenRuntime(
       actions,
       currentAction: idle,
       currentClip: "Idle",
-      effectFired: false,
       groundingStatus: "pending",
       groundingFrames: 0,
       groundingClearanceMeters: null,
@@ -608,6 +672,9 @@ export function createBreachV2WardenRuntime(
       presentationMaterials,
       furnaceLight,
       furnacePhaseSeconds: 0,
+      damageHeat,
+      vfxResources,
+      effects,
       review: createBreachV2AnimationReviewState(),
     };
     mixer.addEventListener("finished", (event) => {
@@ -677,9 +744,9 @@ export function createBreachV2WardenRuntime(
       if (actor) {
         evaluateBreachV2AnimationReviewPose(actor.review, actor.mixer, deltaSeconds);
         actor.furnacePhaseSeconds += deltaSeconds;
-        const pulse = 0.9 + Math.sin(actor.furnacePhaseSeconds * 4.2) * 0.1;
-        const healthGlow = damageFraction >= 1 ? 0.18 : 1 - damageFraction * 0.32;
-        actor.furnaceLight.intensity = furnaceLightBaseIntensity * pulse * healthGlow;
+        actor.damageHeat.value = damageFraction >= 1
+          ? 0.25
+          : damageFraction * (0.85 + 0.15 * Math.sin(actor.furnacePhaseSeconds * 5.3));
         actor.groundingFrames += 1;
         let calibratedThisFrame = false;
         // Review offsets must remain visible defects/adjustments, never become
@@ -710,15 +777,35 @@ export function createBreachV2WardenRuntime(
           actor.review.hooks.apply();
           actor.root.updateMatrixWorld(true);
         }
-        const effectActions = new Set(["AshCall", "CinderSweep", "PalmFire"]);
-        if (!actor.effectFired && effectActions.has(actor.currentClip)
-          && actor.currentAction.time >= actor.currentAction.getClip().duration * 0.48) {
-          actor.effectFired = true;
-          if (actor.currentClip === "PalmFire") spawnPalmFire(actor);
-          else spawnAshRing(actor);
-        }
-        actor.debris.forEach((debris) => {
-          if (debris.settled) return;
+        const runtimeActor = actor;
+        runtimeActor.effects.evaluate({
+          clip: runtimeActor.currentClip,
+          clipTimeSeconds: runtimeActor.currentAction.time,
+          durationSeconds: runtimeActor.currentAction.getClip().duration,
+          deltaSeconds,
+          advancing: deltaSeconds > 0 && !runtimeActor.currentAction.paused,
+          target: latestPlayer,
+        });
+        // The chest furnace follows this frame's effect state: PalmFire surges it,
+        // FurnaceShutdown gutters it, death leaves only a dull glow.
+        const pulse = 0.9 + Math.sin(runtimeActor.furnacePhaseSeconds * 4.2) * 0.1;
+        const healthGlow = damageFraction >= 1 ? 0.18 : 1 - damageFraction * 0.32;
+        runtimeActor.furnaceLight.intensity = furnaceLightBaseIntensity * pulse * healthGlow * runtimeActor.effects.furnaceLightFactor();
+        runtimeActor.debris.forEach((debris) => {
+          debris.ageSeconds += deltaSeconds;
+          if (debris.embers && !debris.embers.update(debris.ageSeconds)) {
+            debris.embers.dispose();
+            debris.embers = null;
+          }
+          debris.exposedCore.setPulse(runtimeActor.furnacePhaseSeconds, damageFraction);
+          if (debris.settled) {
+            debris.settledSeconds += deltaSeconds;
+            debris.scorch?.setStrength(
+              Math.min(1, debris.settledSeconds / 0.4),
+              Math.max(0, 1 - debris.settledSeconds / 6),
+            );
+            return;
+          }
           debris.velocity.y -= 8.8 * deltaSeconds;
           debris.root.position.addScaledVector(debris.velocity, deltaSeconds);
           debris.root.rotation.x += debris.angularVelocity.x * deltaSeconds;
@@ -728,24 +815,18 @@ export function createBreachV2WardenRuntime(
           if (debris.root.position.y <= restingY) {
             debris.root.position.y = restingY;
             debris.settled = true;
+            // The still-molten shell burns its outline into the floor where it lands.
+            const scorch = createWardenScorchMarkVisual(
+              runtimeActor.vfxResources,
+              debris.footprintRadius,
+              new THREE.Vector3(debris.root.position.x, debris.floorY + 0.012, debris.root.position.z),
+              `${runtimeActor.placement.id}:breakoff-${debris.stage}:scorch`,
+            );
+            scorch.setStrength(0, 1);
+            scene.add(scorch.root);
+            debris.scorch = scorch;
           }
         });
-      }
-      for (let index = effects.length - 1; index >= 0; index -= 1) {
-        const effect = effects[index]!;
-        effect.ageSeconds += deltaSeconds;
-        if (effect.kind === "palm-fire") {
-          effect.root.position.addScaledVector(effect.velocity, deltaSeconds);
-        } else {
-          const progress = effect.ageSeconds / effect.lifetimeSeconds;
-          effect.root.scale.setScalar(1 + progress * 8);
-          if (effect.material) effect.material.opacity = Math.max(0, 0.72 * (1 - progress));
-        }
-        if (effect.ageSeconds >= effect.lifetimeSeconds) {
-          effect.root.removeFromParent();
-          effect.material?.dispose();
-          effects.splice(index, 1);
-        }
       }
     },
     snapshots: () => actor ? [{
@@ -758,6 +839,13 @@ export function createBreachV2WardenRuntime(
       damageFraction,
       healthPercent: Math.round((1 - damageFraction) * 100),
       detachedStages: [...actor.detachedStages].sort((left, right) => left - right),
+      breakoff: actor.debris.map((debris) => ({
+        stage: debris.stage,
+        settled: debris.settled,
+        scorchMark: debris.scorch !== null,
+        exposedCore: debris.exposedCore.root.parent !== null,
+      })),
+      activeEffects: actor.effects.status(),
       groundingStatus: actor.groundingStatus,
       groundingClearanceMeters: actor.groundingClearanceMeters,
     }] : [],
@@ -795,22 +883,18 @@ export function createBreachV2WardenRuntime(
       else if (damageFraction > previous) playActor(actor, "HitReact");
       else if (previous >= 1 || damageFraction === 0) playActor(actor, "CombatIdle");
     },
+    setEffectListener: (listener) => {
+      effectListener = listener;
+      actor?.effects.setListener(listener);
+    },
     dispose: () => {
       if (disposed) return;
       disposed = true;
       activationToken += 1;
       desiredRoomId = null;
       clearActor();
-      effects.forEach((effect) => {
-        effect.root.removeFromParent();
-        effect.material?.dispose();
-      });
-      effects.length = 0;
       if (resolvedSource) disposeSource(resolvedSource);
       resolvedSource = null;
-      fireGeometry.dispose();
-      fireMaterial.dispose();
-      ringGeometry.dispose();
     },
   };
 }

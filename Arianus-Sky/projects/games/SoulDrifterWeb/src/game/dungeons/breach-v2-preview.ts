@@ -40,9 +40,12 @@ import {
   type BreachV2CreatureReview,
 } from "./breach-v2-creature-review.ts";
 import {
+  CINDERBOUND_WARDEN_ASSETS,
+  cinderboundWardenActionNames,
   createBreachV2WardenRuntime,
   type BreachV2WardenRuntime,
 } from "./breach-v2-wardens.ts";
+import { isCinderboundWardenEffectClip } from "./breach-v2-warden-effects.ts";
 import {
   setupBreachV2WardenReview,
   type BreachV2WardenReview,
@@ -4267,6 +4270,7 @@ export async function startDungeonPreview(
   let debrisCleanupDeadlineMs = 0;
   let syncEnvironmentState: ((state: BreachV2EnvironmentState) => void) | null = null;
   let syncWardenDamage: ((state: BreachV2RunState) => void) | null = null;
+  let syncWardenStrike: ((state: BreachV2RunState) => void) | null = null;
   const runId = `breach-v2:${options.seed}:${options.path}`;
   const previewUrl = new URL(window.location.href);
   const animationReviewEnabled = previewUrl.searchParams.get("animationReview") === "1";
@@ -4302,6 +4306,7 @@ export async function startDungeonPreview(
     onChange: (state) => {
       syncEnvironmentState?.(state.environment);
       syncWardenDamage?.(state);
+      syncWardenStrike?.(state);
       void storyDatabase.saveDungeonRun(runId, state).catch((error: unknown) => {
         console.error("unable to persist BREACH-V2 run", error);
       });
@@ -4708,6 +4713,31 @@ export async function startDungeonPreview(
     wardenRuntime.setDamageFraction(fraction);
   };
   syncWardenDamage(gameplay.snapshot());
+  // Attack effect impacts are advisory: the run controller's existing Warden
+  // strike still applies the damage. The clip-timed impact and its geometric
+  // hit test are recorded so the review can compare them with that strike.
+  wardenRuntime.setEffectListener((event) => {
+    if (event.phase !== "impact") return;
+    diagnostics?.record("warden-effect-impact", { label: CINDERBOUND_WARDEN_ASSETS[options.path].label, ...event });
+  });
+  // The Ashen Lock pattern is seeded: Cinder Sweep, Ash Call, Soul Tax (Palm
+  // Fire on the legacy Greater Warden export, which has no Soul Tax clip). Each
+  // controller strike plays the next telegraphed attack unless one is mid-swing.
+  const wardenPattern = cinderboundWardenActionNames(options.path).includes("SoulTax")
+    ? ["CinderSweep", "AshCall", "SoulTax", "PalmFire"]
+    : ["CinderSweep", "AshCall", "PalmFire"];
+  let wardenPatternIndex = Math.abs(options.seed) % wardenPattern.length;
+  let lastWardenStrikeRevision = -1;
+  syncWardenStrike = (state) => {
+    if (state.revision === lastWardenStrikeRevision || !state.statusMessage.startsWith("The Warden struck")) return;
+    lastWardenStrikeRevision = state.revision;
+    const snapshot = wardenRuntime.snapshots()[0];
+    if (!snapshot || snapshot.damageFraction >= 1) return;
+    if (isCinderboundWardenEffectClip(snapshot.currentClip) && snapshot.normalizedTime < 0.92) return;
+    const clip = wardenPattern[wardenPatternIndex % wardenPattern.length]!;
+    wardenPatternIndex += 1;
+    wardenRuntime.play(clip);
+  };
   await wardenRuntime.warmAt(playerPos.x, playerPos.z);
   guardCurrentGeneration();
   let wardenAnimationReview: BreachV2WardenReview | null = null;

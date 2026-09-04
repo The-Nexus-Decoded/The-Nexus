@@ -8,6 +8,7 @@ import {
   CINDERBOUND_WARDEN_ASSETS, createBreachV2WardenRuntime,
   type CinderboundWardenKind, type CinderboundWardenSnapshot,
 } from "../../game/dungeons/breach-v2-wardens";
+import type { CinderboundWardenEffectStatus } from "../../game/dungeons/breach-v2-warden-effects";
 import { buildBreachV2Layout } from "../../game/dungeons/breach-v2-layout";
 import type { BreachV2AnimationReviewActor, BreachV2AnimationReviewPlayback, BreachV2AnimationReviewPoseHooks } from "../../game/dungeons/breach-v2-animation-review";
 import { createMobPoseOverlay } from "./mob-pose-overlay";
@@ -94,6 +95,13 @@ interface RuntimeAdapter {
   dispose(): void;
 }
 
+/**
+ * Floor point the Warden attack effects aim at on the solo stage: three cells
+ * straight ahead of the boss (+Z at yaw 0). The dungeon uses the live player
+ * position instead; this only gives the beam, siphon and hit tests a target.
+ */
+export const WARDEN_EFFECT_PREVIEW_TARGET = Object.freeze({ x: 0, z: 4.5 });
+
 export function mobCalibrationKey(definition: MobDefinition, clip: string): string {
   return `${definition.family}/${definition.id}/${definition.sha256}/${clip}/unarmed-articulation-v1`;
 }
@@ -136,6 +144,8 @@ export class MobsStage {
   private stageRoot: THREE.Scene | null = null;
   private abort: AbortController | null = null;
   private skeleton: THREE.SkeletonHelper | null = null;
+  private effectTarget: { x: number; z: number } | null = null;
+  private effectTargetMarker: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial> | null = null;
   private revision = 0;
   private drafts = new Map<string, Record<string, number>>();
   private speed = 0.6;
@@ -190,6 +200,19 @@ export class MobsStage {
         play: (clip) => runtime.play(clip, { immediate: true }), pose: runtime.pose,
         pause: runtime.pause, playback: runtime.setReviewPlayback, hooks: runtime.setReviewPoseHooks,
       };
+      // Attack effects (PalmFire beam, CinderSweep wave, AshCall ring, SoulTax
+      // siphon, FurnaceShutdown vent) render on this stage through the shared
+      // controller; they need a target to aim at, marked on the floor.
+      this.effectTarget = WARDEN_EFFECT_PREVIEW_TARGET;
+      const marker = new THREE.Mesh(
+        new THREE.RingGeometry(0.42, 0.5, 40),
+        new THREE.MeshBasicMaterial({ color: 0x7fd6ff, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide }),
+      );
+      marker.name = "Motion Studio — warden effect target";
+      marker.rotation.x = -Math.PI / 2;
+      marker.position.set(WARDEN_EFFECT_PREVIEW_TARGET.x, 0.02, WARDEN_EFFECT_PREVIEW_TARGET.z);
+      stageRoot.add(marker);
+      this.effectTargetMarker = marker;
     }
     this.runtime = adapter;
     try {
@@ -225,6 +248,11 @@ export class MobsStage {
   }
 
   snapshot() { return this.runtime?.snapshot(); }
+  /** Warden attack effects currently on the stage (empty for Breachlings). */
+  effects(): CinderboundWardenEffectStatus[] {
+    const snapshot = this.snapshot();
+    return snapshot && "activeEffects" in snapshot ? snapshot.activeEffects : [];
+  }
   actor() { return this.runtime?.actor() ?? null; }
   actions() { return this.snapshot()?.actionNames ?? []; }
   actionLabel(name: string) {
@@ -316,7 +344,7 @@ export class MobsStage {
   }
   update(deltaSeconds: number) {
     if (!this.ready) return;
-    this.runtime?.update(0, 0, deltaSeconds);
+    this.runtime?.update(this.effectTarget?.x ?? 0, this.effectTarget?.z ?? 0, deltaSeconds);
     // The solo stage has no combat target. The inherited projectile aims at
     // its actor origin, not the reviewed three-cell target; keep it invisible
     // for this motion intake while retaining the controller's normal cleanup.
@@ -337,6 +365,13 @@ export class MobsStage {
       this.skeleton.geometry.dispose();
       (this.skeleton.material as THREE.Material).dispose(); this.skeleton = null;
     }
+    if (this.effectTargetMarker) {
+      this.effectTargetMarker.geometry.dispose();
+      this.effectTargetMarker.material.dispose();
+      this.effectTargetMarker.removeFromParent();
+      this.effectTargetMarker = null;
+    }
+    this.effectTarget = null;
     this.stageRoot?.removeFromParent(); this.stageRoot = null;
     this.checksumVerified = false;
   }

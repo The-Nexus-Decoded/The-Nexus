@@ -248,6 +248,9 @@ export class MobsPanel {
       `${snapshot.paused ? "Paused / terminal hold" : "Playing"} · ${snapshot.playbackSpeed.toFixed(1)}× · ${this.loop.checked ? "repeat" : "one shot"}`,
       "Locomotion: in-place inspection; this is not AI/path-following gameplay.",
       `${this.stage.overlay?.controls.length ?? 0} real-joint controls · draft offsets only`,
+      family === "warden"
+        ? `Attack effects: ${this.stage.effects().map((effect) => `${effect.effect} ${effect.phase}${effect.lingering ? " (residue)" : ""} ${effect.progress.toFixed(2)}`).join(" · ") || "none at this frame (PalmFire / CinderSweep / AshCall / SoulTax / FurnaceShutdown fire on their clip phases; target ring 4.5 m ahead)"}`
+        : "",
       `Asset ${this.stage.definition.sha256.slice(0, 12)} · ${this.stage.checksumVerified ? "served SHA-256 verified" : "size checked; SHA-256 unavailable on insecure HTTP"}`,
       "Cached grounding is not a contact certificate. Measure contact samples the current mesh only.",
       this.contact,
