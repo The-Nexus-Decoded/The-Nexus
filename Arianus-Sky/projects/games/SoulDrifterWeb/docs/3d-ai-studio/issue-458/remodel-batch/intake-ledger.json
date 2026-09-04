@@ -308,7 +308,7 @@
     },
     {
       "assetId": "oathbreaker-greater-cinderbound-warden",
-      "status": "multi-view to 3D generating (task a4987127-ca2a-4162-a46e-8f5b3c856212); export an UNRIGGED copy first (segmentation), then Auto Rig",
+      "status": "four-view model: unrigged raw + Tripo humanoid rig in intake; follow-ups: segmentation/Blender break-off plates, retarget onto the game warden skeleton",
       "originalConcept": {
         "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/cinderbound-warden-bakeoff/selected/oathbreaker-greater-cinderbound-warden-midjourney-v8.2-selected.png",
         "origin": "Midjourney v8.2 selected"
@@ -333,7 +333,16 @@
           "at": "2026-09-04 02:08",
           "credits": 65,
           "balanceAfter": 10020,
-          "result": "done; unrigged raw export requested (oathbreaker-greater-cinderbound-warden-fourview-raw) before any rigging so Tripo segmentation stays possible"
+          "result": "done; unrigged raw export -> intake/warden-oathbreaker/raw/oathbreaker-greater-cinderbound-warden-fourview-raw.glb (62155696 bytes) sha256 b5b6f231791d4b1a41154fd21827174d0855b03569c1a55d8e5076d1b8552269"
+        }
+      ],
+      "riggingSteps": [
+        {
+          "step": "Tripo Auto Rig v2.5 (Humanoid)",
+          "at": "2026-09-04 02:38",
+          "credits": 20,
+          "balanceAfter": 10000,
+          "result": "rigged; exported with skeleton -> intake/warden-oathbreaker/raw/oathbreaker-greater-cinderbound-warden-fourview-tripo-rig.glb (82552368 bytes) sha256 a6fa01b05b778e5983cd6d4669fb923245c9ddb157fbaf00cab97140644ac028"
         }
       ]
     }
