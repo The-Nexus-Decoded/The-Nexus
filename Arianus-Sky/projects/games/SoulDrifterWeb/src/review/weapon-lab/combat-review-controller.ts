@@ -99,6 +99,10 @@ interface SlotState {
   actions: readonly ReviewAction[]; selected: Record<CombatActionRole, string>;
 }
 const SLOTS: readonly CombatSlot[] = ["a", "b"];
+// A miss at the fitted spacing is retried closer, down to 0.7 m, then farther out for
+// leaping attacks that carry the attacker past a target at the fitted spacing.
+const SPAR_CLOSER_STEPS = [1.6, 1.4, 1.2, 1.0, 0.85, 0.7] as const;
+const SPAR_FARTHER_STEPS = [2.5, 3.0, 3.5, 4.0, 4.5] as const;
 const opposite = (slot: CombatSlot): CombatSlot => slot === "a" ? "b" : "a";
 const finite = (value: number, name: string, min: number, max: number) => {
   if (!Number.isFinite(value) || value < min || value > max) throw new Error(`${name} must be between ${min} and ${max}.`);
@@ -171,6 +175,12 @@ export class CombatReviewController {
         defenderDefinitionId: this.spar.defenderDefinitionId, rows: this.spar.rows.map((row) => ({ ...row })) } };
   }
 
+  /** Centre-to-centre spacings a spar run tries for one attack, in order: fitted, closer, farther. */
+  static sparSeparationLadder(fittedMeters: number): number[] {
+    finite(fittedMeters, "Separation", 0, 20);
+    return [fittedMeters, ...SPAR_CLOSER_STEPS.filter((value) => value < fittedMeters - 1e-6),
+      ...SPAR_FARTHER_STEPS.filter((value) => value > fittedMeters + 1e-6)];
+  }
   /** Contact position classified in the defender's own frame (+Z forward, +X left). */
   static classifyContactDirection(defender: ReviewActorAdapter, position: readonly [number, number, number]): CombatContactDirection {
     defender.root.updateMatrixWorld(true);
@@ -431,12 +441,16 @@ export class CombatReviewController {
     if (!this.clock || !this.active) throw new Error("Both actors must be ready before a spar run.");
     if (this.spar.running) throw new Error("A spar run is already in progress.");
     const attackerSlot = this.slots[this.attacker], defenderSlot = this.slots[opposite(this.attacker)];
-    const attacks = attackerSlot.actions.filter((action) => (action.semantic === "attack" || action.semantic === "cast") && !action.unavailableReason);
+    // a source-bound ranged release (bow, wand, spit) is an attack even when its clip
+    // name carries no melee semantic
+    const attacks = attackerSlot.actions.filter((action) => !action.unavailableReason && (action.semantic === "attack" || action.semantic === "cast"
+      || reviewProjectileBinding(attackerSlot.handle!.actor, action.id) !== null));
     const original = attackerSlot.selected.action;
     const originalPlacement = { ...this.placement }, originalAuto = this.autoPlacement;
-    // a miss at the fitted spacing is retried closer, down to 0.7 m, so the matrix
-    // reports the range at which each attack actually lands
-    const ranges = [this.placement.separationMeters, ...[1.2, 1.0, 0.85, 0.7].filter((value) => value < this.placement.separationMeters - 1e-6)];
+    // the matrix reports the range at which each attack actually lands; the ladder is
+    // dense enough that a lunge landing between the fitted spacing and 1.2 m is not
+    // skipped, and reaches out to where a run-jump attack comes down
+    const ranges = CombatReviewController.sparSeparationLadder(this.placement.separationMeters);
     const token = ++this.spar.token;
     this.spar = { running: true, token, attackerDefinitionId: attackerSlot.definitionId, defenderDefinitionId: defenderSlot.definitionId, rows: [] };
     this.revision++; this.emit();
@@ -446,10 +460,10 @@ export class CombatReviewController {
         this.setAction(this.attacker, "action", attack.id);
         const profile = this.contactProfile();
         const response: CombatContactSnapshot["response"] = defenderSlot.selected.reaction ? "reaction" : "none";
-        let result: ReviewContactResolution | null = null, separationMeters = this.placement.separationMeters;
+        let result: ReviewContactResolution | null = null, separationMeters = this.placement.separationMeters, closest = Infinity;
         for (const range of profile ? ranges : ranges.slice(0, 1)) {
           if (this.spar.token !== token) break;
-          separationMeters = range;
+          separationMeters = range; closest = Math.min(closest, range);
           if (Math.abs(this.placement.separationMeters - range) > 1e-9) this.setPlacement({ separationMeters: range });
           try { result = await this.resolveContact({ response }); } catch (error) {
             result = { status: "unavailable", sequenceId: this.clock?.sequence.id ?? "", profileId: profile?.id ?? null, samples: 0, sampleRate: 120,
@@ -457,6 +471,8 @@ export class CombatReviewController {
           }
           if (result?.status !== "miss") break;
         }
+        // a miss reports the closest spacing tried, whatever order the ladder ran in
+        if (result?.status === "miss") separationMeters = closest;
         if (this.spar.token !== token) break;
         const reaction = result?.status === "contact" && response === "reaction"
           ? defenderSlot.actions.find((action) => action.id === defenderSlot.selected.reaction)?.label ?? null : null;

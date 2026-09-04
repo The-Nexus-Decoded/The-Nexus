@@ -52,9 +52,11 @@ export function reviewProjectileBinding(actor: ReviewActorAdapter, actionId: str
     endSeconds: action.durationSeconds, evidence: `Existing Tripo fire wand tip and source cast pose at normalized release ${wandRelease}; review-only fixed fire VFX, no target tracking` };
   const composerPack = composerPackForDefinition(actor.definitionId);
   if (composerPack?.spit && reviewActorSourceSha(actor) === composerPack.sha256 && actionId === "SpitAttack") {
-    return { emitter: "base-spit", releaseSeconds: composerPack.spit.releaseSeconds,
-      endSeconds: composerPack.spit.releaseSeconds + SPIT_PROJECTILE_MOTION.flightSeconds,
-      evidence: `${composerPack.revision} Spit release ${composerPack.spit.releaseSeconds.toFixed(3)} s at the jaw-wide frame; review-only 0.80 s flight to the three-cell plane; fixed head aim, no target tracking` };
+    // The pack registers its own flight end (the clip is shorter than release + the
+    // legacy 0.80 s flight); a longer window would fail clip validation unmeasured.
+    const { releaseSeconds, endSeconds } = composerPack.spit;
+    return { emitter: "base-spit", releaseSeconds, endSeconds,
+      evidence: `${composerPack.revision} Spit release ${releaseSeconds.toFixed(3)} s at the jaw-wide frame; review-only ${(endSeconds - releaseSeconds).toFixed(2)} s flight to the three-cell plane; fixed head aim, no target tracking` };
   }
   if (actor.definitionId === "breachling-base" && reviewActorSourceSha(actor) === REVIEWED_BASE_SHA && actionId === "SpitAttack") {
     return { emitter: "base-spit", releaseSeconds: SPIT_PROJECTILE_MOTION.releaseSeconds,
@@ -159,7 +161,11 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
     const mesh = actor.model.getObjectByName("Breachling_Mesh") as THREE.Mesh | undefined;
     const head = actor.model.getObjectByName("head");
     const eligible = mesh?.isMesh ? new Set(reviewRenderedVertexIndices(mesh)) : new Set<number>();
-    if (mesh && head && [22577, 2004].every((id) => eligible.has(id))) {
+    if (composerPackForDefinition(actor.definitionId)?.body === "fourview") {
+      // The remodelled mesh shares neither the pinned mouth vertex IDs nor the
+      // legacy head basis below; emitting from them would be a silent wrong aim.
+      reason = "The four-view body has no authored spit mouth vertices or aim; the pinned legacy mouth basis is not reused; not a miss.";
+    } else if (mesh && head && [22577, 2004].every((id) => eligible.has(id))) {
       // Exact held-neutral head basis from pinned 1ddbd4 GLB, not a humanoid or variant assumption.
       const headQ = head.getWorldQuaternion(new THREE.Quaternion());
       const direction = new THREE.Vector3(0.09298344261520167, 0.9642988771254712, 0.24795516806381246).applyQuaternion(headQ).normalize();

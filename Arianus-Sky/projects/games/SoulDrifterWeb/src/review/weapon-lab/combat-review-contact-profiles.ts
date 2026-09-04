@@ -50,14 +50,35 @@ const REVIEWED_STRIKE_SOURCES = {
 /** Measured human melee windows, derived once per loaded actor instance and action. */
 interface HumanStrikeWindow { readonly start: number; readonly end: number; readonly evidence: string }
 const humanStrikeWindows = new WeakMap<object, Map<string, HumanStrikeWindow | null>>();
-type EquippedActor = ReviewActorAdapter & { sockets?: readonly { role: string; asset: string; socket: THREE.Object3D; prepared: { visual: THREE.Object3D } }[] };
+// `visual` is the clone attached under the socket bone; `prepared.visual` is the shared,
+// unattached template at the world origin and never follows a pose.
+type EquippedActor = ReviewActorAdapter & { sockets?: readonly { role: string; asset: string; socket: THREE.Object3D; visual: THREE.Object3D; prepared: { visual: THREE.Object3D } }[] };
+
+/** The attached weapon's rendered vertex farthest from the grip: its actual far tip. */
+function weaponFarTip(weapon: NonNullable<EquippedActor["sockets"]>[number], grip: THREE.Vector3): { mesh: THREE.Mesh; vertex: number } | null {
+  let best: { mesh: THREE.Mesh; vertex: number } | null = null, farthest = -1;
+  const point = new THREE.Vector3();
+  weapon.visual.traverse((object) => {
+    const mesh = object as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.geometry.getAttribute("position")) return;
+    mesh.updateWorldMatrix(true, false);
+    const position = mesh.geometry.getAttribute("position");
+    for (const vertex of reviewRenderedVertexIndices(mesh)) {
+      const distance = point.fromBufferAttribute(position, vertex).applyMatrix4(mesh.matrixWorld).distanceToSquared(grip);
+      if (distance > farthest) { farthest = distance; best = { mesh, vertex }; }
+    }
+  });
+  return best;
+}
 
 /**
  * A human weapon attack has no authored strike keys. The window is measured from the
- * clip itself: the equipped primary weapon's far tip is sampled through the whole
- * action and the strike is the peak of its speed. The interval is 80 ms before to
- * 120 ms after that peak. Sampling re-poses the actor, so the caller re-applies its
- * live frame afterwards; results are cached per actor instance and action.
+ * clip itself: the equipped primary weapon's far tip (the rendered vertex farthest
+ * from the grip, so a centre-gripped staff is measured at its end rather than at the
+ * hand) is sampled through the whole action and the strike is the peak of its speed.
+ * The interval is 80 ms before to 120 ms after that peak. Sampling re-poses the actor,
+ * so the caller re-applies its live frame afterwards; results are cached per actor
+ * instance and action.
  */
 export function deriveHumanStrikeWindow(actor: ReviewActorAdapter, actionId: string): HumanStrikeWindow | null {
   let cache = humanStrikeWindows.get(actor);
@@ -69,19 +90,20 @@ export function deriveHumanStrikeWindow(actor: ReviewActorAdapter, actionId: str
   let result: HumanStrikeWindow | null = null;
   if (action && action.semantic === "attack" && !action.unavailableReason && weapon && action.durationSeconds > 0.2) {
     const rate = 60, count = Math.max(8, Math.ceil(action.durationSeconds * rate));
-    const grip = new THREE.Vector3(), center = new THREE.Vector3(), tip = new THREE.Vector3(), box = new THREE.Box3();
+    const grip = new THREE.Vector3(), tip = new THREE.Vector3();
     const tips: THREE.Vector3[] = [], times: number[] = [];
+    let far: ReturnType<typeof weaponFarTip> = null;
     try {
       for (let index = 0; index <= count; index++) {
         const time = action.durationSeconds * index / count;
         actor.sample(actionId, time);
         actor.root.updateMatrixWorld(true);
         weapon.socket.getWorldPosition(grip);
-        box.setFromObject(weapon.prepared.visual, true);
-        if (box.isEmpty()) { tips.length = 0; break; }
-        box.getCenter(center);
-        // the far tip lies beyond the bounding centre on the grip-to-centre line
-        tip.copy(center).sub(grip).multiplyScalar(2).add(grip);
+        // the weapon is rigid: the same far vertex is followed through every frame
+        far ??= weaponFarTip(weapon, grip);
+        if (!far) { tips.length = 0; break; }
+        far.mesh.updateWorldMatrix(true, false);
+        tip.fromBufferAttribute(far.mesh.geometry.getAttribute("position"), far.vertex).applyMatrix4(far.mesh.matrixWorld);
         tips.push(tip.clone()); times.push(time);
       }
     } finally { actor.reset(); }
@@ -174,8 +196,7 @@ export function createReviewStrikeProbe(actor: ReviewActorAdapter, profile: Revi
       maximumVertices: 96 });
   }
   if (surface.kind === "weapon") {
-    const equipped = actor as ReviewActorAdapter & { sockets?: readonly { role: string; prepared: { visual: THREE.Object3D } }[] };
-    const weapon = equipped.sockets?.find((entry) => entry.role === surface.role)?.prepared.visual;
+    const weapon = (actor as EquippedActor).sockets?.find((entry) => entry.role === surface.role)?.visual;
     return weapon ? createReviewMeshProbe(weapon, { maximumVertices: 96 })
       : unavailable(`No actual ${surface.role} weapon mesh is attached.`);
   }

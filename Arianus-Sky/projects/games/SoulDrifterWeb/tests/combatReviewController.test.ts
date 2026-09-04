@@ -691,7 +691,10 @@ it("replays actual pinned base GLB attack and source reaction/death on the same 
   value.restart(); expect(value.snapshot().frame!.actors[1]!.terminal).toBe("none");
   value.setManualCue({ kind: "none" }); value.setAction("a", "action", "SpitAttack");
   const flight = value.snapshot().projectiles.flights[0]!;
-  expect(flight.releaseSeconds).toBe(COMPOSER_MOB_PACKS.base!.spit!.releaseSeconds); expect(flight.endSeconds).toBeCloseTo(COMPOSER_MOB_PACKS.base!.spit!.releaseSeconds + SPIT_PROJECTILE_MOTION.flightSeconds);
+  // the pack registers its own flight end inside the 1.2 s clip (release + the legacy 0.80 s flight would overrun it)
+  expect(flight.releaseSeconds).toBe(COMPOSER_MOB_PACKS.base!.spit!.releaseSeconds); expect(flight.endSeconds).toBe(COMPOSER_MOB_PACKS.base!.spit!.endSeconds);
+  expect(flight.endSeconds).toBeLessThan(COMPOSER_MOB_PACKS.base!.spit!.releaseSeconds + SPIT_PROJECTILE_MOTION.flightSeconds);
+  expect(flight.endSeconds).toBeLessThanOrEqual(value.snapshot().slots[0]!.actions.find((entry) => entry.id === "SpitAttack")!.durationSeconds);
   expect(value.sequence()!.events).toEqual([expect.objectContaining({ kind: "release", result: "unmeasured" })]);
   const fluid = value.root.getObjectByName("review-poison-fluid") as THREE.Mesh;
   const dispose = vi.spyOn(fluid.geometry, "dispose"); expect(fluid.visible).toBe(false);

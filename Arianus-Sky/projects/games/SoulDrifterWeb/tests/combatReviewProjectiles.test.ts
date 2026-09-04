@@ -149,7 +149,9 @@ describe("fixed review projectile paths and actual emitted visuals", () => {
     });
     const actor = await createMobReviewActor({ instanceId: "spit-source", definitionId: definition.id }); actors.add(actor);
     const binding = reviewProjectileBinding(actor, "SpitAttack")!;
-    expect(binding.releaseSeconds).toBe(0.45); expect(binding.endSeconds).toBeCloseTo(1.25, 12);
+    // the pack registers release and flight end inside its 1.2 s clip; release + the legacy 0.80 s flight would overrun it
+    expect(binding.releaseSeconds).toBe(0.45); expect(binding.endSeconds).toBe(1.2);
+    expect(binding.endSeconds).toBeLessThanOrEqual(actor.actions().find((entry) => entry.id === "SpitAttack")!.durationSeconds);
     actor.sample("SpitAttack", binding.releaseSeconds);
     const set = projectiles(actor, "SpitAttack"), description = set.flights[0]!;
     expect(set.flights).toHaveLength(1); expect(description.evidence).toContain("review-only");
