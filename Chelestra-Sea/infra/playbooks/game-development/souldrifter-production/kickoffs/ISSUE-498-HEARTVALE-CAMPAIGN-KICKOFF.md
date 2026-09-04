@@ -62,7 +62,7 @@ Inspect actual current Heartvale map, NPC, quest, spawn, environment-socket, sav
 #459 = reusable 2–3 quest infrastructure proof
 #498 = all 30 quest records, story, objectives and chapter integration
 #499 = 20-slot shared inventory, reservations and expansion tokens
-#500 = faction reputation and readiness vectors
+#500 = human faction reputation and readiness vectors
 #428/#429/#430 = lore research, classification and canon approval
 ```
 
@@ -99,7 +99,7 @@ The main path plus required encounters/exploration reaches level 10 without grin
 
 - player physically crosses the accepted First Breach-to-Heartvale seam;
 - a short skippable arrival shot establishes the basin;
-- local NPCs are under attack;
+- human local NPCs are under attack;
 - the player regains control and helps save them in the selected combat mode;
 - required NPCs cannot permanently die;
 - defeat resets to a safe checkpoint;
@@ -127,18 +127,19 @@ Private research may track source-book history as `SOURCE_REFERENCE`. Public/mon
 
 ---
 
-# 5. Population/faction gate
+# 5. Human-only population/faction gate
 
-Confirmed Heartvale peoples:
+Heartvale is **human-only** for this chapter and POC.
 
-- Human
-- Drakkin
+- Every resident, named quest NPC, merchant, guard, traveler, faction member and social actor is Human.
+- Drakkin are not in Heartvale; they are introduced later in other locations.
+- Elves, Dwarves, Halflings and other peoples are also not local Heartvale NPCs in this chapter.
+- Do not insert dragons, dragonkin, Drakkin cameos, nonhuman visitors or nonhuman quest givers by assumption.
+- Hostile wildlife and breach-born monsters remain allowed, but no dragon/Drakkin creature or character is introduced here without a later explicit owner change.
 
-One or two additional peoples remain `OWNER_DECISION_REQUIRED`. Do not automatically add Elves.
+Heartvale should present 3–4 approved **human** local power centers. It demonstrates that multiple factions and political interests can exist within one people. Race and faction remain separate concepts globally, but Heartvale’s factions are all human.
 
-Heartvale should present 3–4 approved local power centers. Race and faction are separate. Early reputation choices matter but do not permanently remove half the level-2-to-10 chapter without explicit approval.
-
-Working faction IDs/names in the runbook are proposals only.
+The working faction IDs/names in the runbook are proposals only. The Roadwarden faction and `HV-OQ-03` must use human Heartvale characters—not Drakkin.
 
 ---
 
@@ -162,20 +163,21 @@ The first +5 expansion may be taught/earned through `HV-OQ-01 A Better Pack`. Th
 
 ```text
 A. Read-only audit and current-base discovery
-B. Lock approved story/faction/population decisions
-C. Define typed 30-quest DAG and stable IDs
-D. #442 level/reward simulations and APIs
-E. #459 reusable opening/infrastructure proof
-F. #499 inventory capacity/reservation proof
-G. #500 faction/readiness proof
-H. Implement #498 main quest chain in level bands
-I. Implement side quests
-J. Implement optional quests
-K. Integrate narrative media/cutscenes
-L. Complete save/re-entry/reconnect/idempotency tests
-M. Desktop/mobile/both-combat-mode playthrough
-N. Independent verification
-O. Owner story/gameplay verdict
+B. Lock approved story and human faction decisions
+C. Validate every Heartvale social actor as HUMAN
+D. Define typed 30-quest DAG and stable IDs
+E. #442 level/reward simulations and APIs
+F. #459 reusable opening/infrastructure proof
+G. #499 inventory capacity/reservation proof
+H. #500 human faction/readiness proof
+I. Implement #498 main quest chain in level bands
+J. Implement side quests
+K. Implement optional quests
+L. Integrate narrative media/cutscenes
+M. Complete save/re-entry/reconnect/idempotency tests
+N. Desktop/mobile/both-combat-mode playthrough
+O. Independent verification
+P. Owner story/gameplay verdict
 ```
 
 Do not populate against a stale or unverified environment. Consume stable actor, encounter, cinematic, quest-object and drop sockets from the accepted Heartvale dependency commit.
@@ -191,19 +193,21 @@ Before editing, return:
 3. Current accepted Heartvale environment dependency and stable socket inventory.
 4. Existing quest/progression/inventory/faction/save implementation audit.
 5. Canon/source/proposal/conflict report.
-6. 30-quest DAG validation report.
-7. Main-only, mixed and completionist progression simulation plan.
-8. Inventory reservation/expansion implementation plan.
-9. Faction/readiness model and unresolved population decisions.
-10. Opening rescue and atlas implementation plan.
-11. Narrative-media routing and any spend gates.
-12. Exact branch/worktree split and file-collision map.
-13. Tests, evidence and independent-verification plan.
-14. Owner decisions required before implementation.
+6. Human-only NPC/population validation plan, including removal or rejection of any stale Drakkin/nonhuman Heartvale assumptions.
+7. 30-quest DAG validation report.
+8. Main-only, mixed and completionist progression simulation plan.
+9. Inventory reservation/expansion implementation plan.
+10. Human faction/readiness model.
+11. Opening rescue and atlas implementation plan.
+12. Narrative-media routing and any spend gates.
+13. Exact branch/worktree split and file-collision map.
+14. Tests, evidence and independent-verification plan.
+15. Owner decisions required before implementation.
 
 ## Hard stops
 
 - no automatic canonization of proposals;
+- no Drakkin or other nonhuman Heartvale social population;
 - no paid provider task without exact live approval;
 - no required quest depending on optional content or paid capacity;
 - no source-book protected text/scene copying into public implementation;
@@ -236,8 +240,13 @@ Owner-locked counts:
 
 Heartvale begins around level 2 and ends around level 10. The opening is
 a live Soul Well Basin rescue followed by an atlas view generated from
-the accepted map. Human and Drakkin presence is confirmed; additional
-peoples require owner approval.
+the accepted map.
+
+Heartvale is HUMAN-ONLY for this chapter and POC. Every resident,
+quest NPC, merchant, guard, traveler and faction member is Human.
+Drakkin are introduced in later locations, not Heartvale. Do not add
+Drakkin, dragons, dragonkin, Elves, Dwarves, Halflings or other social
+NPC peoples to Heartvale without a later explicit owner change.
 
 Base backpack capacity is 20 shared physical-item slots. Quest items
 reserve counted slots. One expansion token/entitlement adds five slots,
