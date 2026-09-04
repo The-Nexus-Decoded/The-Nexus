@@ -6,11 +6,13 @@ import type { ReviewAction, ReviewDamageType } from "../src/review/weapon-lab/co
 import { resolveReviewContact, type ReviewContactResolution } from "../src/review/weapon-lab/combat-review-contact-resolver";
 import { applyReactionHit, buildReactionPlan, reactionArchetypeForFamily, reactionLoopPeriods,
   reactionSetForContact, reactionSetPreempts, reactionTimelineEnd, reactionTimelinePhases,
-  REACTION_MAX_HOLD_SECONDS } from "../src/review/weapon-lab/reaction-contract";
+  REACTION_CONTRACT_CLIPS, REACTION_MAX_HOLD_SECONDS, REACTION_SET_IDS,
+  REACTION_SETS } from "../src/review/weapon-lab/reaction-contract";
 import { sampleReviewSequence } from "../src/review/weapon-lab/combat-review-timeline";
 
 // Authored durations, read off the shipped packs by tests/reactionPack.test.ts.
 const POISON = { impact: 0.85, loop: 2.8, recover: 1.6 };
+const BURNING = { impact: 0.8, loop: 3, recover: 1.7 };
 const KNOCKDOWN = { impact: 1.05, loop: 2.4, recover: 2.3 };
 
 const definitions: readonly CombatActorDefinition[] = [
@@ -25,7 +27,9 @@ function action(id: string, semantic: ReviewAction["semantic"], durationSeconds 
 const humanActions = [action("idle", "idle"), action("strike", "attack", 2), action("Impact", "reaction", 0.6),
   action("ImpactHeavy", "reaction", 0.9), action("Death2", "death", 2.6),
   action("PoisonImpact", "reaction", POISON.impact), action("PoisonLoop", "reaction", POISON.loop),
-  action("PoisonRecover", "reaction", POISON.recover), action("Knockdown", "reaction", KNOCKDOWN.impact),
+  action("PoisonRecover", "reaction", POISON.recover), action("BurnFlare", "reaction", BURNING.impact),
+  action("BurnBurn", "reaction", BURNING.loop), action("BurnRecover", "reaction", BURNING.recover),
+  action("Knockdown", "reaction", KNOCKDOWN.impact),
   action("ProneHold", "reaction", KNOCKDOWN.loop), action("GetUp", "reaction", KNOCKDOWN.recover)];
 /** The attacker: a spit that carries poison, a lunge the classifier reads heavy, a plain claw. */
 const mobActions = [action("idle", "idle"), action("ClawAttack", "attack", 1.3),
@@ -74,15 +78,44 @@ describe("Selection: a special damage type replaces the flinch, an ordinary one 
     expect(reactionSetForContact({ damageType: "physical", severity: "heavy" })).toBe("knockdown");
     expect(reactionSetForContact({ damageType: "physical", severity: "light" })).toBeNull();
     expect(reactionSetForContact({ damageType: null, severity: null })).toBeNull();
-    // Fire and arcane are typed but not yet authored: fall through, never half-play.
-    expect(reactionSetForContact({ damageType: "fire", severity: "light" })).toBeNull();
-    expect(reactionSetForContact({ damageType: "fire", severity: "heavy" })).toBe("knockdown");
+    // Fire is authored now: a burning body, and it wins over the heavy escalation
+    // the same way poison does. A heavy fire hit is a body alight, not one prone.
+    expect(reactionSetForContact({ damageType: "fire", severity: "light" })).toBe("burning");
+    expect(reactionSetForContact({ damageType: "fire", severity: "heavy" })).toBe("burning");
+    expect(reactionSetForContact({ damageType: "fire", severity: null })).toBe("burning");
+    // Ice and arcane are typed but not authored: fall through, never half-play.
+    for (const damageType of ["ice", "arcane"] as const) {
+      expect(reactionSetForContact({ damageType, severity: "light" })).toBeNull();
+      expect(reactionSetForContact({ damageType, severity: "heavy" })).toBe("knockdown");
+    }
     expect(reactionArchetypeForFamily("human")).toBe("humanoid");
     expect(reactionArchetypeForFamily("warden")).toBe("warden");
     expect(reactionArchetypeForFamily("breachling")).toBe("breachling");
     expect(reactionSetPreempts("poison", "knockdown")).toBe(true);
     expect(reactionSetPreempts("knockdown", "poison")).toBe(false);
     expect(reactionSetPreempts("poison", "poison")).toBe(false);
+  });
+
+  it("orders burning between the poison it overrides and the knockdown that overrides it", () => {
+    // The owner's constraint: a knockdown still takes a burning body off its feet.
+    expect(REACTION_SETS.poison.precedence).toBeLessThan(REACTION_SETS.burning.precedence);
+    expect(REACTION_SETS.burning.precedence).toBeLessThan(REACTION_SETS.knockdown.precedence);
+    expect(reactionSetPreempts("burning", "knockdown")).toBe(true);
+    expect(reactionSetPreempts("poison", "burning")).toBe(true);
+    expect(reactionSetPreempts("burning", "poison")).toBe(false);
+    expect(reactionSetPreempts("knockdown", "burning")).toBe(false);
+    // A repeat of the running set is never a preempt; it is the re-arm path.
+    expect(reactionSetPreempts("burning", "burning")).toBe(false);
+    expect(REACTION_SETS.burning.damageTypes).toEqual(["fire"]);
+    expect(REACTION_SETS.burning.fromHeavyMelee).toBe(false);
+    expect(Object.values(REACTION_SETS.burning.clips)).toEqual(["BurnFlare", "BurnBurn", "BurnRecover"]);
+    // The set list every enumeration reads, in ascending precedence, and the clip
+    // reservation derived from it.
+    expect(REACTION_SET_IDS).toEqual(["poison", "burning", "knockdown"]);
+    expect([...REACTION_SET_IDS].map((id) => REACTION_SETS[id].precedence))
+      .toEqual([...REACTION_SET_IDS].map((id) => REACTION_SETS[id].precedence).sort((a, b) => a - b));
+    expect(new Set(REACTION_CONTRACT_CLIPS).size).toBe(REACTION_CONTRACT_CLIPS.length);
+    expect(REACTION_CONTRACT_CLIPS).toEqual(REACTION_SET_IDS.flatMap((id) => Object.values(REACTION_SETS[id].clips)));
   });
 
   it("plays the poison set on a spit and the ordinary flinch on a plain claw", async () => {
@@ -111,6 +144,27 @@ describe("Selection: a special damage type replaces the flinch, an ordinary one 
     expect(value.snapshot().slots[0]!.selected.reaction).toBe("Knockdown");
     expect(value.snapshot().reaction.phases.map((phase) => phase.clipName))
       .toEqual(["Knockdown", "ProneHold", "GetUp"]);
+  });
+
+  it("plays the burning set on a fire contact, light or heavy", async () => {
+    const burned = await spitAt("fire");
+    await burned.resolveContact({ response: "reaction" });
+    const snapshot = burned.snapshot();
+    expect(snapshot.contact.status).toBe("contact");
+    expect(snapshot.contact.severity).toBe("light");
+    expect(snapshot.reaction.timeline!.archetype).toBe("humanoid");
+    expect(snapshot.reaction.timeline!.plans[0]!.setId).toBe("burning");
+    expect(snapshot.slots[0]!.selected.reaction).toBe("BurnFlare");
+    expect(snapshot.reaction.phases.map((phase) => phase.clipName)).toEqual(["BurnFlare", "BurnBurn", "BurnRecover"]);
+    expect(trackIds(burned)).toEqual(["defender-ready", "defender-reaction-0-impact",
+      "defender-reaction-1-loop", "defender-reaction-2-recover", "defender-recover"]);
+    // A heavy fire hit is still a burning body, not a prone one: the mapped damage
+    // type is answered before the heavy-melee escalation is ever reached.
+    const heavy = await spitAt("fire", "LungeAttack");
+    await heavy.resolveContact({ response: "reaction" });
+    expect(heavy.snapshot().contact.severity).toBe("heavy");
+    expect(heavy.snapshot().reaction.timeline!.plans[0]!.setId).toBe("burning");
+    expect(heavy.snapshot().slots[0]!.selected.reaction).toBe("BurnFlare");
   });
 
   it("leaves the manual policy and a hand-picked clip alone", async () => {
@@ -146,6 +200,50 @@ describe("Sequencing: the loop is held for the effect, not for the clip length",
     expect(plan.phases[1]!.loop).toBe(true);
     expect(plan.phases[0]!.loop).toBe(false);
     expect(plan.phases[2]!.loop).toBe(false);
+  });
+
+  it("quantises the burn hold to whole 3 s periods and never past the cap", () => {
+    expect(reactionLoopPeriods(0, BURNING.loop)).toBe(1);
+    expect(reactionLoopPeriods(0.867, BURNING.loop)).toBe(1);
+    expect(reactionLoopPeriods(1.6, BURNING.loop)).toBe(1);
+    expect(reactionLoopPeriods(4.5, BURNING.loop)).toBe(2);
+    expect(reactionLoopPeriods(8, BURNING.loop)).toBe(3);
+    expect(reactionLoopPeriods(1e6, BURNING.loop)).toBe(Math.floor(REACTION_MAX_HOLD_SECONDS / BURNING.loop));
+    expect(reactionLoopPeriods(1e6, BURNING.loop) * BURNING.loop).toBeLessThanOrEqual(REACTION_MAX_HOLD_SECONDS);
+    const plan = buildReactionPlan({ archetype: "humanoid", setId: "burning", atSeconds: 0.45, effectSeconds: 2.5, durations: BURNING });
+    expect(plan.loopPeriods).toBe(1);
+    expect(plan.holdSeconds).toBeCloseTo(3, 9);
+    // The loop outlives the effect by half a second rather than being cut mid-flail.
+    expect(plan.quantizationSeconds).toBeCloseTo(0.5, 9);
+    expect(plan.durationSeconds).toBeCloseTo(0.8 + 3 + 1.7, 9);
+    expect(plan.phases.map((phase) => [phase.role, Number(phase.startSeconds.toFixed(3)), Number(phase.durationSeconds.toFixed(3))]))
+      .toEqual([["impact", 0.45, 0.8], ["loop", 1.25, 3], ["recover", 4.25, 1.7]]);
+    // Every hold is a whole number of periods, so the recovery always joins the
+    // loop at its own frame 0 — the reason REACTION_LOOP_FIT is whole-periods.
+    for (const effectSeconds of [0, 0.867, 1.6, 2.5, 4.5, 8, 25, 1e6]) {
+      const held = buildReactionPlan({ archetype: "humanoid", setId: "burning", atSeconds: 0, effectSeconds, durations: BURNING });
+      expect(held.holdSeconds / BURNING.loop).toBe(held.loopPeriods);
+      expect(Number.isInteger(held.loopPeriods)).toBe(true);
+      expect(held.phases[2]!.startSeconds).toBeCloseTo(held.phases[1]!.startSeconds + held.loopPeriods * BURNING.loop, 9);
+    }
+  });
+
+  it("holds the burn for a PalmFire beam and for a long residue on the same asset", async () => {
+    const value = await spitAt("fire");
+    await value.resolveContact({ response: "reaction" });
+    // PalmFire holds its beam for 0.867 s — under one period, so one period.
+    value.setEffectSeconds(0.867);
+    expect(value.snapshot().reaction.timeline!.plans[0]!.loopPeriods).toBe(1);
+    expect(trackFor(value, "defender-reaction-1-loop").durationSeconds).toBeCloseTo(3, 9);
+    value.setEffectSeconds(9);
+    const plan = value.snapshot().reaction.timeline!.plans[0]!;
+    expect(plan.loopPeriods).toBe(3);
+    expect(plan.quantizationSeconds).toBeCloseTo(0, 9);
+    expect(trackFor(value, "defender-reaction-1-loop").durationSeconds).toBeCloseTo(9, 9);
+    // The catch is not replayed when the residue duration changes.
+    expect(trackFor(value, "defender-reaction-0-impact").startSeconds).toBeCloseTo(0.5, 9);
+    expect(trackFor(value, "defender-reaction-0-impact").actionId).toBe("BurnFlare");
+    expect(plan.hitSeconds).toEqual([0.5]);
   });
 
   it("drives the same asset from a short beam and a long residue", async () => {
@@ -214,6 +312,69 @@ describe("Interruption", () => {
     expect(phases.some((phase) => phase.clipName === "PoisonRecover")).toBe(false);
     expect(value.snapshot().slots[0]!.selected.reaction).toBe("Knockdown");
     expect(value.sequence()!.events.some((event) => event.id === "reaction-preempt-1")).toBe(true);
+  });
+
+  it("refuels a burning body on a second fire hit instead of re-catching it", async () => {
+    const value = await spitAt("fire");
+    await value.resolveContact({ response: "reaction" });
+    const before = trackFor(value, "defender-reaction-0-impact");
+    const timeline = value.recordReactionHit({ setId: "burning", atSeconds: 2, effectSeconds: 4 });
+    expect(timeline.plans).toHaveLength(1);
+    expect(timeline.plans[0]!.setId).toBe("burning");
+    expect(timeline.plans[0]!.hitSeconds).toEqual([0.5, 2]);
+    // The hold restarts from the new hit: it now covers to 2 + 4 = 6 s, which is
+    // 4.7 s from the loop's 1.3 s start, quantised up to two whole 3 s periods.
+    expect(timeline.plans[0]!.requestedHoldSeconds).toBeCloseTo(4.7, 9);
+    expect(timeline.plans[0]!.loopPeriods).toBe(2);
+    expect(timeline.plans[0]!.holdSeconds).toBeCloseTo(6, 9);
+    // BurnFlare is the CATCH. A body already alight cannot catch again, so the
+    // one-shot is not replayed and the body does not snap back to the catch pose.
+    const after = trackFor(value, "defender-reaction-0-impact");
+    expect(after.actionId).toBe("BurnFlare");
+    expect(after.startSeconds).toBe(before.startSeconds);
+    expect(after.durationSeconds).toBe(before.durationSeconds);
+    expect(value.sequence()!.tracks.filter((track) => track.id.includes("impact"))).toHaveLength(1);
+    expect(value.snapshot().reaction.phases.map((phase) => phase.clipName)).toEqual(["BurnFlare", "BurnBurn", "BurnRecover"]);
+  });
+
+  it("lets a knockdown take a burning body off its feet, cutting the burn", async () => {
+    const value = await spitAt("fire");
+    await value.resolveContact({ response: "reaction" });
+    const timeline = value.recordReactionHit({ setId: "knockdown", atSeconds: 2 });
+    expect(timeline.plans.map((plan) => plan.setId)).toEqual(["burning", "knockdown"]);
+    const phases = value.snapshot().reaction.phases;
+    expect(phases.map((phase) => phase.clipName)).toEqual(["BurnFlare", "BurnBurn", "Knockdown", "ProneHold", "GetUp"]);
+    const cutLoop = phases[1]!;
+    expect(cutLoop.truncated).toBe(true);
+    expect(cutLoop.startSeconds).toBeCloseTo(1.3, 9);
+    expect(cutLoop.startSeconds + cutLoop.durationSeconds).toBeCloseTo(2, 9);
+    // The burn never unwinds: the body is on the floor instead.
+    expect(phases.some((phase) => phase.clipName === "BurnRecover")).toBe(false);
+    expect(value.snapshot().slots[0]!.selected.reaction).toBe("Knockdown");
+    expect(value.sequence()!.events.some((event) => event.id === "reaction-preempt-1")).toBe(true);
+  });
+
+  it("burns over a poisoned body, and absorbs a spit onto a burning one", async () => {
+    const poisonedThenBurned = await spitAt("poison");
+    await poisonedThenBurned.resolveContact({ response: "reaction" });
+    const escalated = poisonedThenBurned.recordReactionHit({ setId: "burning", atSeconds: 2 });
+    expect(escalated.plans.map((plan) => plan.setId)).toEqual(["poison", "burning"]);
+    expect(poisonedThenBurned.snapshot().reaction.phases.map((phase) => phase.clipName))
+      .toEqual(["PoisonImpact", "PoisonLoop", "BurnFlare", "BurnBurn", "BurnRecover"]);
+    expect(poisonedThenBurned.snapshot().reaction.phases[1]!.truncated).toBe(true);
+    expect(poisonedThenBurned.snapshot().slots[0]!.selected.reaction).toBe("BurnFlare");
+
+    // The other way round the spit changes nothing visible, and is kept as evidence.
+    const burnedThenSpat = await spitAt("fire");
+    await burnedThenSpat.resolveContact({ response: "reaction" });
+    const absorbed = burnedThenSpat.recordReactionHit({ setId: "poison", atSeconds: 2 });
+    expect(absorbed.plans).toHaveLength(1);
+    expect(absorbed.plans[0]!.setId).toBe("burning");
+    expect(absorbed.absorbed).toEqual([{ setId: "poison", atSeconds: 2, effectSeconds: 0, reason: "lower-precedence" }]);
+    expect(burnedThenSpat.snapshot().reaction.phases.map((phase) => phase.clipName))
+      .toEqual(["BurnFlare", "BurnBurn", "BurnRecover"]);
+    expect(burnedThenSpat.sequence()!.events.find((event) => event.id === "reaction-absorbed-0")!.evidence)
+      .toMatch(/absorbed by the running reaction/);
   });
 
   it("absorbs a weaker hit during a stronger reaction and records it", async () => {

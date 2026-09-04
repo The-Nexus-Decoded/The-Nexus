@@ -25,11 +25,18 @@ import type { ReviewActorFamily, ReviewDamageType } from "./combat-review-types"
  * `damageTypes` row below moves.
  */
 export type ReactionArchetype = "humanoid" | "warden" | "breachling";
-export type ReactionSetId = "poison" | "knockdown";
+export type ReactionSetId = "poison" | "burning" | "knockdown";
 export type ReactionPhaseRole = "impact" | "loop" | "recover";
 
 export const REACTION_ARCHETYPES: readonly ReactionArchetype[] = Object.freeze(["humanoid", "warden", "breachling"]);
 export const REACTION_PHASE_ROLES: readonly ReactionPhaseRole[] = Object.freeze(["impact", "loop", "recover"]);
+/**
+ * Every set the contract knows, ordered by ascending precedence. This is the one
+ * list every enumeration reads — the clip reservation, the selection index and
+ * the tests all derive from it, so adding a set is a single edit here plus its
+ * row below.
+ */
+export const REACTION_SET_IDS: readonly ReactionSetId[] = Object.freeze(["poison", "burning", "knockdown"]);
 
 export interface ReactionSetContract {
   readonly id: ReactionSetId;
@@ -44,11 +51,52 @@ export interface ReactionSetContract {
   readonly fromHeavyMelee: boolean;
 }
 
+/**
+ * Precedence ranks how completely a set takes the body over, and therefore what
+ * a later hit is allowed to interrupt. Only a strictly greater number preempts.
+ *
+ *  10 poison   — the body is its own, clutching and screaming. Any takeover reads
+ *                over the top of it.
+ *  15 burning  — the arms are committed. BurnBurn swings both hands through
+ *                0.62-0.66 m of vertical travel for its whole 3 s period, and the
+ *                legs carry a weight-shift shuffle under them; PoisonLoop wants
+ *                the same arms for the same seconds, so the two cannot co-read and
+ *                the more urgent one has to win. (An earlier draft of this comment
+ *                said the hands beat at the chest and hair and the legs took real
+ *                planted steps. Measured on the shipped bytes they do neither: the
+ *                hands peak at 0.785 m and 0.766 m against a head joint sitting at
+ *                0.803-0.829 m, so they never reach it, and the closest hand or
+ *                forearm approach to the spine-to-neck axis is 102.9 mm. See the
+ *                open motion defects in docs/.../attack-reaction-contract.md.) Fire on a poisoned body takes over (an already-poisoned body
+ *                that catches alight is a burning body); a spit onto a burning
+ *                body is absorbed and recorded, because the poison's own hunch is
+ *                already covered by a body doing something more violent with the
+ *                same limbs.
+ *  20 knockdown — still the top, unchanged. Feet leave the floor, and neither the
+ *                poison hunch nor the burn's flailing can be played on a prone
+ *                body, so a knockdown preempts a burn exactly as it preempts a
+ *                poison. This is the owner's constraint and the reason burning
+ *                sits at 15 rather than above it.
+ *
+ * A SECOND FIRE HIT ON AN ALREADY-BURNING BODY IS NOT A PREEMPT. `applyReactionHit`
+ * routes a repeat of the running set to `rearmReactionPlan`, which extends the hold
+ * to cover the new hit and leaves BurnFlare alone. That is the right read for fire:
+ * the flare is the CATCH — the moment the body goes up — and a body already alight
+ * cannot catch again. A second fireball refuels it, so the hold restarts from the
+ * new hit and the burn simply lasts longer. Replaying BurnFlare would snap the body
+ * back to the catch pose mid-burn, which is the thing the re-trigger guard exists
+ * to prevent.
+ */
 export const REACTION_SETS: Readonly<Record<ReactionSetId, ReactionSetContract>> = Object.freeze({
   poison: Object.freeze({
     id: "poison", label: "Poison — covered and screaming",
     clips: Object.freeze({ impact: "PoisonImpact", loop: "PoisonLoop", recover: "PoisonRecover" }),
     precedence: 10, damageTypes: Object.freeze<ReviewDamageType[]>(["poison"]), fromHeavyMelee: false,
+  }),
+  burning: Object.freeze({
+    id: "burning", label: "Burning — alight, beating at the flames",
+    clips: Object.freeze({ impact: "BurnFlare", loop: "BurnBurn", recover: "BurnRecover" }),
+    precedence: 15, damageTypes: Object.freeze<ReviewDamageType[]>(["fire"]), fromHeavyMelee: false,
   }),
   knockdown: Object.freeze({
     id: "knockdown", label: "Knockdown — off the feet, prone, get up",
@@ -59,15 +107,72 @@ export const REACTION_SETS: Readonly<Record<ReactionSetId, ReactionSetContract>>
 
 /** Every clip name the contract reserves, in contract order. */
 export const REACTION_CONTRACT_CLIPS: readonly string[] = Object.freeze(
-  (["poison", "knockdown"] as const).flatMap((id) => REACTION_PHASE_ROLES.map((role) => REACTION_SETS[id].clips[role])));
+  REACTION_SET_IDS.flatMap((id) => REACTION_PHASE_ROLES.map((role) => REACTION_SETS[id].clips[role])));
+
+/**
+ * One pass over the table at module load, so an ambiguous table cannot ship.
+ *
+ * Two sets claiming the same damage type would make selection depend on key order;
+ * two claiming the heavy-melee escalation likewise; equal precedences would mean
+ * neither preempts the other and a hit would silently be absorbed instead of
+ * either interrupting or extending; a clip name shared by two sets would let the
+ * pack allowlist register half of one set as half of another. All four are build
+ * errors here rather than a wrong body at review time.
+ */
+const REACTION_SET_INDEX = (() => {
+  const byDamageType = new Map<ReviewDamageType, ReactionSetId>();
+  const byClip = new Map<string, ReactionSetId>();
+  const precedences = new Map<number, ReactionSetId>();
+  let heavyMelee: ReactionSetId | null = null;
+  const unlisted = Object.keys(REACTION_SETS).filter((id) => !REACTION_SET_IDS.includes(id as ReactionSetId));
+  if (unlisted.length) throw new Error(`Reaction set(s) ${unlisted.join(", ")} exist but are not in REACTION_SET_IDS; nothing would enumerate them.`);
+  for (const id of REACTION_SET_IDS) {
+    const set = REACTION_SETS[id];
+    if (!set || set.id !== id) throw new Error(`Reaction set ${id} is missing or mislabelled.`);
+    const clash = precedences.get(set.precedence);
+    if (clash) throw new Error(`Reaction sets ${clash} and ${id} share precedence ${set.precedence}; neither could preempt the other.`);
+    precedences.set(set.precedence, id);
+    for (const damageType of set.damageTypes) {
+      if (damageType === "physical") throw new Error(`Reaction set ${id} claims physical; an ordinary hit is the flinch picker's, not a set's.`);
+      const owner = byDamageType.get(damageType);
+      if (owner) throw new Error(`Damage type ${damageType} is claimed by both the ${owner} and ${id} reaction sets.`);
+      byDamageType.set(damageType, id);
+    }
+    if (set.fromHeavyMelee) {
+      if (heavyMelee) throw new Error(`Reaction sets ${heavyMelee} and ${id} both escalate from heavy melee.`);
+      heavyMelee = id;
+    }
+    for (const role of REACTION_PHASE_ROLES) {
+      const clipName = set.clips[role];
+      const owner = byClip.get(clipName);
+      if (owner) throw new Error(`Reaction clip ${clipName} is claimed by both the ${owner} and ${id} sets.`);
+      byClip.set(clipName, id);
+    }
+  }
+  return Object.freeze({ byDamageType, heavyMelee });
+})();
 
 /**
  * A loop is seamless only at its own frame 0, so a hold is quantised to whole
  * periods rather than cut wherever the effect happens to end. Measured on the
  * shipped pack: PoisonLoop cut at 0.868 s and joined to PoisonRecover[0] is
  * 62.1964 deg apart on mixamorig:Neck and 44.658 mm at the hips, against
- * 0.2016 deg / 0.009 mm at a whole period — and 0.2016 deg is the unit-quaternion
- * storage floor, i.e. indistinguishable from an exact match.
+ * 0.2016 deg / 0.009 mm at a whole period.
+ *
+ * That residual is sampler round-trip error, NOT a storage floor: at a whole period
+ * the stored quaternion floats are bit-identical between the last and first key, so
+ * storage contributes exactly zero. Measured with an independent sampler the same
+ * joins come out ~26x tighter still (0.0018 deg worst over the 20 joints that
+ * actually move). Either way the join is far below anything visible; the number
+ * just should not be described as a floor.
+ *
+ * The burn pack measures the same way on the same sampler: BurnBurn cut at 0.868 s
+ * and joined to BurnRecover[0] is 42.7604 deg apart on mixamorig:LeftArm and
+ * 19.670 mm at the hips, against 0.0475 deg / 0.003 mm at a whole period — again
+ * sampler residual, not a floor. Cutting later is worse, not better:
+ * 1.5 s in, the same join is 53.4524 deg on mixamorig:RightForeArm and 34.449 mm.
+ * Same rule, same reason, on a clip whose arms move far more than the poison
+ * loop's.
  */
 export const REACTION_LOOP_FIT = "whole-periods" as const;
 /** Bound on a single hold, so a runaway effect duration cannot build an unbounded sequence. */
@@ -140,19 +245,23 @@ export function reactionArchetypeForFamily(family: ReviewActorFamily): ReactionA
  * directional flinch picker alone. A mapped special damage type wins; otherwise
  * a heavy strike escalates to the shared knockdown, exactly as the contract
  * table assigns it to Lunge, TailWhip, AshCall and the heavy melee rows.
+ *
+ * The damage type wins even when the strike is also heavy: a heavy fire hit is a
+ * body on fire, not a body on the floor. That is the same rule poison has always
+ * had, and it is why the knockdown escalation is only reached by a hit that
+ * carries no special type of its own. Precedence is a separate question, asked
+ * later by `applyReactionHit` about what is ALREADY running.
+ *
+ * Selection is a table lookup, not a scan, so it cannot depend on key order — and
+ * the table that backs it is checked for ambiguity at module load.
  */
 export function reactionSetForContact(contact: {
   readonly damageType?: ReviewDamageType | null; readonly severity?: "light" | "heavy" | null;
 }): ReactionSetId | null {
   const damageType = contact.damageType ?? null;
-  if (damageType && damageType !== "physical") {
-    const matched = (Object.keys(REACTION_SETS) as ReactionSetId[])
-      .find((id) => REACTION_SETS[id].damageTypes.includes(damageType));
-    if (matched) return matched;
-  }
-  if (contact.severity === "heavy") {
-    return (Object.keys(REACTION_SETS) as ReactionSetId[]).find((id) => REACTION_SETS[id].fromHeavyMelee) ?? null;
-  }
+  const matched = damageType ? REACTION_SET_INDEX.byDamageType.get(damageType) : undefined;
+  if (matched) return matched;
+  if (contact.severity === "heavy") return REACTION_SET_INDEX.heavyMelee;
   return null;
 }
 

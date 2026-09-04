@@ -40,25 +40,32 @@ const valid = (): ReviewedReactionPack[] => humanoid.map((pack) => ({ ...pack, c
 afterEach(() => { vi.restoreAllMocks(); });
 
 describe("The reaction pack receipt is an allowlist, not a directory listing", () => {
-  it("registers the humanoid archetype only when its packs carry all six contract clips", () => {
-    expect(REACTION_CONTRACT_CLIPS).toEqual(["PoisonImpact", "PoisonLoop", "PoisonRecover", "Knockdown", "ProneHold", "GetUp"]);
+  it("registers the humanoid archetype only when its packs carry all nine contract clips", () => {
+    expect(REACTION_CONTRACT_CLIPS).toEqual(["PoisonImpact", "PoisonLoop", "PoisonRecover",
+      "BurnFlare", "BurnBurn", "BurnRecover", "Knockdown", "ProneHold", "GetUp"]);
     expect(humanoid.flatMap((pack) => pack.clips).sort()).toEqual([...REACTION_CONTRACT_CLIPS].sort());
     expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "humanoid", "poison")).toBe(true);
+    expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "humanoid", "burning")).toBe(true);
     expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "humanoid", "knockdown")).toBe(true);
     // The other two archetypes are not registered yet, and say so rather than half-loading.
     expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "warden", "poison")).toBe(false);
+    expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "warden", "burning")).toBe(false);
     expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "breachling", "knockdown")).toBe(false);
     expect(reactionPackForClip(humanoid, "PoisonLoop")!.url).toContain("poison-r3");
+    expect(reactionPackForClip(humanoid, "BurnBurn")!.url).toContain("burn-r1");
     expect(reactionPackForClip(humanoid, "ProneHold")!.url).toContain("kd-r13");
     expect(reactionPackForClip(humanoid, "NotAClip")).toBeNull();
-    expect(reviewedReactionNote(humanoid)).toMatch(/6 clips across 2 pinned files/);
+    expect(reviewedReactionNote(humanoid)).toMatch(/9 clips across 3 pinned files/);
   });
 
   it("rejects a pack that is incomplete, mislocated, double-claimed or unpinned", () => {
     expect(() => prepareReviewedReactionPacks({ humanoid: [valid()[0]!] }))
-      .toThrow(/incomplete set, missing Knockdown, ProneHold, GetUp/);
+      .toThrow(/incomplete set, missing BurnFlare, BurnBurn, BurnRecover, Knockdown, ProneHold, GetUp/);
+    // A burn lane that lost its recovery in a re-export is a half set, not a set.
+    const clipped = valid(); clipped[1] = { ...clipped[1]!, clips: ["BurnFlare", "BurnBurn"] };
+    expect(() => prepareReviewedReactionPacks({ humanoid: clipped })).toThrow(/incomplete set, missing BurnRecover/);
     expect(() => prepareReviewedReactionPacks({ humanoid: [] })).toThrow(/no packs listed/);
-    const dupe = valid(); dupe[1] = { ...dupe[1]!, clips: ["PoisonLoop", "Knockdown", "ProneHold", "GetUp"] };
+    const dupe = valid(); dupe[1] = { ...dupe[1]!, clips: ["PoisonLoop", "BurnFlare", "BurnBurn", "BurnRecover"] };
     expect(() => prepareReviewedReactionPacks({ humanoid: dupe })).toThrow(/PoisonLoop is claimed by two packs/);
     const foreign = valid(); foreign[0] = { ...foreign[0]!, clips: ["PoisonImpact", "PoisonLoop", "Burning"] };
     expect(() => prepareReviewedReactionPacks({ humanoid: foreign })).toThrow(/Burning is not a contract clip name/);
@@ -91,30 +98,41 @@ describe("The reaction pack receipt is an allowlist, not a directory listing", (
 });
 
 describe("Loading a pack verifies the file before a clip is bound", () => {
-  it("fetches, checksums and parses both humanoid packs into the six contract clips", async () => {
+  it("fetches, checksums and parses all three humanoid packs into the nine contract clips", async () => {
     serveFromDisk();
     const loaded = await loadReactionPacks("humanoid", { parser: parser(), baseURI: BASE });
-    expect(loaded).toHaveLength(2);
+    expect(loaded).toHaveLength(3);
     expect(loaded.every((entry) => entry.checksumVerified)).toBe(true);
     const clips = reactionPackClips(loaded);
     expect(clips.map((clip) => clip.name).sort()).toEqual([...REACTION_CONTRACT_CLIPS].sort());
     const seconds = (name: string) => Number(clips.find((clip) => clip.name === name)!.duration.toFixed(4));
     // Authored durations, read from the shipped files.
     expect([seconds("PoisonImpact"), seconds("PoisonLoop"), seconds("PoisonRecover")]).toEqual([0.85, 2.8, 1.6]);
+    expect([seconds("BurnFlare"), seconds("BurnBurn"), seconds("BurnRecover")]).toEqual([0.8, 3, 1.7]);
     expect([seconds("Knockdown"), seconds("ProneHold"), seconds("GetUp")]).toEqual([1.05, 2.4, 2.3]);
     expect(reactionSetDurations("poison", (name) => seconds(name))).toEqual({ impact: 0.85, loop: 2.8, recover: 1.6 });
+    expect(reactionSetDurations("burning", (name) => seconds(name))).toEqual({ impact: 0.8, loop: 3, recover: 1.7 });
     expect(reactionSetDurations("knockdown", (name) => seconds(name))).toEqual({ impact: 1.05, loop: 2.4, recover: 2.3 });
     expect(reactionSetDurations("poison", () => undefined)).toBeNull();
+    expect(reactionSetDurations("burning", (name) => (name === "BurnRecover" ? undefined : 1))).toBeNull();
   }, 60_000);
 
   it("refuses a file whose bytes, checksum or clip list moved", async () => {
     const fetchMock = serveFromDisk();
+    // Every pinned pack, the burn one included: a byte length or a checksum that
+    // moved stops the file before a single byte of it is parsed.
+    for (const pack of humanoid) {
+      await expect(loadReactionPacks("humanoid", { parser: parser(), baseURI: BASE,
+        registry: { humanoid: [{ ...pack, bytes: pack.bytes - 1 }] } }))
+        .rejects.toThrow(/update its reviewed intake receipt/);
+      await expect(loadReactionPacks("humanoid", { parser: parser(), baseURI: BASE,
+        registry: { humanoid: [{ ...pack, sha256: "0".repeat(64) }] } }))
+        .rejects.toThrow(/SHA-256 does not match/);
+    }
+    // A burn pack whose receipt lost a clip name is rejected, not partly installed.
     await expect(loadReactionPacks("humanoid", { parser: parser(), baseURI: BASE,
-      registry: { humanoid: [{ ...humanoid[0]!, bytes: humanoid[0]!.bytes - 1 }, humanoid[1]!] } }))
-      .rejects.toThrow(/update its reviewed intake receipt/);
-    await expect(loadReactionPacks("humanoid", { parser: parser(), baseURI: BASE,
-      registry: { humanoid: [{ ...humanoid[0]!, sha256: "0".repeat(64) }, humanoid[1]!] } }))
-      .rejects.toThrow(/SHA-256 does not match/);
+      registry: { humanoid: [{ ...humanoid[1]!, clips: ["BurnFlare", "BurnBurn"] }] } }))
+      .rejects.toThrow(/unlisted BurnRecover/);
     await expect(loadReactionPacks("warden", { parser: parser(), baseURI: BASE }))
       .rejects.toThrow(/No reviewed reaction pack is registered for the warden archetype/);
     // A re-export that gained a clip is rejected, not silently installed beside
@@ -137,7 +155,7 @@ describe("Loading a pack verifies the file before a clip is bound", () => {
 });
 
 describe("The pack installs beside the animation library, never over it", () => {
-  it("gives a packed human actor the six clips as reactions and leaves an unpacked one untouched", async () => {
+  it("gives a packed human actor the nine clips as reactions and leaves an unpacked one untouched", async () => {
     serveFromDisk();
     const factory = createHumanReviewActorFactory({
       loader: { loadAsync: async (url: string) => parser().parseAsync(bytesOf(url.replace(/^\./, "")).slice().buffer, "") },
@@ -224,6 +242,7 @@ describe("The pack is authored on the body's own rig and joins to itself", () =>
       return worst;
     };
     const impact = by("PoisonImpact"), loop = by("PoisonLoop"), recover = by("PoisonRecover");
+    const flare = by("BurnFlare"), burn = by("BurnBurn"), burnRecover = by("BurnRecover");
     const knock = by("Knockdown"), prone = by("ProneHold"), getUp = by("GetUp");
     // Every join the owner's sequence rule crosses. 0.55 deg is the unit-quaternion
     // storage floor on these tracks, so these are exact matches, not near ones.
@@ -231,13 +250,18 @@ describe("The pack is authored on the body's own rig and joins to itself", () =>
       worstDegrees(impact, impact.duration, loop, 0),
       worstDegrees(loop, loop.duration, loop, 0),
       worstDegrees(loop, 0, recover, 0),
+      worstDegrees(flare, flare.duration, burn, 0),
+      worstDegrees(burn, burn.duration, burn, 0),
+      worstDegrees(burn, 0, burnRecover, 0),
       worstDegrees(knock, knock.duration, prone, 0),
       worstDegrees(prone, prone.duration, prone, 0),
       worstDegrees(prone, prone.duration, getUp, 0),
     ];
     for (const join of joins) expect(join).toBeLessThan(0.55);
     // And the reason the hold is quantised to whole periods rather than cut where
-    // the effect happens to end: mid-loop, the same join is two orders worse.
+    // the effect happens to end: mid-loop, the same join is two orders worse. The
+    // burn loop is the worse of the two, because both its arms are moving.
     expect(worstDegrees(loop, 0.868, recover, 0)).toBeGreaterThan(30);
+    expect(worstDegrees(burn, 0.868, burnRecover, 0)).toBeGreaterThan(30);
   }, 60_000);
 });

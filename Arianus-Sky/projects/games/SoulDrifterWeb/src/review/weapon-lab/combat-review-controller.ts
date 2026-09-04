@@ -386,8 +386,9 @@ export class CombatReviewController {
         if (response === "reaction" && this.reactionPolicy === "auto") {
           const defenderSlot = this.slots[opposite(this.attacker)];
           // A special damage type, or a heavy strike, takes the body over with an
-          // authored set. Neither needs a contact direction: the poison covers the
-          // whole body and a knockdown leaves the feet whatever side it came from.
+          // authored set. None of them needs a contact direction: the poison covers
+          // the whole body, a burn takes the whole body, and a knockdown leaves the
+          // feet whatever side it came from.
           const setId = reactionSetForContact({ damageType: result.event.damageType ?? null, severity: this.contactSeverity });
           const durations = setId ? this.reactionDurations(defenderSlot, setId) : null;
           if (setId && durations) {

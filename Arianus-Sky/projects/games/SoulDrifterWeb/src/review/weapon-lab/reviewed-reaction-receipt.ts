@@ -12,12 +12,13 @@ import { REACTION_ARCHETYPES, REACTION_CONTRACT_CLIPS, REACTION_SETS, REACTION_P
  * allowlist, the same way a rebuilt Warden body sits beside the shipped one.
  *
  * An archetype may be delivered as more than one file while the authoring lanes
- * run in parallel — the poison three and the knockdown three are separate builds
- * on the same rig. That is why an entry is a LIST of packs. What is enforced is
- * the union: an archetype is registered only when its packs together carry
- * exactly the six contract clips, with no clip claimed twice. A half-finished
- * archetype cannot reach the lab by being written to disk, and merging the lanes
- * into one GLB later collapses two rows into one with no code change.
+ * run in parallel — the poison three, the burning three and the knockdown three
+ * are separate builds on the same rig. That is why an entry is a LIST of packs.
+ * What is enforced is the union: an archetype is registered only when its packs
+ * together carry exactly the contract clips, with no clip claimed twice. A
+ * half-finished archetype cannot reach the lab by being written to disk, and
+ * merging the lanes into one GLB later collapses three rows into one with no code
+ * change.
  *
  * `rigSourceSha256` records the body the pack was authored against, so a pack can
  * never be played on a lineage it was not built for. `jointCount` is checked
@@ -94,12 +95,12 @@ export function reviewedReactionNote(packs: readonly ReviewedReactionPack[]): st
 /**
  * Packs cleared for isolated Motion Forge review.
  *
- * `humanoid` is delivered as the two authoring lanes that produced it. Both files
- * carry the same 65-joint Human Foundation skeleton in the same order as
- * `human-foundation-pilot-runtime-4k.glb` (sha256 b86f7378…c5ff81), measured, so
- * either binds on the existing human actor.
+ * `humanoid` is delivered as the three authoring lanes that produced it. All
+ * three files carry the same 65-joint Human Foundation skeleton in the same order
+ * as `human-foundation-pilot-runtime-4k.glb` (sha256 b86f7378…c5ff81), measured,
+ * so any of them binds on the existing human actor.
  *
- * `warden` and `breachling` stay absent until their six clips exist. The
+ * `warden` and `breachling` stay absent until their nine clips exist. The
  * selection rules already key off the archetype, so registering them is a data
  * change here and nothing else.
  */
@@ -113,6 +114,15 @@ export const REVIEWED_REACTION_PACKS: ReviewedReactionPacks = prepareReviewedRea
       rigSourceSha256: "b86f7378ada29ff11e0fbc030d438fe241b8d4a74c47afd37cc8aced28c5ff81",
       jointCount: 65,
       clips: ["PoisonImpact", "PoisonLoop", "PoisonRecover"],
+    },
+    {
+      archetype: "humanoid",
+      url: "/assets/weapon-lab/reactions/humanoid-reactions-burn-r1.glb",
+      bytes: 3_403_688,
+      sha256: "90f4bae15ec21302dac7d44e8b5d2fb844894ce8fbbe48f57a5a060300091ff5",
+      rigSourceSha256: "b86f7378ada29ff11e0fbc030d438fe241b8d4a74c47afd37cc8aced28c5ff81",
+      jointCount: 65,
+      clips: ["BurnFlare", "BurnBurn", "BurnRecover"],
     },
     {
       archetype: "humanoid",

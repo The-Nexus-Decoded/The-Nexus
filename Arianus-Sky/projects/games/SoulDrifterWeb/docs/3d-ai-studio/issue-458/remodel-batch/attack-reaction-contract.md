@@ -421,3 +421,49 @@ Files under the concurrent-edit ownership list — `breach-v2-wardens.ts`, `brea
 `cinderbound-warden-vfx.ts`, `reviewed-warden-receipt.ts`, `tests/breachV2Warden*`, and the artifacts warden lanes —
 were **read only**. Line numbers in those files may have moved; cite the function or constant names.
 No git command was run and nothing was committed.
+
+---
+
+## 8. Open motion defects in the shipped humanoid reaction packs
+
+Found by an independent skeptic that re-derived everything from the shipped GLBs
+with its own glTF parser, FK and slerp — no three.js, no lane code. The packs
+themselves verified clean: byte lengths and hashes match their pins, joint names
+and index order match the runtime body exactly, inverse bind matrices differ by 0,
+and the loops close bit-exactly. These are quality and honesty defects, not
+integrity ones.
+
+**D1 — 45 of 65 joints carry no motion at all.** All 40 finger joints, the 4 toe
+joints and HeadTop_End are constant at the bind rotation across every clip in all
+three packs; only 20 joints move. A burning body with rigid fingers is the worst
+case of this. Authoring finger and toe motion is open work.
+
+**D2 — the seam metric was reported on a frozen joint.** Every row of both seam
+tables named `mixamorig:LeftHandPinky3` as the worst bone at 0.0475 deg, which is
+why five structurally different joins returned the same number. Measured over the
+20 joints that actually move, the real worst is 0.0018 deg. The packs are better
+than they were reported to be; the metric has since been corrected in the contract
+comments, and any future seam claim must exclude frozen joints or it measures its
+own sampler.
+
+**D3 — the entry gap is real and the blend is unjustified.** `BurnFlare[0]` is
+74.0916 deg from the pinned body's bind pose on `mixamorig:LeftArm` with 13.882 mm
+of hips offset, and 90 to 152 deg from the shipped library idles. The controller
+crosses that in `cue.blendSeconds`, default 0.1 s — about 900 deg/s, against
+`BurnBurn`'s own median frame step of 2.1555 deg at 60 fps, i.e. 129 deg/s. The
+default is 7x faster than the clip's fastest ordinary motion. It may still be the
+right read for an impact, but it was never measured against the gap and should be.
+The two seam-table rows that reported this join as 0.0475 deg were comparing
+against the composer's internally baked arm-rest neutral, which exists in no
+shipped byte.
+
+**D4 — planted-foot skate in BurnBurn.** Max toe lift is 46.0 mm on a 0.9891 m rig
+with 30.4 mm of horizontal travel while planted. That is a weight-shift shuffle
+with a slide in it, not the planted steps it was described as.
+
+**D5 — the precedence machinery has no runtime path.** `recordReactionHit`,
+`cutReactionToDeath` and `clearReactionTimeline` are called by nothing outside
+tests; the panel exposes no command for them and `resolveContact` only ever builds
+a single-plan timeline through `applyReactionHit`. The precedence design is sound
+and tested, but it is not reachable in the product yet. Either wire it or stop
+describing it as behaviour.
