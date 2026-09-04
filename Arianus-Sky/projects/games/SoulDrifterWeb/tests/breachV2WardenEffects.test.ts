@@ -1,3 +1,4 @@
+import { CINDERBOUND_WARDEN_MUZZLE_STANDOFF_METERS } from "../src/game/vfx/cinderbound-warden-vfx";
 import * as THREE from "three";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { describe, expect, it } from "vitest";
@@ -7,7 +8,9 @@ import {
   CINDERBOUND_WARDEN_EFFECT_TIMELINES,
   cinderboundWardenEffectSeconds,
   isCinderboundWardenEffectClip,
+  CINDERBOUND_WARDEN_PALM_RIGS,
   type CinderboundWardenEffectEvent,
+  type CinderboundWardenPalmKind,
 } from "../src/game/dungeons/breach-v2-warden-effects";
 import {
   CINDERBOUND_WARDEN_ACTIONS,
@@ -94,6 +97,25 @@ function status(runtime: Awaited<ReturnType<typeof stage>>["runtime"]) {
   return runtime.snapshots()[0]!.activeEffects;
 }
 
+/**
+ * Where the beam is supposed to be born, derived the way the runtime derives it: the measured
+ * emitter port and palm normal carried through hand_L's own world matrix. Asserting against
+ * this rather than against the hand BONE is the point - the bone sits inside the shell and the
+ * old code fired from it straight down the finger axis.
+ */
+function expectedMuzzle(
+  runtime: Awaited<ReturnType<typeof stage>>["runtime"],
+  kind: CinderboundWardenPalmKind,
+): { port: THREE.Vector3; palmNormal: THREE.Vector3 } {
+  const hand = runtime.reviewActor()!.model.getObjectByName("hand_L")!;
+  hand.updateWorldMatrix(true, false);
+  const rig = CINDERBOUND_WARDEN_PALM_RIGS[kind];
+  return {
+    port: new THREE.Vector3(...rig.portHandLocal).applyMatrix4(hand.matrixWorld),
+    palmNormal: new THREE.Vector3(...rig.normalHandLocal).transformDirection(hand.matrixWorld).normalize(),
+  };
+}
+
 describe("Cinderbound Warden attack effects", () => {
   it("derives every effect window from the attack-plan phase frames and rescales it to the runtime clip", () => {
     const palm = cinderboundWardenEffectSeconds("PalmFire", CLIP_SECONDS.PalmFire!);
@@ -167,9 +189,26 @@ describe("Cinderbound Warden attack effects", () => {
     runtime.update(target.x, target.z, 0.8);
     const active = status(runtime)[0]!;
     expect(active).toMatchObject({ effect: "palm-fire", phase: "active" });
-    const hand = runtime.reviewActor()!.model.getObjectByName("hand_L")!;
-    const handWorld = hand.getWorldPosition(new THREE.Vector3());
-    expect(new THREE.Vector3().fromArray(active.origin).distanceTo(handWorld)).toBeLessThan(1e-6);
+    // The beam is born at the emitter port on the palm, not at the hand bone buried in the
+    // shell, and it leaves along the palm normal rather than down the fingers.
+    const muzzle = expectedMuzzle(runtime, "wayfarer");
+    const handWorld = muzzle.port;
+    expect(new THREE.Vector3().fromArray(active.origin).distanceTo(muzzle.port)).toBeLessThan(1e-6);
+    expect(muzzle.port.distanceTo(runtime.reviewActor()!.model.getObjectByName("hand_L")!.getWorldPosition(new THREE.Vector3()))).toBeGreaterThan(0.05);
+    // and the muzzle FACES the palm normal: the port disc, its rim and the palm ring are all
+    // square to the palm plate, which is what makes the aperture read as a bore in the hand.
+    // (The bind-pose fact that the normal is perpendicular to the finger axis is a property of
+    // the real rigs, measured by the composer probe and the clearance gate; this stage rig's
+    // hand_L is a bare Group at an invented position, so it cannot show it.)
+    const ring = beam.getObjectByName(`${id}:palm-fire:palm-ring`) as THREE.Mesh;
+    const ringFacing = new THREE.Vector3(0, 0, 1).applyQuaternion(ring.quaternion);
+    expect(ringFacing.dot(muzzle.palmNormal)).toBeGreaterThan(0.999);
+    const bore = beam.getObjectByName(`${id}:palm-fire:port-bore`) as THREE.Mesh;
+    const recess = beam.getObjectByName(`${id}:palm-fire:port-recess`) as THREE.Mesh;
+    expect(new THREE.Vector3(0, 0, 1).applyQuaternion(bore.quaternion).dot(muzzle.palmNormal)).toBeGreaterThan(0.999);
+    // the recess sits behind the port plane and the bore in front, so the hole never z-fights
+    expect(recess.position.clone().sub(muzzle.port).dot(muzzle.palmNormal)).toBeLessThan(0);
+    expect(bore.position.clone().sub(muzzle.port).dot(muzzle.palmNormal)).toBeGreaterThan(0);
     expect(active.end[0]).toBeCloseTo(target.x, 6);
     expect(active.end[1]).toBeCloseTo(placement.floorElevation + 0.85, 6);
     expect(active.end[2]).toBeCloseTo(target.z, 6);
@@ -179,8 +218,22 @@ describe("Cinderbound Warden attack effects", () => {
     expect(beam.getObjectByName(`${id}:palm-fire:embers`)?.visible).toBe(true);
     expect(beam.getObjectByName(`${id}:palm-fire:impact-flare`)?.visible).toBe(true);
     const core = beam.getObjectByName(`${id}:palm-fire:core`) as THREE.Mesh;
-    expect(core.position.distanceTo(handWorld.clone().add(new THREE.Vector3().fromArray(active.end)).multiplyScalar(0.5))).toBeLessThan(1e-6);
-    expect(core.scale.y).toBeCloseTo(handWorld.distanceTo(new THREE.Vector3().fromArray(active.end)), 6);
+    // The beam leaves in two spans: a straight length square out of the palm, then the
+    // steering length to the target. Without that first span the far end would drag the
+    // whole beam back across the fingers whenever the player is not where the clip aimed.
+    const muzzleCore = beam.getObjectByName(`${id}:palm-fire:muzzle-core`) as THREE.Mesh;
+    const endPoint = new THREE.Vector3().fromArray(active.end);
+    const exit = handWorld.clone().addScaledVector(muzzle.palmNormal, CINDERBOUND_WARDEN_MUZZLE_STANDOFF_METERS);
+    expect(muzzleCore.visible).toBe(true);
+    // the first span starts at the port and runs along the palm normal, not toward the target
+    expect(muzzleCore.position.distanceTo(handWorld.clone().add(exit).multiplyScalar(0.5))).toBeLessThan(1e-6);
+    expect(muzzleCore.scale.y).toBeCloseTo(CINDERBOUND_WARDEN_MUZZLE_STANDOFF_METERS, 6);
+    // the second span takes over exactly where the first ends, so there is no gap
+    expect(core.position.distanceTo(exit.clone().add(endPoint).multiplyScalar(0.5))).toBeLessThan(1e-6);
+    expect(core.scale.y).toBeCloseTo(exit.distanceTo(endPoint), 6);
+    // and the exit really is square to the palm, whatever the target is doing
+    const exitDirection = exit.clone().sub(handWorld).normalize();
+    expect(exitDirection.dot(muzzle.palmNormal)).toBeGreaterThan(0.999);
     expect(events.map((event) => event.phase)).toEqual(["telegraph", "active", "impact"]);
     expect(events[2]).toMatchObject({ effect: "palm-fire", hit: true });
 
@@ -282,8 +335,9 @@ describe("Cinderbound Warden attack effects", () => {
     const siphon = scene.getObjectByName(`${id}:soul-tax`)!;
     expect(siphon.getObjectByName(`${id}:soul-tax:soul-motes`)?.visible).toBe(true);
     expect(siphon.getObjectByName(`${id}:soul-tax:slow-ring`)?.visible).toBe(true);
-    const hand = runtime.reviewActor()!.model.getObjectByName("hand_L")!.getWorldPosition(new THREE.Vector3());
-    expect(new THREE.Vector3().fromArray(status(runtime)[0]!.origin).distanceTo(hand)).toBeLessThan(1e-6);
+    // SoulTax siphons through the same aperture PalmFire fires from, so it gets the same origin.
+    const siphonMuzzle = expectedMuzzle(runtime, "wayfarer");
+    expect(new THREE.Vector3().fromArray(status(runtime)[0]!.origin).distanceTo(siphonMuzzle.port)).toBeLessThan(1e-6);
 
     runtime.play("Idle", { immediate: true });
     runtime.update(placement.x, placement.z, 0.4);
@@ -305,6 +359,45 @@ describe("Cinderbound Warden attack effects", () => {
     runtime.update(placement.x, placement.z, 1.5);
     const ring = scene.getObjectByName(`${id}:ash-call:telegraph-ring`)!;
     expect(ring.scale.x).toBeCloseTo(3.4 * (3.9 / 3.6), 6);
+    runtime.dispose();
+  });
+
+  it("shows the palm port as a dark bore that charges through the telegraph and blows out into the beam", async () => {
+    const { runtime, placement, scene, id } = await stage("wayfarer");
+    const target = { x: placement.x, z: placement.z + 3 };
+    runtime.play("PalmFire", { immediate: true });
+
+    // Telegraph: the port is already showing. The recess is what makes it read as a HOLE, so it
+    // has to subtract from the hand rather than glow on top of it - dark, opaque-ish and
+    // normally blended. Additive blending here would paint a bright disc on the palm instead.
+    runtime.update(target.x, target.z, 1);
+    const recess = scene.getObjectByName(`${id}:palm-fire:port-recess`) as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+    const bore = scene.getObjectByName(`${id}:palm-fire:port-bore`) as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+    const rim = scene.getObjectByName(`${id}:palm-fire:port-rim`) as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+    const flare = scene.getObjectByName(`${id}:palm-fire:port-flare`) as THREE.Sprite;
+    expect(recess.visible).toBe(true);
+    expect(recess.material.blending).toBe(THREE.NormalBlending);
+    expect(recess.material.color.getHex()).toBeLessThan(0x202020);
+    expect(recess.material.opacity).toBeGreaterThan(0.5);
+    expect(rim.visible).toBe(true);
+    // the bore is still a pinprick and the flare is dark: the charge has not blown out yet
+    const chargingBore = bore.scale.x;
+    expect(bore.material.opacity).toBeLessThan(0.9);
+    expect(flare.material.opacity).toBeLessThan(0.05);
+
+    // Beam, sampled past the ramp at t = 2.2 s so the strength is at full: the bore is wider
+    // and hotter than it was charging, and the flare is lit.
+    runtime.update(target.x, target.z, 1.2);
+    expect(bore.scale.x).toBeGreaterThan(chargingBore);
+    expect(bore.material.opacity).toBeCloseTo(1, 3);
+    expect(flare.material.opacity).toBeGreaterThan(0.5);
+    expect(recess.visible).toBe(true);
+
+    // Recovery: the whole port goes away with the effect rather than lingering on the hand.
+    runtime.update(target.x, target.z, 0.6);
+    expect(recess.visible).toBe(false);
+    expect(bore.visible).toBe(false);
+    expect(rim.visible).toBe(false);
     runtime.dispose();
   });
 

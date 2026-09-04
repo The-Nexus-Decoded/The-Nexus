@@ -1148,6 +1148,9 @@ export function createBreachV2WardenRuntime(
       model,
       ownerId: placement.id,
       targetHeightMeters: asset.targetHeightMeters,
+      // The palm normal and emitter port are measured per pack, so the beam has to know which
+      // hand it is leaving.
+      kind: path,
     });
     effects.setListener(effectListener);
     const runtimeActor: RuntimeActor = {

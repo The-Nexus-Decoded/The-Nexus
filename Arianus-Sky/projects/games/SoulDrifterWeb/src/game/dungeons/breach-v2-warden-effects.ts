@@ -205,6 +205,51 @@ export interface CinderboundWardenEffectEvent {
 
 export type CinderboundWardenEffectListener = (event: CinderboundWardenEffectEvent) => void;
 
+/** Which pack's hand the palm rig below describes. Mirrors CinderboundWardenKind. */
+export type CinderboundWardenPalmKind = "wayfarer" | "oathbreaker";
+
+/**
+ * The palm as a muzzle: where the beam leaves the hand, and which way it faces.
+ *
+ * Both are constants in the hand_L BONE LOCAL frame because hand_L is a leaf bone - no finger
+ * joints, so the hand is one rigid chunk. Measured drift of the fully-weighted hand vertices
+ * in the hand bone's own frame, over every sampled frame of every clip, is 0.095 mm on the
+ * Wayfarer and 0.000 mm on the Oathbreaker, which is why six numbers can stand in for a
+ * per-frame geometric fit.
+ */
+export interface CinderboundWardenPalmRig {
+  /** Unit palm normal. World direction = normal.transformDirection(hand_L.matrixWorld). */
+  readonly normalHandLocal: readonly [number, number, number];
+  /**
+   * Emitter port at the palm centre, pushed clear of the palm surface along the normal so a
+   * beam born there starts OUTSIDE the shell. Bone units: port.applyMatrix4(hand_L.matrixWorld)
+   * brings the pack's own scale along.
+   */
+  readonly portHandLocal: readonly [number, number, number];
+}
+
+/**
+ * Measured per pack; the source is node_modules/.cache/palm-measure/palm-normal-report.json
+ * and the same six numbers are carried by the composer and the clearance gate
+ * (issue-458-motion-composer-v1/lib/warden-palm-rig.mjs). All three must agree or the gate is
+ * measuring a different beam than the game fires.
+ *
+ * The palm plane is the thinnest robust width of the DISTAL hand searched perpendicular to the
+ * bone's finger axis - a whole-hand fit lands 45 deg out, because the wrist cuff is a cylinder
+ * and drags it. The sign is the left-hand rule palmNormal = fingerAxis x thumbDir, confirmed by
+ * rendering both slab faces: the face the rule calls the back carries the knuckle blocks, the
+ * face it calls the palm is the flatter plate, and on the Oathbreaker that plate already
+ * carries a recessed circular socket dead centre.
+ *
+ * The normal is perpendicular to the bone's +Y finger axis on both bodies (91.44 deg / 90.00
+ * deg off the forearm at bind). The bind pose is pronated: the palm faces ACROSS the arm, never
+ * along it, which is why aiming the forearm can never aim the palm.
+ */
+export const CINDERBOUND_WARDEN_PALM_RIGS: Readonly<Record<CinderboundWardenPalmKind, CinderboundWardenPalmRig>> = Object.freeze({
+  wayfarer: { normalHandLocal: [-0.884988, 0, 0.465615], portHandLocal: [-0.00946, 0.09009, 0.01242] },
+  oathbreaker: { normalHandLocal: [-0.533615, 0, -0.845728], portHandLocal: [-0.00314, 0.08653, -0.04334] },
+});
+
 export interface CinderboundWardenEffectContext {
   /** Parent for every effect object (dungeon scene or the Motion Forge stage root). */
   scene: THREE.Object3D;
@@ -214,6 +259,8 @@ export interface CinderboundWardenEffectContext {
   model: THREE.Object3D;
   ownerId: string;
   targetHeightMeters: number;
+  /** Which pack's palm rig to fire from. Defaults to the Wayfarer's. */
+  kind?: CinderboundWardenPalmKind;
 }
 
 export interface CinderboundWardenEffectFrame {
@@ -268,6 +315,7 @@ export function createCinderboundWardenEffectSystem(
   context: CinderboundWardenEffectContext,
 ): CinderboundWardenEffectSystem {
   const scale = context.targetHeightMeters / CINDERBOUND_WARDEN_VFX_REFERENCE_HEIGHT_METERS;
+  const palmRig = CINDERBOUND_WARDEN_PALM_RIGS[context.kind ?? "wayfarer"];
   let resources: WardenVfxResources | null = null;
   let beam: WardenFireBeamVisual | null = null;
   let sweep: WardenSweepWaveVisual | null = null;
@@ -342,19 +390,34 @@ export function createCinderboundWardenEffectSystem(
     out.set(0, 0, 1);
     return out.transformDirection(context.actorRoot.matrixWorld).setY(0).normalize();
   };
-  /** Palm origin and the hand's forward axis (elbow to hand); falls back to the body. */
+  /**
+   * The repulsor muzzle: the emitter port at the palm centre, and the PALM NORMAL.
+   *
+   * This used to take the direction from the forearm axis, normalize(hand_L - lower_arm_L).
+   * That axis is the hand bone's own +Y - the finger axis - so the beam left through the
+   * Warden's own hand: 1267 of 4458 hand-weighted vertices inside the 0.11 m beam core with
+   * 12 mm of clearance on the Wayfarer, 1170 of 2984 with 11 mm on the Oathbreaker, on every
+   * frame of the clip (the wrist does not move relative to the forearm, so it was structural,
+   * not a bad frame). The palm normal is perpendicular to that axis on both bodies: the bind
+   * pose is pronated and the palm faces across the arm, so no amount of aiming the ARM could
+   * ever have aimed the palm.
+   *
+   * Firing along the palm normal from the port instead takes the Wayfarer to 0 vertices in the
+   * core at 0.120 m clearance and the Oathbreaker to 0 at 0.240 m. Both are properties of the
+   * hand's own geometry, so they hold whatever the clip does with the arm; what the clip has to
+   * supply is the wrist cocked back far enough that the normal points at the target.
+   */
   const palm = (origin: THREE.Vector3, forward: THREE.Vector3): void => {
-    if (!boneWorld("hand_L", origin)) {
+    const hand = context.model.getObjectByName("hand_L");
+    if (!hand) {
       actorFloor(origin).y += context.targetHeightMeters * 0.55;
       actorForward(forward);
       return;
     }
-    const elbow = new THREE.Vector3();
-    if (boneWorld("lower_arm_L", elbow) && elbow.distanceToSquared(origin) > 1e-6) {
-      forward.copy(origin).sub(elbow).normalize();
-    } else {
-      actorForward(forward);
-    }
+    hand.updateWorldMatrix(true, false);
+    origin.set(...palmRig.portHandLocal).applyMatrix4(hand.matrixWorld);
+    forward.set(...palmRig.normalHandLocal).transformDirection(hand.matrixWorld);
+    if (forward.lengthSq() < 1e-8) actorForward(forward); else forward.normalize();
   };
   const bladeTip = (out: THREE.Vector3): void => {
     if (boneWorld("hand_R", out)) {
@@ -608,7 +671,7 @@ export function createCinderboundWardenEffectSystem(
     const now = frame.clipTimeSeconds;
     palm(scratch.origin, scratch.forward);
     scratch.end.copy(frame.target);
-    visual.setEndpoints(scratch.origin, scratch.end);
+    visual.setEndpoints(scratch.origin, scratch.forward, scratch.end);
     visual.setTime(wallSeconds);
     const telegraphProgress = windowProgress(now, seconds.telegraph);
     const telegraph = inWindow(now, seconds.telegraph) ? 1 : 0;

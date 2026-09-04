@@ -89,14 +89,21 @@ export function reviewedWardenNote(receipt: ReviewedWardenReceipt): string {
  * Empty until a composer pack passes its mechanical gates and is installed. Each
  * entry stays absent until that exact export clears review, so an unfinished pack
  * cannot reach the lab by being written to disk.
+ *
+ * v12 / v7 are the repulsor pass. They must be pinned together with the emission
+ * change in breach-v2-warden-effects.ts, because the two halves only work as a
+ * pair: the runtime now fires along the PALM NORMAL, and only these packs cock the
+ * wrist so that normal points at the target. Pointing this receipt back at v11 / v6
+ * while the runtime reads the palm normal would fire the beam ~92-98 degrees off
+ * the target, which is worse than the defect the pass exists to fix.
  */
 export const REVIEWED_FOURVIEW_WARDEN_RECEIPTS: ReviewedWardenReceipts = prepareReviewedWardenReceipts({
   wayfarer: {
     kind: "wayfarer",
-    url: "/assets/weapon-lab/wardens/wayfarer-cinderbound-warden-fourview-v11.glb",
+    url: "/assets/weapon-lab/wardens/wayfarer-cinderbound-warden-fourview-v12.glb",
     runtimeSourceSha256: "6653370bbd3f057dce8602de257cdcc60163fd012589bb76ed5983d1d03ca387",
     bytes: 23_369_212,
-    sha256: "6d2a9f624b7456727850b72c5aee2bf3af98274a034d26d21761f8ba0aa11311",
+    sha256: "79b8420120f6227b6a8056f67b1ca9067048f0e63b575617a65878cb0c106dcf",
     runtimeScale: 3.6733054326308605,
     shatterChunks: 22,
     clips: [
@@ -106,10 +113,10 @@ export const REVIEWED_FOURVIEW_WARDEN_RECEIPTS: ReviewedWardenReceipts = prepare
   },
   oathbreaker: {
     kind: "oathbreaker",
-    url: "/assets/weapon-lab/wardens/oathbreaker-greater-cinderbound-warden-fourview-v6.glb",
+    url: "/assets/weapon-lab/wardens/oathbreaker-greater-cinderbound-warden-fourview-v7.glb",
     runtimeSourceSha256: "244cefb9e478c8ce561722e479a2cafce9fb5c91c4ee42477c893ee8f91a5a3d",
     bytes: 21_408_764,
-    sha256: "cd1b1462e4413d0b0a46c2ff00464f2b5adebebf712b2d9b35d1f845b5d12b05",
+    sha256: "0885b9041e18204a15e34531907b4a8d317f05ff59c085ae397acb7d65aca075",
     runtimeScale: 3.9985279615318867,
     shatterChunks: 22,
     clips: [

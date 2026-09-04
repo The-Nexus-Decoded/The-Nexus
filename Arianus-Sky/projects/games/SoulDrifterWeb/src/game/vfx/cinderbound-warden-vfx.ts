@@ -13,6 +13,15 @@ import * as THREE from "three";
  * shows exactly the frame's effect state. Only the flicker phase uses wall time.
  */
 
+/**
+ * How far the beam runs straight out of the palm before it is allowed to steer toward the
+ * target. The pose squares the palm against the review target, but the runtime aims at the
+ * live player, so without this the far end pulls the whole span across the fingers. It is
+ * longer than either Warden's hand reaches from the emitter port, measured at 0.12 m of
+ * clearance on the Wayfarer and 0.19 m on the Greater, and scales with the body.
+ */
+export const CINDERBOUND_WARDEN_MUZZLE_STANDOFF_METERS = 0.34;
+
 export const CINDERBOUND_WARDEN_VFX_REFERENCE_HEIGHT_METERS = 3.6;
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -203,6 +212,90 @@ function setUniform(material: THREE.ShaderMaterial, name: string, value: number)
   if (uniform) uniform.value = value;
 }
 
+/**
+ * The hole in the hand: an emitter port that reads as a bore in the palm plate before anything
+ * comes out of it.
+ *
+ * Four coplanar layers, all facing along the palm normal so the port is a disc seen face-on
+ * from the target and a thin edge from the side - the same read as a repulsor cover:
+ *   recess  an unlit dark disc, drawn slightly BEHIND the port plane and normally blended, so
+ *           it subtracts from the hand instead of glowing on top of it. This is the hole.
+ *   bore    a hot disc inside the recess that charges over the telegraph, the light coming up
+ *           the shaft.
+ *   rim     a tight ring around the bore: the machined lip of the port, lit whenever the port
+ *           is doing anything so the aperture stays legible against the shell.
+ *   flare   an additive sprite that stays dark through the charge and blows out on release.
+ *
+ * `setPort(origin, forward, charge, fire)` places and drives it. `charge` is the telegraph
+ * 0..1, `fire` the beam or siphon strength; the recess and rim ride the maximum of the two so
+ * the port never vanishes mid-effect, while the bore and flare separate the slow glow from the
+ * blowout.
+ */
+interface WardenMuzzlePort {
+  readonly objects: readonly THREE.Object3D[];
+  setPort(origin: THREE.Vector3, forward: THREE.Vector3, charge: number, fire: number): void;
+  dispose(): void;
+}
+
+function createWardenMuzzlePort(
+  resources: WardenVfxResources,
+  scale: number,
+  name: string,
+  { boreColor, rimColor, flareColor, radius = 0.16 }: { boreColor: number; rimColor: number; flareColor: number; radius?: number },
+): WardenMuzzlePort {
+  // Dark, opaque and unlit: the recess has to read as absence, which additive blending cannot do.
+  const recessMaterial = new THREE.MeshBasicMaterial({ color: 0x0b0705, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
+  const recess = new THREE.Mesh(resources.unitDisc, recessMaterial);
+  recess.name = `${name}:port-recess`;
+  const boreMaterial = flatMaterial(boreColor, 0, true);
+  const bore = new THREE.Mesh(resources.unitDisc, boreMaterial);
+  bore.name = `${name}:port-bore`;
+  const rimMaterial = flatMaterial(rimColor, 0, true);
+  const rim = new THREE.Mesh(resources.unitRing, rimMaterial);
+  rim.name = `${name}:port-rim`;
+  const flare = glowSprite(resources, flareColor, `${name}:port-flare`);
+  const facing = new THREE.Quaternion();
+  const DISC_NORMAL = new THREE.Vector3(0, 0, 1);
+
+  return {
+    objects: [recess, bore, rim, flare],
+    setPort: (origin, forward, charge, fire) => {
+      const lit = Math.max(charge, fire);
+      const visible = lit > 0.001;
+      for (const object of [recess, bore, rim, flare]) object.visible = visible;
+      if (!visible) return;
+      facing.setFromUnitVectors(DISC_NORMAL, forward);
+      // The recess sits a hair behind the port plane and the bore a hair in front of it, so the
+      // hot disc always draws over the dark one whatever angle the palm is seen from.
+      recess.position.copy(origin).addScaledVector(forward, -0.012 * scale);
+      recess.quaternion.copy(facing);
+      recess.scale.setScalar(radius * scale);
+      recessMaterial.opacity = 0.55 + 0.35 * lit;
+      bore.position.copy(origin).addScaledVector(forward, 0.004 * scale);
+      bore.quaternion.copy(facing);
+      // The bore opens as it charges - a pinprick of light widening up the shaft - and stays
+      // open once it fires. It rides `lit` rather than `charge` alone because the effect system
+      // drops the telegraph to zero the instant the beam starts, and a bore driven by the
+      // telegraph would snap shut on the release frame, which is precisely backwards.
+      bore.scale.setScalar(radius * (0.18 + 0.62 * lit + 0.2 * fire) * scale);
+      boreMaterial.opacity = Math.min(1, charge * charge * 0.9 + fire);
+      rim.position.copy(origin).addScaledVector(forward, 0.006 * scale);
+      rim.quaternion.copy(facing);
+      rim.scale.setScalar(radius * scale);
+      rimMaterial.opacity = 0.35 + 0.65 * lit;
+      flare.position.copy(origin).addScaledVector(forward, 0.03 * scale);
+      flare.material.opacity = fire;
+      flare.scale.setScalar((0.2 + 0.7 * fire) * scale);
+    },
+    dispose: () => {
+      recessMaterial.dispose();
+      boreMaterial.dispose();
+      rimMaterial.dispose();
+      flare.material.dispose();
+    },
+  };
+}
+
 /** Places a unit cylinder so it spans `from` to `to` with the given radius. */
 function spanCylinder(mesh: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3, radius: number): number {
   const direction = to.clone().sub(from);
@@ -292,7 +385,11 @@ export class WardenParticleCloud {
 }
 
 export interface WardenFireBeamVisual extends WardenVfxVisual {
-  /** Telegraph and beam share one aim; the beam spans palm to end. */
+  /**
+   * Telegraph and beam share one aim. `origin` is the emitter port at the palm centre and
+   * `palmForward` the palm normal - the direction the port FACES, which is what orients the
+   * muzzle. The beam itself still spans the port to `end`, wherever the player actually is.
+   */
   setAim(origin: THREE.Vector3, palmForward: THREE.Vector3, end: THREE.Vector3): void;
   setTelegraph(strength: number): void;
   setBeam(strength: number): void;
@@ -331,10 +428,16 @@ export function createWardenFireBeamVisual(
   const threadMaterial = flatMaterial(0xffa254, 0, true);
   const aimThread = new THREE.Mesh(resources.cylinder, threadMaterial);
   aimThread.name = `${name}:aim-thread`;
+  // The straight length that leaves the palm before the beam is allowed to steer.
+  const muzzleCore = new THREE.Mesh(resources.cylinder, coreMaterial);
+  muzzleCore.name = `${name}:muzzle-core`;
+  const muzzleSheath = new THREE.Mesh(resources.cylinder, sheathMaterial);
+  muzzleSheath.name = `${name}:muzzle-sheath`;
   const palmGlow = glowSprite(resources, 0xff7a2a, `${name}:palm-glow`);
   const palmRingMaterial = flatMaterial(0xffb066, 0, true);
   const palmRing = new THREE.Mesh(resources.unitRing, palmRingMaterial);
   palmRing.name = `${name}:palm-ring`;
+  const port = createWardenMuzzlePort(resources, scale, name, { boreColor: 0xffd9a0, rimColor: 0xff8a3a, flareColor: 0xffe6b8 });
   const impactFlare = glowSprite(resources, 0xffd28a, `${name}:impact-flare`);
   const impactRingMaterial = flatMaterial(0xff8a3a, 0, true);
   const impactRing = new THREE.Mesh(resources.unitRing, impactRingMaterial);
@@ -344,7 +447,7 @@ export function createWardenFireBeamVisual(
   palmLight.name = `${name}:palm-light`;
   const impactLight = new THREE.PointLight(0xffa04a, 0, 6 * scale, 2);
   impactLight.name = `${name}:impact-light`;
-  root.add(core, sheath, haze, aimThread, palmGlow, palmRing, impactFlare, impactRing, embers.points, palmLight, impactLight);
+  root.add(core, sheath, haze, aimThread, muzzleCore, muzzleSheath, palmGlow, palmRing, impactFlare, impactRing, embers.points, palmLight, impactLight, ...port.objects);
   let telegraph = 0;
   let beam = 0;
   let impact = 0;
@@ -353,25 +456,35 @@ export function createWardenFireBeamVisual(
   const direction = new THREE.Vector3(0, 0, 1);
   const side = new THREE.Vector3();
   const lift = new THREE.Vector3();
+  const muzzle = new THREE.Vector3();
 
   const layout = (): void => {
-    length = end.clone().sub(origin).length();
-    if (length > 1e-6) direction.copy(end).sub(origin).divideScalar(length);
+    // The beam leaves the palm square to the plate and only steers once it is clear of the
+    // hand. The pose squares the palm against the review target, but the runtime aims at the
+    // live player, so at other ranges a single span from the port to the player would cut
+    // back through the fingers. A straight muzzle segment along the palm normal, longer than
+    // the hand reaches, keeps the exit honest; the far segment does the steering.
+    muzzle.copy(origin).addScaledVector(palmForward, CINDERBOUND_WARDEN_MUZZLE_STANDOFF_METERS * scale);
+    length = end.clone().sub(muzzle).length();
+    if (length > 1e-6) direction.copy(end).sub(muzzle).divideScalar(length);
     side.crossVectors(direction, UP);
     if (side.lengthSq() < 1e-6) side.set(1, 0, 0);
     side.normalize();
     lift.crossVectors(side, direction).normalize();
-    spanCylinder(core, origin, end, 0.11 * scale);
-    spanCylinder(sheath, origin, end, 0.27 * scale);
-    spanCylinder(haze, origin, end, 0.46 * scale);
-    spanCylinder(aimThread, origin, end, 0.02 * scale);
-    // The muzzle sits on the beam, not on the forearm. The clip aims the arm at a
-    // target 4.5 m ahead, but the beam spans the hand to wherever the player actually
-    // is, so hanging the glow off the forearm axis only lines up at that one range.
-    palmGlow.position.copy(origin).addScaledVector(direction, 0.08 * scale);
-    palmRing.position.copy(origin).addScaledVector(direction, 0.1 * scale);
-    palmRing.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
-    palmLight.position.copy(origin).addScaledVector(direction, 0.2 * scale);
+    spanCylinder(core, muzzle, end, 0.11 * scale);
+    spanCylinder(sheath, muzzle, end, 0.27 * scale);
+    spanCylinder(haze, muzzle, end, 0.46 * scale);
+    spanCylinder(aimThread, muzzle, end, 0.02 * scale);
+    spanCylinder(muzzleCore, origin, muzzle, 0.11 * scale);
+    spanCylinder(muzzleSheath, origin, muzzle, 0.27 * scale);
+    // The muzzle sits ON THE PALM and faces the way the palm faces. The beam still spans the
+    // port to wherever the player actually is - the clip squares the palm on a review target
+    // 4.5 m ahead, so at other ranges the two differ by a degree or two and the aperture should
+    // stay square to the plate rather than shear with the beam.
+    palmGlow.position.copy(origin).addScaledVector(palmForward, 0.08 * scale);
+    palmRing.position.copy(origin).addScaledVector(palmForward, 0.1 * scale);
+    palmRing.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), palmForward);
+    palmLight.position.copy(origin).addScaledVector(palmForward, 0.2 * scale);
     impactFlare.position.copy(end);
     impactRing.position.copy(end).addScaledVector(direction, -0.05);
     impactRing.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction.clone().negate());
@@ -387,6 +500,8 @@ export function createWardenFireBeamVisual(
     setUniform(sheathMaterial, "uStrength", beam * flicker);
     setUniform(sheathMaterial, "uTime", time);
     sheath.visible = core.visible;
+    muzzleCore.visible = core.visible;
+    muzzleSheath.visible = core.visible;
     setUniform(hazeMaterial, "uStrength", beam * 0.35);
     setUniform(hazeMaterial, "uTime", time * 0.7);
     haze.visible = core.visible;
@@ -399,6 +514,9 @@ export function createWardenFireBeamVisual(
     palmRingMaterial.opacity = telegraph * 0.85 * (1 - beam * 0.5);
     palmRing.scale.setScalar((0.16 + 0.22 * (1 - telegraph)) * scale);
     palmRing.visible = palmRingMaterial.opacity > 0.001;
+    // The port is the aperture itself: a dark bore in the palm plate that charges through the
+    // telegraph and blows out into the beam, so the hole is readable before anything fires.
+    port.setPort(origin, palmForward, telegraph, beam);
     palmLight.intensity = (telegraph * 3 + beam * 5) * flicker;
     impactFlare.material.opacity = Math.max(impact, beam * 0.7);
     impactFlare.scale.setScalar((0.6 + 1.1 * impact + 0.5 * beam) * scale);
@@ -447,6 +565,7 @@ export function createWardenFireBeamVisual(
       threadMaterial.dispose();
       palmGlow.material.dispose();
       palmRingMaterial.dispose();
+      port.dispose();
       impactFlare.material.dispose();
       impactRingMaterial.dispose();
       embers.dispose();
@@ -798,7 +917,11 @@ export function createWardenAshRingVisual(
 }
 
 export interface WardenSoulTaxVisual extends WardenVfxVisual {
-  setEndpoints(palm: THREE.Vector3, target: THREE.Vector3): void;
+  /**
+   * `palm` is the emitter port at the palm centre - the same aperture PalmFire fires from -
+   * and `palmForward` the palm normal it faces along. The tether still runs to `target`.
+   */
+  setEndpoints(palm: THREE.Vector3, palmForward: THREE.Vector3, target: THREE.Vector3): void;
   /** Converging rings close on the palm over progress 0..1. */
   setTelegraph(progress: number, strength: number): void;
   setSiphon(strength: number, flow: number): void;
@@ -837,36 +960,37 @@ export function createWardenSoulTaxVisual(
   const motes = new WardenParticleCloud(resources, 64, 7741, 0.13 * scale, `${name}:soul-motes`);
   const light = new THREE.PointLight(0x8ee8ff, 0, 5 * scale, 2);
   light.name = `${name}:light`;
-  root.add(palmVortex, ringA, ringB, targetRing, targetFlash, motes.points, light);
+  // Soul-light rather than fire, but the same bore in the same plate: the drain has to look
+  // like it goes somewhere, and the port is where.
+  const port = createWardenMuzzlePort(resources, scale, name, { boreColor: 0xbfefff, rimColor: 0x8ee8ff, flareColor: 0xd8f4ff });
+  root.add(palmVortex, ringA, ringB, targetRing, targetFlash, motes.points, light, ...port.objects);
   let telegraphProgress = 0;
   let telegraph = 0;
   let siphon = 0;
   let flow = 0;
   let pulse = 0;
   let time = 0;
-  const direction = new THREE.Vector3();
+  const palmForward = new THREE.Vector3(0, 0, 1);
 
   const refresh = (): void => {
     const anyVisible = telegraph > 0.001 || siphon > 0.001 || pulse > 0.001;
     root.visible = anyVisible;
     if (!anyVisible) return;
-    direction.copy(palm).sub(target);
-    const distance = direction.length();
-    if (distance > 1e-6) direction.divideScalar(distance);
-    const facing = direction.lengthSq() > 1e-6 ? direction : new THREE.Vector3(0, 0, 1);
     const palmStrength = Math.max(telegraph, siphon);
     palmVortex.position.copy(palm);
     palmVortex.material.opacity = palmStrength * (0.75 + 0.25 * Math.sin(time * 6));
     palmVortex.scale.setScalar((0.3 + 0.5 * palmStrength + 0.4 * pulse) * scale);
     palmVortex.visible = palmStrength > 0.001 || pulse > 0.001;
+    // The converging rings ride the PALM NORMAL, not the palm-to-target line: they are the
+    // aperture drawing shut, so they have to stay square to the plate the port is bored in.
     const converge = 1 - telegraphProgress;
-    ringA.position.copy(palm).addScaledVector(facing, -0.9 * converge * scale);
-    ringA.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), facing);
+    ringA.position.copy(palm).addScaledVector(palmForward, 0.9 * converge * scale);
+    ringA.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), palmForward);
     ringA.scale.setScalar((0.12 + 0.9 * converge) * scale);
     ringMaterialA.opacity = telegraph * 0.9;
     ringA.visible = telegraph > 0.001;
     const convergeB = 1 - Math.min(1, telegraphProgress * 1.35);
-    ringB.position.copy(palm).addScaledVector(facing, -1.5 * convergeB * scale);
+    ringB.position.copy(palm).addScaledVector(palmForward, 1.5 * convergeB * scale);
     ringB.quaternion.copy(ringA.quaternion);
     ringB.scale.setScalar((0.1 + 1.3 * convergeB) * scale);
     ringMaterialB.opacity = telegraph * 0.7;
@@ -881,6 +1005,7 @@ export function createWardenSoulTaxVisual(
     targetFlash.visible = pulse > 0.001;
     light.position.copy(palm);
     light.intensity = telegraph * 1.5 + siphon * 3 + pulse * 6;
+    port.setPort(palm, palmForward, telegraph * telegraphProgress, Math.max(siphon, pulse));
     motes.setStrength(siphon);
     if (siphon > 0.001) {
       for (let index = 0; index < motes.count; index += 1) {
@@ -901,7 +1026,12 @@ export function createWardenSoulTaxVisual(
 
   return {
     root,
-    setEndpoints: (nextPalm, nextTarget) => { palm.copy(nextPalm); target.copy(nextTarget); refresh(); },
+    setEndpoints: (nextPalm, nextPalmForward, nextTarget) => {
+      palm.copy(nextPalm);
+      if (nextPalmForward.lengthSq() > 1e-8) palmForward.copy(nextPalmForward).normalize();
+      target.copy(nextTarget);
+      refresh();
+    },
     setTelegraph: (progress, strength) => {
       telegraphProgress = THREE.MathUtils.clamp(progress, 0, 1);
       telegraph = THREE.MathUtils.clamp(strength, 0, 1);
@@ -918,6 +1048,7 @@ export function createWardenSoulTaxVisual(
       ringMaterialB.dispose();
       targetRingMaterial.dispose();
       targetFlash.material.dispose();
+      port.dispose();
       motes.dispose();
       light.dispose();
     },
