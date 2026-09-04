@@ -468,12 +468,29 @@ describe("character-creator modular appearance contract", () => {
     )).toEqual({ hairColor: true, hairGreying: true, facialHairGreying: true });
   });
 
-  it("fits the complete T-pose arm span inside a portrait creator canvas", () => {
-    const boundsSize = new THREE.Vector3(1.8, 2.2, 0.4);
-    const aspect = 0.75;
-    const fov = 35;
+  // The body station used to roll the camera to `up = (-1, 0, 0)` and frame the
+  // T-pose arm span, because `skeleton.pose()` double-applied the armature's
+  // +90 deg X rotation and tipped the figure onto its side. Binding the idle
+  // clip removed that bug, so the roll and its -PI/2 body yaw came out with it.
+  // The figure is now upright and arms-down: world Y is screen-vertical.
+  it("fits an upright figure by height, with world Y as the screen-vertical axis", () => {
+    const boundsSize = new THREE.Vector3(0.29, 1.0, 0.22); // arms-down idle bounds
+    const aspect = 0.75; // portrait canvas
+    const fov = 30;
     const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(fov * 0.5));
-    const expectedHorizontalFit = (boundsSize.y / (2 * tanHalfFov * aspect)) * 1.2;
+    const expectedVerticalFit = (boundsSize.y / (2 * tanHalfFov)) * 1.2;
+
+    expect(bodyPreviewFitDistance(boundsSize, aspect, fov)).toBeCloseTo(expectedVerticalFit, 6);
+  });
+
+  // A wide viewport must not crop the shoulders: below an aspect where height
+  // alone suffices, the horizontal term has to win.
+  it("falls back to the horizontal fit when the canvas is too narrow for the shoulders", () => {
+    const boundsSize = new THREE.Vector3(2.4, 1.0, 0.22);
+    const aspect = 0.4;
+    const fov = 30;
+    const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(fov * 0.5));
+    const expectedHorizontalFit = (boundsSize.x / (2 * tanHalfFov * aspect)) * 1.2;
 
     expect(bodyPreviewFitDistance(boundsSize, aspect, fov)).toBeCloseTo(expectedHorizontalFit, 6);
   });

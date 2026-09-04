@@ -118,10 +118,10 @@ export function bodyPreviewFitDistance(
 ): number {
   const tanHalfVerticalFov = Math.tan(THREE.MathUtils.degToRad(verticalFovDegrees * 0.5));
   const safeAspect = Math.max(0.01, aspect);
-  // In the bind-pose inspection view, camera-up is world -X and screen-right
-  // is world +Y. The Y span therefore contains the outstretched T-pose arms.
-  const verticalDistance = boundsSize.x / (2 * tanHalfVerticalFov);
-  const horizontalDistance = boundsSize.y / (2 * tanHalfVerticalFov * safeAspect);
+  // Camera-up is world +Y and screen-right is world +X, so height drives the
+  // vertical fit and the (arms-down) shoulder span drives the horizontal fit.
+  const verticalDistance = boundsSize.y / (2 * tanHalfVerticalFov);
+  const horizontalDistance = boundsSize.x / (2 * tanHalfVerticalFov * safeAspect);
   // The provider actor is a concave silhouette, so adding the full AABB depth
   // would frame empty corner volume and make the body unreadably small.
   return Math.max(verticalDistance, horizontalDistance) * 1.2;
@@ -305,7 +305,9 @@ export class CreationAvatarPreview {
   }
 
   private frontYaw(): number {
-    return this.previewView === "face" ? CREATOR_FACE_FRONT_YAW : CREATOR_BODY_FRONT_YAW;
+    // Both stations share one upright front yaw. The old body-only -PI/2 existed
+    // solely to cancel the `skeleton.pose()` orientation bug removed below.
+    return CREATOR_FACE_FRONT_YAW;
   }
 
   public resetFacing(): void {
@@ -346,13 +348,13 @@ export class CreationAvatarPreview {
   private syncPreviewMotion(): void {
     const model = this.model;
     const request = ++this.motionRequest;
-    this.stopPreviewMotion(this.previewView === "body");
+    this.stopPreviewMotion(false);
     this.updatePreviewFraming();
-    if (!model || this.previewView !== "face") return;
+    if (!model) return;
 
     void loadPreviewModel(CREATOR_RELAXED_IDLE_PACK.url)
       .then((gltf) => {
-        if (this.disposed || request !== this.motionRequest || this.model !== model || this.previewView !== "face") return;
+        if (this.disposed || request !== this.motionRequest || this.model !== model) return;
         const source = gltf.animations.find((clip) => clip.name === CREATOR_RELAXED_IDLE_PACK.sourceClipName);
         if (!source) {
           console.warn(`Creator relaxed-idle clip is unavailable: ${CREATOR_RELAXED_IDLE_PACK.sourceClipName}`);
@@ -372,6 +374,12 @@ export class CreationAvatarPreview {
         const clip = stabilizeCreatorRelaxedIdle(normalized);
         this.mixer = new THREE.AnimationMixer(model);
         this.mixer.clipAction(clip).setLoop(THREE.LoopRepeat, Infinity).play();
+        // The bind pose is a T-pose; the idle drops the arms, collapsing the
+        // horizontal bounds by ~3.4x. Framing computed before the mixer binds
+        // would render the figure tiny and then jump on the next re-frame.
+        this.mixer.update(0);
+        model.updateMatrixWorld(true);
+        this.updatePreviewFraming();
       })
       .catch((error) => console.warn("Creator relaxed-idle preview failed to load.", error));
   }
@@ -488,10 +496,9 @@ export class CreationAvatarPreview {
         this.camera.position.set(center.x, portraitTargetY + portraitSpan * 0.04, center.z + distance);
         this.camera.lookAt(center.x, portraitTargetY, center.z);
       } else {
-        // The exact Tripo/Mixamo bind frame is authored ninety degrees off the
-        // gameplay up axis. Rolling only the body-inspection camera presents a
-        // conventional upright T-pose without mutating the production rig.
-        this.camera.up.set(-1, 0, 0);
+        // The figure is upright once the idle clip drives the rig, so the
+        // body station uses the ordinary world up axis.
+        this.camera.up.set(0, 1, 0);
         const distance = bodyPreviewFitDistance(boundsSize, this.camera.aspect, this.camera.fov);
         this.camera.position.set(center.x, center.y + bodyHeight * 0.06, center.z + distance);
         this.camera.lookAt(center.x, center.y + bodyHeight * 0.02, center.z);
