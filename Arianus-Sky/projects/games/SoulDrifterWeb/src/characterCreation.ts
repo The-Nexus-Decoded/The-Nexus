@@ -38,6 +38,7 @@ import {
   type CreatorStation,
 } from "./creationChoreography";
 import { CreationStageBackdrop } from "./creationStage";
+import { CALLING_ICONS, STAT_ICONS, icon, raceIcon, soulSealIcon, type IconName } from "./creationIcons";
 
 export function characterPortraitPath(raceId: string, callingId: string): string {
   if (callingId === "shadowknight") {
@@ -287,9 +288,7 @@ export class CharacterCreation {
       );
       canvas.hidden = false;
       this.stageFallback.hidden = true;
-      this.stageStatus.classList.remove("is-failed");
-      this.stageStatus.textContent = "The Well is returning the body…";
-      this.stageStatus.hidden = false;
+      this.setStageStatus("The Well is returning the body…", false);
     } catch (error) {
       console.warn("Creation stage could not start WebGL; showing the painted plate instead.", error);
       this.appearancePreview = null;
@@ -297,9 +296,7 @@ export class CharacterCreation {
       this.stageFallback.src = characterPortraitPath(this.draft.raceId || "human", this.draft.callingId || "warrior");
       this.stageFallback.hidden = false;
       const reason = error instanceof Error ? error.message : "WebGL is unavailable";
-      this.stageStatus.textContent = `Preview unavailable: ${reason}.`;
-      this.stageStatus.classList.add("is-failed");
-      this.stageStatus.hidden = false;
+      this.setStageStatus(`Preview unavailable: ${reason}.`, true);
     }
     if (import.meta.env.DEV) {
       // Hands the live preview to the QA harness and to manual checks such as
@@ -321,6 +318,13 @@ export class CharacterCreation {
         sampleRegion: (region) => this.appearancePreview?.sampleRegion(region) ?? null,
       };
     }
+  }
+
+  /** The stage's one line of status: a spinning loader while the body is on its way, red once it is not coming. */
+  private setStageStatus(text: string, failed: boolean): void {
+    this.stageStatus.classList.toggle("is-failed", failed);
+    this.stageStatus.innerHTML = `${failed ? "" : icon("loader-circle", 16)}<span>${this.escape(text)}</span>`;
+    this.stageStatus.hidden = false;
   }
 
   private releasePreview(): void {
@@ -419,7 +423,7 @@ export class CharacterCreation {
     this.root.classList.toggle("is-ui-hidden", hidden);
     const button = requiredElement<HTMLButtonElement>("creation-hide-ui");
     button.setAttribute("aria-pressed", String(hidden));
-    button.textContent = hidden ? "Show UI" : "Hide UI";
+    button.innerHTML = `${icon(hidden ? "eye" : "eye-off", 16)}<span>${hidden ? "Show UI" : "Hide UI"}</span>`;
     this.applyStationPresentation();
   }
 
@@ -491,21 +495,31 @@ export class CharacterCreation {
     resetCreationStageScroll(this.stage);
   }
 
+  /**
+   * The seven stations as the rail shows them: body and face are two stops of the one
+   * appearance step. A completed station carries the seal instead of its own mark.
+   */
   private renderProgress(): void {
-    const entries = [
-      { id: "name", label: "Name" },
-      { id: "race", label: "Ancestry" },
-      { id: "appearance", label: "Appearance" },
-      { id: "calling", label: "Calling" },
-      { id: "memory", label: `Memories ${this.memoryIndex + 1}/${MEMORY_QUESTIONS.length}` },
-      { id: "review", label: "Soul imprint" },
+    const entries: Array<{ step: CreationStep; panel?: "body" | "face"; label: string; icon: IconName }> = [
+      { step: "name", label: "Name", icon: "feather" },
+      { step: "race", label: "Ancestry", icon: "users" },
+      { step: "appearance", panel: "body", label: "Body", icon: "user" },
+      { step: "appearance", panel: "face", label: "Face", icon: "scan-face" },
+      { step: "calling", label: "Calling", icon: "sword" },
+      { step: "memory", label: `Memories ${this.memoryIndex + 1}/${MEMORY_QUESTIONS.length}`, icon: "book-open-text" },
+      { step: "review", label: "Soul imprint", icon: "badge-check" },
     ];
-    const currentIndex = entries.findIndex((entry) => entry.id === this.step);
+    const currentIndex = entries.findIndex((entry) => entry.step === this.step && (!entry.panel || entry.panel === this.appearancePanel));
     this.progress.replaceChildren();
     entries.forEach((entry, index) => {
       const item = document.createElement("li");
-      item.className = index === currentIndex ? "is-current" : index < currentIndex ? "is-complete" : "";
-      item.innerHTML = `<span>${String(index + 1).padStart(2, "0")}</span>${entry.label}`;
+      const complete = index < currentIndex;
+      item.className = index === currentIndex ? "is-current" : complete ? "is-complete" : "";
+      item.title = entry.label;
+      if (index === currentIndex) item.setAttribute("aria-current", "step");
+      item.innerHTML = `<span class="creation-progress__mark">${icon(complete ? "badge-check" : entry.icon, 20)}</span>`
+        + `<span class="creation-progress__index">${String(index + 1).padStart(2, "0")}</span>`
+        + `<span class="creation-progress__label">${entry.label}</span>`;
       this.progress.append(item);
     });
   }
@@ -519,16 +533,19 @@ export class CharacterCreation {
       </div>
       <label class="name-field">
         <span>Returned name</span>
-        <input id="character-name-input" maxlength="24" autocomplete="off" value="${this.escape(this.draft.name)}" placeholder="Speak your name" autofocus />
+        <span class="name-field__row">
+          ${icon("feather", 20)}
+          <input id="character-name-input" maxlength="24" autocomplete="off" value="${this.escape(this.draft.name)}" placeholder="Speak your name" autofocus />
+        </span>
       </label>
       ${this.savedProfile ? `
         <button class="continue-character" id="continue-character" type="button">
           <img src="${this.savedAvatarPreview ?? characterPortraitPath(this.savedProfile.raceId, this.savedProfile.callingId)}" alt="Current in-game ${this.escape(this.savedProfile.raceName)} ${this.escape(this.savedProfile.callingName)}" />
-          <span><small>Continue saved soul</small><strong>${this.escape(this.savedProfile.name)}</strong><em>${this.savedProfile.raceName} · ${this.savedProfile.callingName}</em></span>
-          <b>Return →</b>
+          <span><small>${icon("history", 14)}Continue saved soul</small><strong>${this.escape(this.savedProfile.name)}</strong><em>${this.savedProfile.raceName} · ${this.savedProfile.callingName}</em></span>
+          <b>Return${icon("arrow-right", 16)}</b>
         </button>` : ""}
       <div class="creation-actions creation-actions--end">
-        <button class="ritual-button ritual-button--primary" id="creation-next" type="button">Bind the name <span>→</span></button>
+        ${this.nextButton("Bind the name")}
       </div>`;
 
     const input = requiredElement<HTMLInputElement>("character-name-input");
@@ -566,7 +583,7 @@ export class CharacterCreation {
           return `
           <button class="choice-card ${this.draft.raceId === race.id ? "is-selected" : ""} ${available ? "" : "is-forbidden"}" data-race="${race.id}" type="button" ${available ? "" : "disabled aria-disabled=\"true\""}>
             <img class="choice-card__portrait" src="/assets/generated/characters/${race.id}-warrior.png" alt="" />
-            <span class="choice-card__glyph">${race.glyph}</span>
+            <span class="choice-card__glyph">${icon(raceIcon(race.id), 18)}</span>
             <span class="choice-card__title">${race.name}</span>
             <span class="choice-card__body">${race.identity}</span>
             <span class="choice-card__affinity">${race.talent}</span>
@@ -606,11 +623,11 @@ export class CharacterCreation {
       </div>
       <div class="appearance-workflow" role="tablist" aria-label="Appearance setup">
         <button class="appearance-workflow__tab ${facePanel ? "" : "is-selected"}" data-appearance-panel="body" type="button" role="tab" aria-selected="${!facePanel}">
-          <span>01</span><strong>Body</strong><small>Full-body view</small>
+          <span>${icon("user", 16)}</span><strong>Body</strong><small>I · Full-body view</small>
         </button>
-        <span class="appearance-workflow__path" aria-hidden="true">→</span>
+        <span class="appearance-workflow__path" aria-hidden="true">${icon("arrow-right", 16)}</span>
         <button class="appearance-workflow__tab ${facePanel ? "is-selected" : ""}" data-appearance-panel="face" type="button" role="tab" aria-selected="${facePanel}">
-          <span>02</span><strong>Face &amp; features</strong><small>Conversation close-up</small>
+          <span>${icon("scan-face", 16)}</span><strong>Face &amp; features</strong><small>II · Conversation close-up</small>
         </button>
       </div>
       <div class="appearance-builder appearance-builder--${this.appearancePanel}">
@@ -624,7 +641,7 @@ export class CharacterCreation {
           <div class="appearance-options appearance-options--skin">
             ${Object.entries(SKIN_TONES).map(([id, tone]) => `
               <button class="appearance-option ${this.draft.appearance.skinTone === id ? "is-selected" : ""}" data-skin-tone="${id}" type="button" aria-pressed="${this.draft.appearance.skinTone === id}">
-                <span class="appearance-swatch" style="--swatch:#${tone.color.toString(16).padStart(6, "0")}"></span>
+                <span class="appearance-swatch" style="--swatch:#${tone.color.toString(16).padStart(6, "0")}">${icon("check", 12)}</span>
                 <strong>${tone.name}</strong>
               </button>`).join("")}
           </div>
@@ -642,7 +659,7 @@ export class CharacterCreation {
           <div class="appearance-options appearance-options--hair-colour">
             ${Object.entries(HAIR_COLORS).map(([id, colour]) => `
               <button class="appearance-option ${this.draft.appearance.hairColor === id ? "is-selected" : ""}" data-hair-color="${id}" type="button" aria-pressed="${this.draft.appearance.hairColor === id}">
-                <span class="appearance-swatch" style="--swatch:#${colour.color.toString(16).padStart(6, "0")}"></span>
+                <span class="appearance-swatch" style="--swatch:#${colour.color.toString(16).padStart(6, "0")}">${icon("check", 12)}</span>
                 <strong>${colour.name}</strong>
               </button>`).join("")}
           </div>`}
@@ -659,6 +676,7 @@ export class CharacterCreation {
         this.appearanceEditProfile
           ? facePanel ? "Save appearance" : "Review face & features"
           : facePanel ? "Choose calling" : "Continue to face & features",
+        this.appearanceEditProfile ? "x" : "arrow-left",
       )}`;
     // The preview has been alive since the name station; this station only points it.
     this.appearancePreview?.setAppearance(this.previewAppearance());
@@ -769,12 +787,17 @@ export class CharacterCreation {
     setText("appearance-lede", copy.lede);
     const back = this.stage.querySelector<HTMLButtonElement>("#creation-back");
     const next = this.stage.querySelector<HTMLButtonElement>("#creation-next");
-    if (back) back.innerHTML = `← ${this.escape(this.appearanceEditProfile ? "Cancel" : facePanel ? "Return to body" : "Return to ancestry")}`;
-    if (next) {
-      next.innerHTML = `${this.escape(this.appearanceEditProfile
-        ? facePanel ? "Save appearance" : "Review face & features"
-        : facePanel ? "Choose calling" : "Continue to face & features")} <span>→</span>`;
+    if (back) {
+      back.innerHTML = this.appearanceEditProfile
+        ? this.buttonContent("Cancel", "x", "leading")
+        : this.buttonContent(facePanel ? "Return to body" : "Return to ancestry", "arrow-left", "leading");
     }
+    if (next) {
+      next.innerHTML = this.buttonContent(this.appearanceEditProfile
+        ? facePanel ? "Save appearance" : "Review face & features"
+        : facePanel ? "Choose calling" : "Continue to face & features", "arrow-right", "trailing");
+    }
+    this.renderProgress();
     this.applyStationPresentation();
     this.updateAppearanceReadout();
     resetCreationStageScroll(this.stage);
@@ -782,9 +805,7 @@ export class CharacterCreation {
 
   private showAppearanceLoadFailure(reason: string): void {
     const message = `Preview unavailable: ${reason}.`;
-    this.stageStatus.textContent = message;
-    this.stageStatus.classList.add("is-failed");
-    this.stageStatus.hidden = false;
+    this.setStageStatus(message, true);
     const status = document.getElementById("appearance-preview-status");
     if (!status) return;
     status.textContent = message;
@@ -809,13 +830,13 @@ export class CharacterCreation {
           return `
           <button class="choice-card choice-card--calling ${this.draft.callingId === calling.id ? "is-selected" : ""} ${resonance ? "has-ancestry-bonus" : ""} ${eligibility.status === "rare" ? "is-rare" : ""} ${forbidden ? "is-forbidden" : ""}" data-calling="${calling.id}" type="button" ${forbidden ? "disabled aria-disabled=\"true\"" : ""}>
             <img class="choice-card__portrait" src="${characterPortraitPath(this.draft.raceId, calling.id)}" alt="" />
-            <span class="choice-card__glyph">${calling.glyph}</span>
+            <span class="choice-card__glyph">${icon(CALLING_ICONS[calling.id], 18)}</span>
             <span class="choice-card__title">${calling.name}</span>
             <span class="choice-card__body">${calling.identity}</span>
             <span class="choice-card__affinity">${calling.signatureSkill} · ${calling.defensiveSkill}</span>
             <span class="choice-card__job">${calling.tacticalJob}</span>
             <span class="choice-card__difficulty">${calling.learningCurve} start · ${calling.lateGameCeiling} ceiling</span>
-            ${eligibility.status !== "allowed" ? `<span class="choice-card__eligibility choice-card__eligibility--${eligibility.status}"><strong>${eligibility.status}</strong>${this.escape(eligibility.reason ?? "")}</span>` : ""}
+            ${eligibility.status !== "allowed" ? `<span class="choice-card__eligibility choice-card__eligibility--${eligibility.status}"><strong>${icon(eligibility.status === "rare" ? "sparkles" : "lock", 12)}${eligibility.status}</strong>${this.escape(eligibility.reason ?? "")}</span>` : ""}
             ${resonance ? `<span class="choice-card__resonance">Ancestry resonance · ${resonance.name}</span>` : ""}
           </button>`;
         }).join("")}
@@ -852,7 +873,7 @@ export class CharacterCreation {
           <button class="memory-answer ${selected === answer.id ? "is-selected" : ""}" data-answer="${answer.id}" type="button">
             <span>${String.fromCharCode(65 + index)}</span>
             <strong>${answer.text}</strong>
-            <small>Awakens ${answer.skill}</small>
+            <small>${icon("sparkles", 12)}Awakens ${answer.skill}</small>
           </button>`).join("")}
       </div>
       ${this.navigation(this.memoryIndex === 0 ? "Return to calling" : "Previous memory", this.memoryIndex === MEMORY_QUESTIONS.length - 1 ? "Read the soul imprint" : "Accept this memory")}`;
@@ -890,20 +911,20 @@ export class CharacterCreation {
       <div class="imprint-review">
         <section class="imprint-seal">
           <img src="${characterPortraitPath(profile.raceId, profile.callingId)}" alt="${this.escape(profile.raceName)} ${this.escape(profile.callingName)}" />
-          <span>${profile.raceGlyph}</span>
+          <span>${icon(raceIcon(profile.raceId), 22)}</span>
           <strong>${profile.callingName}</strong>
           <small>${profile.raceName} soul</small>
         </section>
         <section>
           <h3>Derived attributes</h3>
           <div class="stat-weave">
-            ${STAT_KEYS.map((key) => `<div><span>${STAT_LABELS[key]}</span><strong>${profile.stats[key]}</strong></div>`).join("")}
+            ${STAT_KEYS.map((key) => `<div><span>${icon(STAT_ICONS[key], 18)}${STAT_LABELS[key]}</span><strong>${profile.stats[key]}</strong></div>`).join("")}
           </div>
           <div class="derived-vitals">
-            <span>Vitality <strong>${profile.maxHp}</strong></span>
-            <span>Armor <strong>${calling.startingArmor}</strong></span>
-            <span>Soul stability <strong>${profile.maxStability}%</strong></span>
-            <span>Movement <strong>${profile.movement}</strong></span>
+            <span>${icon("heart-pulse", 14)}Vitality <strong>${profile.maxHp}</strong></span>
+            <span>${icon("shield", 14)}Armor <strong>${calling.startingArmor}</strong></span>
+            <span>${icon("brain", 14)}Soul stability <strong>${profile.maxStability}%</strong></span>
+            <span>${icon("footprints", 14)}Movement <strong>${profile.movement}</strong></span>
           </div>
           <p class="curve-note"><strong>${calling.learningCurve} starting curve</strong><span>${calling.lateGameCeiling} late-game ceiling</span></p>
         </section>
@@ -918,8 +939,8 @@ export class CharacterCreation {
         </section>
       </div>
       <div class="creation-actions">
-        <button class="ritual-button" id="creation-back" type="button">← Reconsider memories</button>
-        <button class="ritual-button ritual-button--primary" id="creation-confirm" type="button">Awaken at the Soul Well <span>◇</span></button>
+        ${this.backButton("Reconsider memories")}
+        <button class="ritual-button ritual-button--primary ritual-button--seal" id="creation-confirm" type="button">${this.buttonContent("Awaken at the Soul Well", "soul-seal", "trailing")}</button>
       </div>`;
     requiredElement<HTMLButtonElement>("creation-back").addEventListener("click", () => {
       this.navigateBack("memory", MEMORY_QUESTIONS.length - 1);
@@ -985,11 +1006,26 @@ export class CharacterCreation {
     }
   }
 
-  private navigation(backLabel: string, nextLabel: string): string {
+  private navigation(backLabel: string, nextLabel: string, backIcon: IconName = "arrow-left"): string {
     return `<div class="creation-actions">
-      <button class="ritual-button" id="creation-back" type="button">← ${backLabel}</button>
-      <button class="ritual-button ritual-button--primary" id="creation-next" type="button">${nextLabel} <span>→</span></button>
+      ${this.backButton(backLabel, backIcon)}
+      ${this.nextButton(nextLabel)}
     </div>`;
+  }
+
+  private backButton(label: string, iconName: IconName = "arrow-left"): string {
+    return `<button class="ritual-button" id="creation-back" type="button">${this.buttonContent(label, iconName, "leading")}</button>`;
+  }
+
+  private nextButton(label: string): string {
+    return `<button class="ritual-button ritual-button--primary" id="creation-next" type="button">${this.buttonContent(label, "arrow-right", "trailing")}</button>`;
+  }
+
+  /** A dock button's label with its one mark before or after it; the seal is the confirm's mark. */
+  private buttonContent(label: string, iconName: IconName | "soul-seal", side: "leading" | "trailing"): string {
+    const mark = iconName === "soul-seal" ? soulSealIcon(12) : icon(iconName, 16);
+    const text = `<span>${this.escape(label)}</span>`;
+    return side === "leading" ? `${mark}${text}` : `${text}${mark}`;
   }
 
   private bindNavigation(back: () => void, next: () => void): void {

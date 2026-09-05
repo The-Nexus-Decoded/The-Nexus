@@ -48,6 +48,25 @@
   to { opacity: 0; filter: blur(8px) brightness(1.5); transform: scale(1.015); }
 }
 
+/* ------------------------------------------------------------------ icons */
+
+/*
+ * Every mark in the creator is a Lucide symbol from the inline sprite, drawn with the
+ * current text colour; the markup carries the stroke so the icon reads the same wherever
+ * it lands. The soul seal is the one custom mark (a filled diamond).
+ */
+.creation-shell .icon {
+  display: inline-block;
+  flex: none;
+  vertical-align: -0.16em;
+}
+
+.icon--loader-circle { animation: icon-spin 1s linear infinite; }
+
+@keyframes icon-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ------------------------------------------------------------------ stage */
 
 .stage-viewport {
@@ -112,6 +131,9 @@
   position: absolute;
   top: 50%;
   left: calc(var(--rail-w) + 28px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   transform: translateY(-50%);
   color: var(--muted);
@@ -123,6 +145,7 @@
   pointer-events: none;
 }
 
+.stage-status .icon { color: var(--soul); }
 .stage-status.is-failed { color: var(--danger); }
 .stage-status[hidden] { display: none; }
 
@@ -157,8 +180,12 @@
 }
 
 .appearance-rotation-toggle input { width: 14px; height: 14px; margin: 0; accent-color: var(--soul); }
+.appearance-rotation-toggle .icon { color: var(--bronze); }
 
 .stage-pill button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 7px 12px;
   border: 1px solid var(--rule);
   color: var(--bronze);
@@ -174,7 +201,8 @@
 
 .stage-pill__readout { display: grid; gap: 3px; text-transform: uppercase; }
 .stage-pill__readout span { color: #75867f; font-size: 11px; font-weight: 400; letter-spacing: 0.12em; }
-.stage-pill__readout strong { color: var(--parchment); font-size: 13px; letter-spacing: 0.08em; }
+.stage-pill__readout strong { display: inline-flex; align-items: center; gap: 6px; color: var(--parchment); font-size: 13px; letter-spacing: 0.08em; }
+.stage-pill__readout .icon { color: var(--soul); }
 .stage-pill__readout strong.is-failed { color: var(--danger); }
 
 .stage-hide-ui {
@@ -182,6 +210,9 @@
   top: 24px;
   left: calc(var(--rail-w) + 28px);
   z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 14px;
   border: 1px solid var(--rule);
   background: var(--glass-solid);
@@ -236,11 +267,11 @@
   place-items: center;
   border: 1px solid var(--bronze);
   color: var(--soul);
-  font-size: 18px;
   transform: rotate(45deg);
   box-shadow: inset 0 0 20px rgba(122, 244, 223, 0.14);
 }
 
+.creation-brand__seal .icon { transform: rotate(-45deg); }
 .creation-brand__seal + div { display: none; }
 .creation-brand strong { font-size: 19px; font-weight: 500; letter-spacing: 0.08em; }
 .creation-brand .eyebrow { margin-bottom: 2px; font-size: 11px; letter-spacing: 0.18em; }
@@ -262,35 +293,45 @@
   min-height: 44px;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
   padding: 0 12px;
   color: #59635f;
-  font-family: "Soul HUD", sans-serif;
-  font-size: 0;
+  font: 600 12px/1.2 "Soul HUD", sans-serif;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-.creation-progress li span {
+/* The icon-only rail keeps the numeral and the label for readers and the hover tooltip. */
+.creation-progress__index,
+.creation-progress__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.creation-progress__mark {
   display: grid;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
   place-items: center;
   border: 1px solid #39423f;
   color: #69736e;
   background: rgba(10, 14, 15, 0.8);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
   transition: border-color 220ms ease-out, color 220ms ease-out, box-shadow 220ms ease-out;
 }
 
+.creation-progress__index { color: #69736e; letter-spacing: 0.04em; }
 .creation-progress li.is-current { color: var(--parchment); }
-.creation-progress li.is-current span { border-color: var(--soul); color: var(--soul); box-shadow: 0 0 16px rgba(122, 244, 223, 0.22); }
+.creation-progress li.is-current .creation-progress__mark { border-color: var(--soul); color: var(--soul); box-shadow: 0 0 16px rgba(122, 244, 223, 0.22); }
+.creation-progress li.is-current .creation-progress__index { color: var(--soul); }
 .creation-progress li.is-complete { color: #9b8a6e; }
-.creation-progress li.is-complete span { border-color: var(--bronze-dim); color: var(--bronze); }
+.creation-progress li.is-complete .creation-progress__mark { border-color: var(--bronze-dim); color: var(--bronze); }
+.creation-progress li.is-complete .creation-progress__index { color: var(--bronze); }
 
 .creation-rail__footer { display: none; }
 
@@ -298,7 +339,20 @@
   .creation-rail { align-items: stretch; padding-inline: 26px; }
   .creation-brand { flex-direction: row; }
   .creation-brand__seal + div { display: block; }
-  .creation-progress li { justify-content: flex-start; font-size: 12px; font-weight: 600; }
+  .creation-progress li { justify-content: flex-start; }
+  .creation-progress__mark { width: 32px; height: 32px; flex-basis: 32px; }
+  .creation-progress__mark .icon { width: 16px; height: 16px; }
+
+  .creation-progress__index,
+  .creation-progress__label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+
+  .creation-progress__index { flex: 0 0 2.4em; }
 
   .creation-rail__footer {
     display: flex;
@@ -433,8 +487,17 @@
   text-transform: uppercase;
 }
 
+.name-field__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--bronze);
+}
+
 .name-field input {
   width: 100%;
+  min-width: 0;
+  flex: 1;
   padding: 6px 0 10px;
   border: solid var(--bronze-dim);
   border-width: 0 0 1px;
@@ -484,9 +547,11 @@
 .continue-character span { display: grid; gap: 3px; }
 .continue-character small,
 .continue-character em { color: var(--muted); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.continue-character small { display: inline-flex; align-items: center; gap: 6px; }
+.continue-character small .icon { color: var(--bronze); }
 .continue-character strong { font-family: "Soul Cinzel", serif; font-size: 19px; font-weight: 500; letter-spacing: 0.02em; }
 .continue-character em { color: var(--bronze); font-style: normal; }
-.continue-character b { color: var(--soul); font: 600 11px/1 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.continue-character b { display: inline-flex; align-items: center; gap: 8px; color: var(--soul); font: 600 11px/1 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 
 /* ------------------------------------------------------------ choice cards */
 
@@ -553,14 +618,14 @@
 .choice-card:not(:disabled):hover .choice-card__portrait,
 .choice-card.is-selected .choice-card__portrait { transform: scale(1.04); filter: drop-shadow(0 16px 15px rgba(0, 0, 0, 0.68)) brightness(1); }
 
-.choice-card__glyph { color: var(--soul); font-size: 18px; }
+.choice-card__glyph { display: inline-flex; color: var(--soul); }
 .choice-card__title { margin-top: 4px; color: var(--parchment); font-family: "Soul Cinzel", serif; font-size: 19px; font-weight: 500; letter-spacing: 0.02em; }
 .choice-card__body { margin-top: 6px; color: var(--muted); font-size: 15px; line-height: 1.45; }
 .choice-card__affinity { margin-top: auto; padding-top: 12px; color: var(--bronze); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 .choice-card__job { margin-top: 5px; color: #5f6c67; font: 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
 .choice-card__difficulty { margin-top: 4px; color: #77847e; font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
 .choice-card__eligibility { display: grid; gap: 3px; width: calc(100% + 28px); margin: 10px -14px -14px; padding: 8px 10px; font: 11px/1.4 "Soul HUD", sans-serif; text-align: center; }
-.choice-card__eligibility strong { letter-spacing: 0.18em; text-transform: uppercase; }
+.choice-card__eligibility strong { display: inline-flex; align-items: center; justify-content: center; gap: 5px; letter-spacing: 0.18em; text-transform: uppercase; }
 .choice-card__eligibility--rare { color: #f0d6a4; background: rgba(197, 141, 71, 0.13); }
 .choice-card__eligibility--forbidden { color: #d6aaa0; background: rgba(142, 55, 45, 0.18); }
 .choice-card.is-rare { border-color: rgba(197, 141, 71, 0.52); }
@@ -603,7 +668,6 @@
   place-items: center;
   border: 1px solid currentColor;
   color: var(--bronze);
-  font: 600 11px/1 "Soul HUD", sans-serif;
 }
 
 .appearance-workflow__tab strong { color: var(--parchment); font-family: "Soul Cinzel", serif; font-size: 17px; font-weight: 500; letter-spacing: 0.02em; }
@@ -613,7 +677,7 @@
 .appearance-workflow__tab.is-selected { box-shadow: inset 0 -2px var(--bronze); }
 .appearance-workflow__tab.is-selected > span,
 .appearance-workflow__tab.is-selected small { color: var(--soul); }
-.appearance-workflow__path { color: var(--rule); font: 600 16px/1 "Soul HUD", sans-serif; }
+.appearance-workflow__path { display: grid; place-items: center; color: var(--rule); }
 
 .appearance-builder { display: grid; gap: 22px; }
 .appearance-builder__options { display: grid; gap: 22px; }
@@ -658,16 +722,22 @@
 .appearance-option:hover .appearance-swatch { transform: translateY(-2px); }
 .appearance-option.is-selected .appearance-swatch { border-color: var(--bronze); }
 
-.appearance-option.is-selected .appearance-swatch::after {
+/* The chosen swatch carries a teal dot with the check inside; the others keep it hidden. */
+.appearance-swatch .icon {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 12px;
-  height: 12px;
+  display: none;
+  box-sizing: content-box;
+  padding: 4px;
   border-radius: 50%;
+  color: #0b1019;
   background: var(--soul);
-  content: "";
   transform: translate(-50%, -50%);
+}
+
+.appearance-option.is-selected .appearance-swatch .icon {
+  display: block;
   animation: dot-in 180ms var(--ease-snap) both;
 }
 
@@ -714,7 +784,7 @@
 .memory-answer > span { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid var(--bronze-dim); color: var(--bronze); font: 600 20px/1 "Soul Cinzel", serif; }
 .memory-answer.is-selected > span { background: var(--leaf-rubric); border-color: var(--leaf-rubric); color: var(--leaf); }
 .memory-answer strong { font-size: 18px; font-weight: 400; line-height: 1.4; }
-.memory-answer small { grid-column: 2; color: var(--bronze); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.memory-answer small { display: inline-flex; grid-column: 2; align-items: center; gap: 6px; color: var(--bronze); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 
 /* ------------------------------------------------------------ imprint station */
 
@@ -722,15 +792,18 @@
 .imprint-review > section { padding: 16px; border: 1px solid var(--rule-soft); background: rgba(10, 16, 18, 0.45); }
 .imprint-seal { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; }
 .imprint-seal img { width: 100%; height: 200px; object-fit: contain; filter: drop-shadow(0 16px 14px rgba(0, 0, 0, 0.64)); }
-.imprint-seal > span { color: var(--soul); font-size: 22px; }
+.imprint-seal > span { display: inline-flex; color: var(--soul); }
 .imprint-seal strong { margin-top: 5px; font-family: "Soul Cinzel", serif; font-size: 19px; font-weight: 500; letter-spacing: 0.02em; }
 .imprint-seal small { margin-top: 4px; color: var(--bronze); font: 600 11px/1 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 
 .stat-weave { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .stat-weave div { display: flex; min-height: 56px; align-items: center; justify-content: space-between; padding: 8px 10px; border-left: 1px solid var(--bronze-dim); background: rgba(255, 255, 255, 0.025); }
-.stat-weave span { color: var(--muted); font: 600 11px/1.2 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.stat-weave span { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font: 600 11px/1.2 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.stat-weave .icon { color: var(--bronze); }
 .stat-weave strong { color: var(--soul); font: 600 28px/1 "Soul HUD", sans-serif; }
 .derived-vitals { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; color: var(--muted); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+.derived-vitals span { display: inline-flex; align-items: center; gap: 6px; }
+.derived-vitals .icon { color: var(--bronze); }
 .derived-vitals strong { color: var(--parchment); font-size: 13px; }
 .imprint-skills ul,
 .memory-consequences ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
@@ -761,7 +834,11 @@
 .creation-actions--end { justify-content: flex-end; }
 
 .ritual-button {
+  display: inline-flex;
   min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   padding: 0 18px;
   border: 1px solid var(--rule);
   color: var(--muted);
@@ -776,24 +853,34 @@
 .ritual-button:hover { border-color: var(--bronze); color: var(--parchment); }
 .ritual-button--primary { border-color: var(--bronze); color: var(--parchment); background: linear-gradient(135deg, rgba(71, 51, 31, 0.9), rgba(23, 24, 23, 0.9)); }
 .ritual-button--primary:hover { border-color: var(--soul); box-shadow: 0 0 28px rgba(122, 244, 223, 0.12); }
-.ritual-button span { margin-left: 12px; color: var(--soul); }
+.ritual-button .icon { color: var(--soul); }
+.ritual-button--seal .icon--soul-seal { color: var(--bronze); }
 .ritual-button:focus-visible,
 .choice-card:focus-visible,
 .memory-answer:focus-visible,
 .appearance-option:focus-visible,
 .appearance-workflow__tab:focus-visible { outline: 2px solid var(--soul); outline-offset: 3px; }
 
+/* The warning mark lives beside the strip and only shows once there is something to say. */
+.creation-error-strip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 36px 12px;
+  color: var(--danger);
+}
+
+.creation-error-strip .icon { margin-top: 1px; }
+.creation-error-strip:has(#creation-error:empty) .icon { display: none; }
+.creation-error-strip:has(#creation-error:not(:empty)) { animation: error-shake 360ms ease-out both; }
+
 .creation-error {
   min-height: 18px;
   margin: 0;
-  padding: 6px 36px 12px;
-  color: var(--danger);
   font: 600 12px/1.4 "Soul HUD", sans-serif;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-
-.creation-error:not(:empty) { animation: error-shake 360ms ease-out both; }
 
 @keyframes error-shake {
   20%, 60% { transform: translateX(-4px); }
@@ -832,11 +919,13 @@
   }
 
   .creation-brand { flex-direction: row; gap: 10px; }
-  .creation-brand__seal { width: 30px; height: 30px; font-size: 13px; }
+  .creation-brand__seal { width: 30px; height: 30px; }
+  .creation-brand__seal .icon { width: 11px; height: 11px; }
   .creation-brand__seal + div { display: none; }
   .creation-progress { display: flex; width: auto; gap: 6px; margin: 0; }
   .creation-progress li { min-height: 0; padding: 0; }
-  .creation-progress li span { width: 26px; height: 26px; flex-basis: 26px; font-size: 10px; }
+  .creation-progress__mark { width: 28px; height: 28px; flex-basis: 28px; }
+  .creation-progress__mark .icon { width: 16px; height: 16px; }
 
   .creation-main {
     height: auto;
@@ -855,7 +944,7 @@
   .appearance-note,
   .choice-card__body { font-size: 16px; }
   .creation-actions { margin: 24px -20px 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); }
-  .creation-error { padding: 6px 20px 12px; }
+  .creation-error-strip { padding: 6px 20px 12px; }
   .choice-grid--races,
   .choice-grid--callings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .appearance-options { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -875,6 +964,7 @@
 @media (prefers-reduced-motion: reduce) {
   .station-word.is-revealing,
   .choice-card.is-selected::after,
-  .appearance-option.is-selected .appearance-swatch::after,
-  .creation-error:not(:empty) { animation: none; }
+  .appearance-option.is-selected .appearance-swatch .icon,
+  .icon--loader-circle,
+  .creation-error-strip:has(#creation-error:not(:empty)) { animation: none; }
 }

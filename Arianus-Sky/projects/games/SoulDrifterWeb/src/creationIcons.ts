@@ -8,6 +8,8 @@
  * inline path, not a Lucide icon, so it is drawn by `soulSealIcon()` rather than `icon()`.
  */
 
+import type { CallingId, RaceId, StatKey } from "./game/character";
+
 /** Names read by the sprite build. Adding a name here that Lucide lacks fails `npm run icons`. */
 export const ICON_NAMES = [
   "feather",
@@ -56,6 +58,42 @@ export const ICON_SYMBOL_PREFIX = "lucide-";
 
 /** The stroke width every creator icon renders with (Lucide ships 2). */
 export const ICON_STROKE_WIDTH = 1.75;
+
+/** The mark each ancestry carries on its origin card, lore chip and the imprint seal. */
+export const RACE_ICONS: Readonly<Record<RaceId, IconName>> = Object.freeze({
+  human: "user",
+  elf: "leaf",
+  dwarf: "hammer",
+  halfling: "footprints",
+});
+
+/** The mark each calling carries on its row; the Unicode glyphs in `CALLINGS` stay data only. */
+export const CALLING_ICONS: Readonly<Record<CallingId, IconName>> = Object.freeze({
+  warrior: "sword",
+  mage: "wand-sparkles",
+  priest: "sun",
+  sharpshooter: "crosshair",
+  paladin: "shield",
+  summoner: "orbit",
+  asura: "flame",
+  slayer: "skull",
+  shadowknight: "moon",
+});
+
+/** The six Soul Weave spokes on the imprint's stat tiles. */
+export const STAT_ICONS: Readonly<Record<StatKey, IconName>> = Object.freeze({
+  might: "dumbbell",
+  finesse: "wind",
+  insight: "eye",
+  will: "anchor",
+  vitality: "heart-pulse",
+  resonance: "activity",
+});
+
+/** Legacy saves can carry an ancestry outside `RaceId`; they fall back to the human mark. */
+export function raceIcon(raceId: string): IconName {
+  return (RACE_ICONS as Readonly<Record<string, IconName | undefined>>)[raceId] ?? "user";
+}
 
 export function iconSymbolId(name: IconName): string {
   return `${ICON_SYMBOL_PREFIX}${name}`;
