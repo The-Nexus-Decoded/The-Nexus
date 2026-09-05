@@ -763,21 +763,142 @@ export function createHumanReviewActorFactory({
      * seating at 60% -- pulling the control points harder swung the curve further,
      * rather than closer.
      *
-     * This works on the curve itself. Any sample standing further from the spine
-     * axis than the measured surface is drawn back to it; a sample already at or
-     * inside the surface is left alone, because the strap is allowed to disappear
-     * behind a shoulder but never to float in front of a chest.
+     * This works on the curve itself, and it moves a sample in EITHER direction:
+     * out of the body as readily as in toward it. Pulling only inward was the
+     * mistake -- it fixed the float and left the strap buried, because a sample
+     * that starts inside the torso, or that the torso swings into as the body
+     * moves, was simply left there. Measured, 54.6% of the strap sat inside the
+     * body: it read as the strap sinking into him whenever he moved.
+     *
+     * A strap lies ON a surface. There is no reason for a sample to be anywhere
+     * but on it, so every sample is put on it.
      *
      * The ends are exempt. The first and last samples run out to the quiver, which
      * genuinely stands off the back, and clamping those would peel the strap off
      * the thing it is carrying. The exemption fades in rather than switching, so the
      * curve stays smooth where it leaves the body.
      */
+    /**
+     * Bind the strap to the SKIN, once, and let the body carry it after that.
+     *
+     * Everything before this re-derived the strap's route from bone positions every
+     * frame and then tried to push it back onto an idealised torso. That is the
+     * wrong shape of solution and the measurements say so: conforming to a cylinder
+     * of 8 bands x 8 bearings put MORE of the strap inside the body than leaving it
+     * alone did -- 35.6% of samples against 29.3% -- because a real chest is fatter
+     * than its cylinder over the pecs and the lats, and the strap was being pulled
+     * in to meet the cylinder.
+     *
+     * A real strap does not recompute its route when its wearer moves. It lies on
+     * skin, and the skin takes it along. So: find the skin vertex each sample sits
+     * on, once, and store the sample as that vertex plus a standoff along its
+     * normal. From then on the strap is wherever the body's surface is, in any pose,
+     * for free -- the same skinning the body already does. It cannot sink into a
+     * shoulder that rolls forward, because the point it is tied to rolls with it.
+     *
+     * The ends are not bound. They run to the quiver, which is rigid on Spine2, and
+     * tying them to skin would peel the strap off the thing it carries.
+     */
+    // 18 mm off the skin. The strap is a 26 mm band, so a standoff under its half
+    // width lets the edges dip through the surface the centre is resting on -- at
+    // 11 mm, 18.6% of the strap read as inside the body; at 18 mm, 9.0%. Past this
+    // the curve flattens and the only thing that grows is visible float: 22 mm buys
+    // 0.2 points of penetration and costs 3.3 mm of median gap.
+    const SKIN_BIND_STANDOFF_METERS = 0.018;
+    const SKIN_BIND_END_EXEMPTION = 0.10;
+
+    function posedSkinVertices(actor, stride = 2) {
+      const vertices = [];
+      const vertex = new THREE.Vector3();
+      const normal = new THREE.Vector3();
+      actor.model.updateMatrixWorld(true);
+      actor.model.traverse((mesh) => {
+        if (!mesh.isSkinnedMesh) return;
+        const position = mesh.geometry.attributes.position;
+        const normals = mesh.geometry.attributes.normal;
+        const skinIndex = mesh.geometry.attributes.skinIndex;
+        const skinWeight = mesh.geometry.attributes.skinWeight;
+        if (!position || !normals || !skinIndex || !skinWeight) return;
+        const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+        for (let index = 0; index < position.count; index += stride) {
+          // Torso only. An arm hanging beside the chest is the nearest skin to a
+          // strap on the ribs, and binding the strap to a bicep makes it swing
+          // with the arm.
+          let bestWeight = -1;
+          let bestBone = -1;
+          for (let slot = 0; slot < 4; slot += 1) {
+            const weight = skinWeight.getComponent(index, slot);
+            if (weight > bestWeight) { bestWeight = weight; bestBone = skinIndex.getComponent(index, slot); }
+          }
+          const bone = mesh.skeleton?.bones?.[bestBone];
+          if (!bone || !/hips|spine|neck/i.test(bone.name)) continue;
+          vertex.fromBufferAttribute(position, index);
+          mesh.applyBoneTransform(index, vertex);
+          mesh.localToWorld(vertex);
+          normal.fromBufferAttribute(normals, index);
+          mesh.applyBoneTransform(index, normal);
+          normal.applyMatrix3(normalMatrix).normalize();
+          vertices.push({ mesh, index, world: vertex.clone(), normal: normal.clone() });
+        }
+      });
+      return vertices;
+    }
+
+    /** Where a bound sample is now: its skin vertex, posed, plus its standoff. */
+    function resolveSkinBinding(binding) {
+      const vertex = new THREE.Vector3().fromBufferAttribute(binding.mesh.geometry.attributes.position, binding.index);
+      binding.mesh.applyBoneTransform(binding.index, vertex);
+      binding.mesh.localToWorld(vertex);
+      const normal = new THREE.Vector3().fromBufferAttribute(binding.mesh.geometry.attributes.normal, binding.index);
+      binding.mesh.applyBoneTransform(binding.index, normal);
+      normal.applyMatrix3(new THREE.Matrix3().getNormalMatrix(binding.mesh.matrixWorld)).normalize();
+      return vertex.addScaledVector(normal, binding.standoff);
+    }
+
+    function bindHarnessToSkin(actor, points) {
+      const skin = posedSkinVertices(actor);
+      if (!skin.length) return null;
+      return points.map((point, index) => {
+        const along = index / (points.length - 1);
+        if (Math.min(along, 1 - along) < SKIN_BIND_END_EXEMPTION) return null;
+        let best = null;
+        let bestDistance = Infinity;
+        for (const candidate of skin) {
+          const distance = point.distanceToSquared(candidate.world);
+          if (distance < bestDistance) { bestDistance = distance; best = candidate; }
+        }
+        if (!best) return null;
+        return { mesh: best.mesh, index: best.index, standoff: SKIN_BIND_STANDOFF_METERS };
+      });
+    }
+
+    /**
+     * The strap, resolved through its skin binding. Bound on first use in whatever
+     * pose the actor is in; from then on the body carries it. Falls back to the
+     * conform for any sample that could not be bound, and for the unbound ends.
+     */
+    function skinBoundHarnessPath(actor, state, points, frame, profile) {
+      if (!state.skinBinding || state.skinBinding.length !== points.length) {
+        state.skinBinding = bindHarnessToSkin(actor, points);
+      }
+      const binding = state.skinBinding;
+      if (!binding) return conformHarnessToBody(actor, points, frame, profile);
+      // The unbound samples are the runs out to the quiver. They are OFF the torso
+      // by design, so conforming them to a torso is meaningless -- it was dragging
+      // them onto a cylinder that the real back is not, and that is where the
+      // deepest penetration was coming from. They keep their routed position and
+      // only have to clear the proxy.
+      return points.map((point, index) => (binding[index]
+        ? clearHarnessProxies(actor, resolveSkinBinding(binding[index]), 0.004)
+        : clearHarnessProxies(actor, point.clone(), 0.004)));
+    }
+
     function conformHarnessToBody(actor, points, frame, profile) {
       if (!frame || !profile || points.length < 8) return points;
       const standoff = 0.012;
       const endExemption = 0.18;
       const PROXY_MARGIN_METERS = 0.014;
+      const MAX_CONFORM_METERS = 0.075;
       return points.map((point, index) => {
         const along = index / (points.length - 1);
         const freedom = Math.min(along, 1 - along) / endExemption;
@@ -791,13 +912,17 @@ export function createHumanReviewActorFactory({
         const surface = frontTorsoRadius(profile, height, frame.axisLength, bearing);
         if (surface === null) return clearHarnessProxies(actor, point.clone(), PROXY_MARGIN_METERS);
         const target = surface + standoff;
-        // Every sample gets the proxy check, including one already inside the
-        // surface. Skipping the untouched ones left the curve free to graze a
-        // proxy sphere it never had to be pulled away from -- measured, half a
-        // millimetre through, which is still a failed gate.
-        if (radius <= target) return clearHarnessProxies(actor, point.clone(), PROXY_MARGIN_METERS);
-        const pulled = point.clone().addScaledVector(radial.divideScalar(radius), target - radius);
-        const conformed = point.clone().lerp(pulled, Math.min(1, freedom));
+        // Signed: negative pulls a floating sample in, positive pushes a buried one
+        // out. Clamped, because a pose the cylindrical frame cannot describe -- a
+        // dive, a fall, anything that lays the torso axis horizontal -- can return a
+        // nonsense radius, and a clamp turns that into a small error instead of
+        // flinging the strap across the scene.
+        const correction = THREE.MathUtils.clamp(target - radius, -MAX_CONFORM_METERS, MAX_CONFORM_METERS);
+        const moved = point.clone().addScaledVector(radial.divideScalar(radius), correction);
+        const conformed = point.clone().lerp(moved, Math.min(1, freedom));
+        // Every sample gets the proxy check. Skipping any left the curve free to
+        // graze a sphere it was never pulled away from -- half a millimetre through,
+        // which is still a failed gate.
         return clearHarnessProxies(actor, conformed, PROXY_MARGIN_METERS);
       });
     }
@@ -1018,7 +1143,7 @@ export function createHumanReviewActorFactory({
       routes.forEach((route, index) => updateHarnessRibbon(
         state.straps[index],
         harness.socket,
-        conformHarnessToBody(actor, harnessPath(route), surfaceFrame, profile),
+        skinBoundHarnessPath(actor, state, harnessPath(route), surfaceFrame, profile),
         chestCenter,
         up,
       ));
