@@ -48,9 +48,9 @@ function isGroundingAttackTarget(target: string): boolean {
 }
 
 /** Foundation pilot keeps its skin under provider-authored names. */
-/** The fair skin the foundation texture was painted as; every tone is scaled relative to it. */
-const SKIN_TONE_REFERENCE = new THREE.Color(SKIN_TONES.ashen.color);
-const SKIN_TONE_FACTOR_MIN = 0.1;
+/** The tone the untinted foundation texture reads as on the stage (Light); every tone is scaled relative to it. */
+const SKIN_TONE_REFERENCE = new THREE.Color(SKIN_TONES.light.color);
+const SKIN_TONE_FACTOR_MIN = 0.05;
 const SKIN_TONE_FACTOR_MAX = 1.25;
 
 /**

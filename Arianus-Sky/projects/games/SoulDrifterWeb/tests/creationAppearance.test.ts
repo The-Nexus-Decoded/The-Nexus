@@ -814,18 +814,21 @@ describe("creator view offset", () => {
 
 describe("skin tone material colour", () => {
   const luma = (c: THREE.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-  it("orders the palette from light to deep on the authored fair skin", () => {
+  it("orders the palette from light to deep on the authored skin, which reads as Light untinted", () => {
     const base = new THREE.Color(0xffffff);
     const light = skinToneMaterialColor(base, SKIN_TONES.light.color);
     const fair = skinToneMaterialColor(base, SKIN_TONES.ashen.color);
     const brown = skinToneMaterialColor(base, SKIN_TONES.umber.color);
     const deep = skinToneMaterialColor(base, SKIN_TONES.deep.color);
-    expect(fair.getHex()).toBe(0xffffff);
-    expect(luma(light)).toBeGreaterThan(luma(fair));
+    // the untinted foundation texture is the Light tone on the stage, so Light leaves the map alone
+    expect(light.getHex()).toBe(0xffffff);
+    expect(luma(fair)).toBeLessThan(luma(light));
+    expect(luma(fair)).toBeGreaterThan(luma(light) * 0.4);
     expect(luma(brown)).toBeLessThan(luma(fair) * 0.6);
     expect(luma(deep)).toBeLessThan(luma(brown));
-    // deep must read deep: well under a third of the fair skin's reflectance
-    expect(luma(deep)).toBeLessThan(luma(fair) * 0.33);
+    // deep must read deep: about a tenth of the light skin's reflectance in linear light
+    expect(luma(deep)).toBeLessThan(luma(light) * 0.12);
+    expect(luma(deep)).toBeGreaterThan(luma(light) * 0.04);
   });
   it("writes into the given target, keeps the map's own base, and never blows out", () => {
     const base = new THREE.Color(0.8, 0.7, 0.6);
