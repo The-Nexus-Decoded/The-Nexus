@@ -336,6 +336,14 @@ function isolateHumanScalpFollicleTargets(model: THREE.Object3D): THREE.MeshStan
         material = source.clone();
         material.onBeforeCompile = source.onBeforeCompile;
         material.customProgramCacheKey = source.customProgramCacheKey;
+        // Material.clone() round-trips userData through JSON, which turns a
+        // THREE.Color into its hex number. The creator keeps the authored skin
+        // colour in userData and copies from it on every appearance change, so
+        // the clone must keep the instance: copying a number into a Color gives
+        // NaN and the whole body renders black on the next change.
+        for (const [key, value] of Object.entries(source.userData)) {
+          if (value instanceof THREE.Color) material.userData[key] = value.clone();
+        }
         material.userData[HUMAN_SCALP_FOLLICLE_ISOLATION_KEY] = child.uuid;
         changed = true;
       }

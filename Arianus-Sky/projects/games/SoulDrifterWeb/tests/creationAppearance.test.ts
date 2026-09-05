@@ -282,6 +282,40 @@ describe("character-creator modular appearance contract", () => {
     expect(shader.uniforms.souldrifterFollicleStrength!.value).toBe(0.22);
   });
 
+  it("keeps the creator's authored skin colour a Color when it isolates the skin material", async () => {
+    // Material.clone() round-trips userData through JSON, which turns a THREE.Color
+    // into a hex number; the creator copies from userData.authoredColor on every
+    // appearance change, and copying a number into a Color yields NaN (a black body).
+    const model = new THREE.Group();
+    const sourceMaterial = tripoSkinMaterial();
+    sourceMaterial.userData.authoredColor = new THREE.Color(0xcfbfba);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(), sourceMaterial);
+    body.name = "HumanFoundation_Body";
+    const provider = approvedProvider();
+    const hair = approvedFollicleHair(
+      "/assets/3d/characters/human-foundation-pilot/follicle-masks/test-authored-colour-v1.png",
+    );
+    provider.add(hair);
+    model.add(body, provider);
+
+    setHumanScalpFollicleUndercoat(model, hair, new THREE.Color(0x171412), async () => new THREE.Texture());
+    await flushPromises();
+
+    const material = body.material as THREE.MeshStandardMaterial;
+    expect(material).not.toBe(sourceMaterial);
+    const authored = material.userData.authoredColor as unknown;
+    expect(authored).toBeInstanceOf(THREE.Color);
+    expect((authored as THREE.Color).getHex()).toBe(0xcfbfba);
+    expect(authored).not.toBe(sourceMaterial.userData.authoredColor);
+    // the creator's next appearance change: copy the authored base, blend the tone
+    const next = new THREE.Color().copy(authored as THREE.Color).lerp(new THREE.Color(0x8a6a58), 0.62);
+    expect(Number.isFinite(next.r) && Number.isFinite(next.g) && Number.isFinite(next.b)).toBe(true);
+    // and the plain-JSON shape the clone used to leave behind is exactly what breaks it
+    const jsonRoundTrip = JSON.parse(JSON.stringify({ authoredColor: new THREE.Color(0xcfbfba) })).authoredColor;
+    expect(typeof jsonRoundTrip).toBe("number");
+    expect(Number.isFinite(new THREE.Color().copy(jsonRoundTrip as unknown as THREE.Color).r)).toBe(false);
+  });
+
   it("fails closed when legacy follicle metadata exceeds the audited 0.30 strength ceiling", async () => {
     const model = new THREE.Group();
     const body = new THREE.Mesh(new THREE.BoxGeometry(), tripoSkinMaterial());
