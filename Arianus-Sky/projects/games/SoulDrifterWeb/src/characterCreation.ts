@@ -918,7 +918,7 @@ export class CharacterCreation {
         <section>
           <h3>Derived attributes</h3>
           <div class="stat-weave">
-            ${STAT_KEYS.map((key) => `<div><span>${icon(STAT_ICONS[key], 18)}${STAT_LABELS[key]}</span><strong>${profile.stats[key]}</strong></div>`).join("")}
+            ${STAT_KEYS.map((key) => `<div>${icon(STAT_ICONS[key], 18)}<strong>${profile.stats[key]}</strong><span>${STAT_LABELS[key]}</span></div>`).join("")}
           </div>
           <div class="derived-vitals">
             <span>${icon("heart-pulse", 14)}Vitality <strong>${profile.maxHp}</strong></span>

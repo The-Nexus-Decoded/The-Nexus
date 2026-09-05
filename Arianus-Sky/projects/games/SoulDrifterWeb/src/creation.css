@@ -378,6 +378,7 @@
   display: grid;
   height: 100vh;
   min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   border-left: 1px solid var(--rule);
   background: var(--glass-solid);
@@ -788,19 +789,22 @@
 
 /* ------------------------------------------------------------ imprint station */
 
-.imprint-review { display: grid; gap: 14px; }
-.imprint-review > section { padding: 16px; border: 1px solid var(--rule-soft); background: rgba(10, 16, 18, 0.45); }
+/* The folio column is fixed; nothing in the imprint may widen it (a 375 px phone has 96 px stat tiles). */
+.imprint-review { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.imprint-review > section { min-width: 0; padding: 16px; border: 1px solid var(--rule-soft); background: rgba(10, 16, 18, 0.45); }
 .imprint-seal { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; }
 .imprint-seal img { width: 100%; height: 200px; object-fit: contain; filter: drop-shadow(0 16px 14px rgba(0, 0, 0, 0.64)); }
 .imprint-seal > span { display: inline-flex; color: var(--soul); }
 .imprint-seal strong { margin-top: 5px; font-family: "Soul Cinzel", serif; font-size: 19px; font-weight: 500; letter-spacing: 0.02em; }
 .imprint-seal small { margin-top: 4px; color: var(--bronze); font: 600 11px/1 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 
-.stat-weave { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.stat-weave div { display: flex; min-height: 56px; align-items: center; justify-content: space-between; padding: 8px 10px; border-left: 1px solid var(--bronze-dim); background: rgba(255, 255, 255, 0.025); }
-.stat-weave span { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font: 600 11px/1.2 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
-.stat-weave .icon { color: var(--bronze); }
-.stat-weave strong { color: var(--soul); font: 600 28px/1 "Soul HUD", sans-serif; }
+/* A stat tile stacks: the mark and the numeral share the first row, the label sits beneath, so
+   the widest label (RESONANCE, 71 px tracked) fits the 76 px inner width of a 96 px phone tile. */
+.stat-weave { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stat-weave div { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "icon value" "label label"; align-items: center; gap: 4px 8px; padding: 8px 10px; border-left: 1px solid var(--bronze-dim); background: rgba(255, 255, 255, 0.025); }
+.stat-weave .icon { grid-area: icon; color: var(--bronze); }
+.stat-weave strong { grid-area: value; color: var(--soul); font: 600 28px/1 "Soul HUD", sans-serif; }
+.stat-weave span { grid-area: label; min-width: 0; color: var(--muted); font: 600 11px/1.2 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 .derived-vitals { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; color: var(--muted); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
 .derived-vitals span { display: inline-flex; align-items: center; gap: 6px; }
 .derived-vitals .icon { color: var(--bronze); }
