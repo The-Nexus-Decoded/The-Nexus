@@ -103,32 +103,42 @@ export function reviewedReactionNote(packs: readonly ReviewedReactionPack[]): st
  * `warden` and `breachling` stay absent until their nine clips exist. The
  * selection rules already key off the archetype, so registering them is a data
  * change here and nothing else.
+ *
+ * Revisions poison-r4 / burn-r2 / kd-r14 close contract defects D1 and D4. Every
+ * clip now animates 52 of the 65 joints instead of 20: the 30 finger joints and
+ * the two ToeBase joints carry authored motion, and the 13 that remain at the
+ * bind rotation are exactly the 13 Mixamo END SITES that own zero skin weight on
+ * this body (ten fingertips, two toe tips, HeadTop_End), so no vertex on the mesh
+ * is left unreachable. BurnBurn's steps leave the floor: measured toe clearance
+ * rose from 47.1 / 42.1 mm to 85.7 / 79.7 mm on the 0.9891 m rig, and the worst
+ * accumulated horizontal drag of a contact vertex fell from 8.72 / 3.98 mm to
+ * 2.19 / 2.34 mm. Byte lengths and checksums below were hashed on these files.
  */
 export const REVIEWED_REACTION_PACKS: ReviewedReactionPacks = prepareReviewedReactionPacks({
   humanoid: [
     {
       archetype: "humanoid",
-      url: "/assets/weapon-lab/reactions/humanoid-reactions-poison-r3.glb",
+      url: "/assets/weapon-lab/reactions/humanoid-reactions-poison-r4.glb",
       bytes: 3_364_176,
-      sha256: "ab3104742fd881cc18e8bbfeeac2c71800cf526fe7e2b8853aa10be5959b8ec8",
+      sha256: "2d7bdfaacac3ee9650f292d64d9c8d4a583c9396be47a66658953cfadba51363",
       rigSourceSha256: "b86f7378ada29ff11e0fbc030d438fe241b8d4a74c47afd37cc8aced28c5ff81",
       jointCount: 65,
       clips: ["PoisonImpact", "PoisonLoop", "PoisonRecover"],
     },
     {
       archetype: "humanoid",
-      url: "/assets/weapon-lab/reactions/humanoid-reactions-burn-r1.glb",
+      url: "/assets/weapon-lab/reactions/humanoid-reactions-burn-r2.glb",
       bytes: 3_403_688,
-      sha256: "90f4bae15ec21302dac7d44e8b5d2fb844894ce8fbbe48f57a5a060300091ff5",
+      sha256: "246b46a6867b499961908cd5977335206df593d90be0c7f5f15f43cdb224030f",
       rigSourceSha256: "b86f7378ada29ff11e0fbc030d438fe241b8d4a74c47afd37cc8aced28c5ff81",
       jointCount: 65,
       clips: ["BurnFlare", "BurnBurn", "BurnRecover"],
     },
     {
       archetype: "humanoid",
-      url: "/assets/weapon-lab/reactions/humanoid-reactions-kd-r13.glb",
+      url: "/assets/weapon-lab/reactions/humanoid-reactions-kd-r14.glb",
       bytes: 3_442_812,
-      sha256: "f87ab1ddc0f0f5bc33cdd39d60531c6ead29a60b4e2ea3a62830ff7627644918",
+      sha256: "c40fa8ab8615fbc2c81418645942e9192c2679f49f35b6cf0353e252afa8eb34",
       rigSourceSha256: "b86f7378ada29ff11e0fbc030d438fe241b8d4a74c47afd37cc8aced28c5ff81",
       jointCount: 65,
       clips: ["Knockdown", "ProneHold", "GetUp"],

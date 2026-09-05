@@ -438,6 +438,22 @@ joints and HeadTop_End are constant at the bind rotation across every clip in al
 three packs; only 20 joints move. A burning body with rigid fingers is the worst
 case of this. Authoring finger and toe motion is open work.
 
+> **CLOSED 2026-09-04, revisions `poison-r4` / `burn-r2` / `kd-r14`.** The composer
+> gained digit and metatarsophalangeal authoring (`humanoid-adapter.mjs`
+> `poseDigits` / `poseToe`, `warden-composer.mjs` `digits` / `toeRoll`), and all
+> nine clips were re-authored on it. **52 of 65 joints now carry motion in every
+> clip**, up from 20. The 13 that remain at the bind rotation are exactly the 13
+> Mixamo END SITES — ten fingertips (`*4`), two `Toe_End`, `HeadTop_End` — which
+> were measured to own **zero skin weight on every mesh of this body**
+> (`tools/probe-humanoid-digits.mjs`), so a track on any of them could not move a
+> vertex. Every joint that owns skin is animated. Per-clip finger travel (widest
+> angle from key 0, median over the 30 finger joints): PoisonImpact 42.1 deg,
+> PoisonLoop 18.7, PoisonRecover 37.6, BurnFlare 42.5, BurnBurn 36.7,
+> BurnRecover 39.3, Knockdown 27.6, ProneHold 0.8 (deliberately near-still — the
+> body is not moving), GetUp 15.7. Flexion and abduction axes are measured on the
+> rig at load, not taken from Mixamo's local axes; the digit floor guard exists but
+> its applied scale is 1.0000 on every frame of all nine clips.
+
 **D2 — the seam metric was reported on a frozen joint.** Every row of both seam
 tables named `mixamorig:LeftHandPinky3` as the worst bone at 0.0475 deg, which is
 why five structurally different joins returned the same number. Measured over the
@@ -445,6 +461,16 @@ why five structurally different joins returned the same number. Measured over th
 than they were reported to be; the metric has since been corrected in the contract
 comments, and any future seam claim must exclude frozen joints or it measures its
 own sampler.
+
+> **Root cause identified 2026-09-04.** It is not that the joint was frozen so much
+> as WHY that produced a number: the source rig's own bind quaternions are float32
+> and not exactly unit, so `acos(|q · q|)` on a constant track reads as an angle
+> against ITSELF — 0.0475 deg on `LeftHandPinky3`, 0.0486 on `RightHandRing3`. The
+> three lane verifiers and `tools/measure-humanoid-pack.mjs` now normalise before
+> comparing, which removes the artefact whether or not the joint moves.
+> On the re-authored packs, over the **52** joints that now move: idle→impact and
+> recover→idle 0.0000–0.0016 deg, impact→loop and loop→recover 0.0018 deg (burn) /
+> 0.0047 deg (poison), loop→loop 0.0000 deg on all three sets.
 
 **D3 — the entry gap is real and the blend is unjustified.** `BurnFlare[0]` is
 74.0916 deg from the pinned body's bind pose on `mixamorig:LeftArm` with 13.882 mm
@@ -460,6 +486,31 @@ shipped byte.
 **D4 — planted-foot skate in BurnBurn.** Max toe lift is 46.0 mm on a 0.9891 m rig
 with 30.4 mm of horizontal travel while planted. That is a weight-shift shuffle
 with a slide in it, not the planted steps it was described as.
+
+> **CLOSED 2026-09-04, revision `burn-r2`. Fixed by making the step a real step,
+> not by repairing the plant.** The lift went 0.075 → 0.20 authoring units on the
+> lead steps and 0.055 → 0.16 on the returns, the swings are 60 ms longer, the
+> knee folds deeper, the heel comes off earlier and further before each step
+> (`preHeel` 0.18 s, `heelOff` 24–26 deg), the standing heel roll dropped 16 → 3
+> deg and moved onto the foot that is NOT about to step, and the foot is no longer
+> one rigid plate — `toeRoll` articulates the metatarsophalangeal joint off the
+> foot plan's own roll.
+>
+> Measured on the shipped bytes with `tools/measure-humanoid-pack.mjs`, in
+> millimetres on the 0.9891 m rig. Toe clearance — the height reached by the LOWEST
+> point of the toe skin, which is the metric that reproduces the 46.0 mm above —
+> **left 47.1 → 85.7, right 42.1 → 79.7**. Foot skate, defined as the worst
+> accumulated horizontal travel of any single vertex over one unbroken run of
+> frames in which that vertex stays within 4 mm (actor) of the floor —
+> **left 8.72 → 2.19, right 3.98 → 2.34** — and the worst single-frame step of a
+> contact vertex fell from 7.19 to 1.15 (left) and 2.65 to 0.61 (right). The 30.4 mm
+> figure above was not reproduced by this metric at this contact band, and the
+> metric is band-sensitive: widen the contact band to 14.6 mm (rig) and the old
+> pack reads 13.4 (left) / 26.1 (right) against the new pack's 11.7 / 9.4. At that
+> width the band stops describing contact, which is why the 4 mm reading is the one
+> quoted.
+> The same treatment was applied to `PoisonLoop` (toe clearance left 40.6 → 69.7,
+> right 32.7 → 62.1; skate left 1.48 → 2.61, right 5.74 → 4.62).
 
 **D5 — the precedence machinery has no runtime path.** `recordReactionHit`,
 `cutReactionToDeath` and `clearReactionTimeline` are called by nothing outside

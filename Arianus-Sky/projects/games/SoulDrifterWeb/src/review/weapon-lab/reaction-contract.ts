@@ -154,25 +154,32 @@ const REACTION_SET_INDEX = (() => {
 
 /**
  * A loop is seamless only at its own frame 0, so a hold is quantised to whole
- * periods rather than cut wherever the effect happens to end. Measured on the
- * shipped pack: PoisonLoop cut at 0.868 s and joined to PoisonRecover[0] is
- * 62.1964 deg apart on mixamorig:Neck and 44.658 mm at the hips, against
- * 0.2016 deg / 0.009 mm at a whole period.
+ * periods rather than cut wherever the effect happens to end. Measured on
+ * poison-r4: PoisonLoop cut at 0.868 s and joined to PoisonRecover[0] is
+ * 62.1959 deg apart on mixamorig:Neck and 44.665 mm at the hips (rig units),
+ * against 0.0581 deg / 0.009 mm at a whole period.
  *
- * That residual is sampler round-trip error, NOT a storage floor: at a whole period
- * the stored quaternion floats are bit-identical between the last and first key, so
- * storage contributes exactly zero. Measured with an independent sampler the same
- * joins come out ~26x tighter still (0.0018 deg worst over the 20 joints that
- * actually move). Either way the join is far below anything visible; the number
- * just should not be described as a floor.
+ * The whole-period residual is measurement, NOT a storage floor and NOT motion.
+ * At a whole period the stored quaternion floats are bit-identical between the
+ * last and first key, so storage contributes exactly zero. What is left is the
+ * sampler taking acos of a float32 quaternion's dot with itself: these bind
+ * quaternions are not exactly unit, and on this body that alone reads as up to
+ * 0.0475 deg. Normalise before comparing and the same joins measure 0.0047 deg
+ * (poison) and 0.0018 deg (burn) over the 52 joints that carry motion — an order
+ * of magnitude below the artefact that used to be reported as the number.
  *
- * The burn pack measures the same way on the same sampler: BurnBurn cut at 0.868 s
- * and joined to BurnRecover[0] is 42.7604 deg apart on mixamorig:LeftArm and
- * 19.670 mm at the hips, against 0.0475 deg / 0.003 mm at a whole period — again
- * sampler residual, not a floor. Cutting later is worse, not better:
- * 1.5 s in, the same join is 53.4524 deg on mixamorig:RightForeArm and 34.449 mm.
- * Same rule, same reason, on a clip whose arms move far more than the poison
- * loop's.
+ * Two consequences worth stating plainly, because the first version of this note
+ * got both wrong. A worst-bone name is meaningless unless frozen joints are
+ * excluded: mixamorig:LeftHandPinky3 was named on five structurally different
+ * joins purely because its track was constant. And "storage floor" is the wrong
+ * description of a residual that vanishes when the reader normalises.
+ *
+ * The burn pack measures the same way: BurnBurn cut at 0.868 s and joined to
+ * BurnRecover[0] is 42.7604 deg apart on mixamorig:LeftArm and 19.670 mm at the
+ * hips, against 0.0486 deg / 0.003 mm at a whole period. Cutting later is worse,
+ * not better: 1.5 s in, the same join is 53.4524 deg on mixamorig:RightForeArm
+ * and 34.449 mm. Same rule, same reason, on a clip whose arms move far more than
+ * the poison loop's.
  */
 export const REACTION_LOOP_FIT = "whole-periods" as const;
 /** Bound on a single hold, so a runaway effect duration cannot build an unbounded sequence. */

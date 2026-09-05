@@ -51,9 +51,9 @@ describe("The reaction pack receipt is an allowlist, not a directory listing", (
     expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "warden", "poison")).toBe(false);
     expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "warden", "burning")).toBe(false);
     expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "breachling", "knockdown")).toBe(false);
-    expect(reactionPackForClip(humanoid, "PoisonLoop")!.url).toContain("poison-r3");
-    expect(reactionPackForClip(humanoid, "BurnBurn")!.url).toContain("burn-r1");
-    expect(reactionPackForClip(humanoid, "ProneHold")!.url).toContain("kd-r13");
+    expect(reactionPackForClip(humanoid, "PoisonLoop")!.url).toContain("poison-r4");
+    expect(reactionPackForClip(humanoid, "BurnBurn")!.url).toContain("burn-r2");
+    expect(reactionPackForClip(humanoid, "ProneHold")!.url).toContain("kd-r14");
     expect(reactionPackForClip(humanoid, "NotAClip")).toBeNull();
     expect(reviewedReactionNote(humanoid)).toMatch(/9 clips across 3 pinned files/);
   });
