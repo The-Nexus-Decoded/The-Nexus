@@ -1,0 +1,417 @@
+{
+  "grass_medium_01": {
+    "gltf": "grass_medium_01.gltf",
+    "files": [
+      "grass_medium_01.bin",
+      "textures/grass_medium_01_nor_gl_1k.jpg",
+      "textures/grass_medium_01_diff_1k.jpg",
+      "textures/grass_medium_01_arm_1k.jpg"
+    ]
+  },
+  "grass_medium_02": {
+    "gltf": "grass_medium_02.gltf",
+    "files": [
+      "grass_medium_02.bin",
+      "textures/grass_medium_02_nor_gl_1k.jpg",
+      "textures/grass_medium_02_diff_1k.jpg",
+      "textures/grass_medium_02_arm_1k.jpg"
+    ]
+  },
+  "tree_small_02": {
+    "gltf": "tree_small_02.gltf",
+    "files": [
+      "tree_small_02.bin",
+      "textures/tree_small_02_branch_nor_gl_1k.jpg",
+      "textures/tree_small_02_branch_diff_1k.jpg",
+      "textures/tree_small_02_branch_arm_1k.jpg",
+      "textures/tree_small_02_leaves_nor_gl_1k.jpg",
+      "textures/tree_small_02_leaves_diff_1k.jpg",
+      "textures/tree_small_02_leaves_arm_1k.jpg",
+      "textures/tree_small_02_nor_gl_1k.jpg",
+      "textures/tree_small_02_diff_1k.jpg",
+      "textures/tree_small_02_arm_1k.jpg"
+    ]
+  },
+  "island_tree_02": {
+    "gltf": "island_tree_02.gltf",
+    "files": [
+      "island_tree_02.bin",
+      "textures/island_tree_02_nor_gl_1k.jpg",
+      "textures/island_tree_02_diff_1k.jpg",
+      "textures/island_tree_02_arm_1k.jpg",
+      "textures/island_tree_02_leaves_nor_gl_1k.jpg",
+      "textures/island_tree_02_leaves_diff_1k.jpg",
+      "textures/island_tree_02_leaves_arm_1k.jpg",
+      "textures/island_tree_02_branches_nor_gl_1k.jpg",
+      "textures/island_tree_02_branches_diff_1k.jpg",
+      "textures/island_tree_02_branches_arm_1k.jpg"
+    ]
+  },
+  "wild_rooibos_bush": {
+    "gltf": "wild_rooibos_bush.gltf",
+    "files": [
+      "wild_rooibos_bush.bin",
+      "textures/wild_rooibos_bush_nor_gl_1k.jpg",
+      "textures/wild_rooibos_bush_diff_1k.jpg",
+      "textures/wild_rooibos_bush_arm_1k.jpg",
+      "textures/wild_rooibos_bush_diff_1k.jpg",
+      "textures/wild_rooibos_bush_diff_1k.jpg"
+    ]
+  },
+  "wooden_barrels_01": {
+    "gltf": "wooden_barrels_01.gltf",
+    "files": [
+      "wooden_barrels_01.bin",
+      "textures/wooden_barrels_01_barrel01_nor_gl_1k.jpg",
+      "textures/wooden_barrels_01_barrel01_diff_1k.jpg",
+      "textures/wooden_barrels_01_barrel01_arm_1k.jpg",
+      "textures/wooden_barrels_01_barrel02_nor_gl_1k.jpg",
+      "textures/wooden_barrels_01_barrel02_diff_1k.jpg",
+      "textures/wooden_barrels_01_barrel02_arm_1k.jpg",
+      "textures/wooden_barrels_01_pieces_nor_gl_1k.jpg",
+      "textures/wooden_barrels_01_pieces_diff_1k.jpg",
+      "textures/wooden_barrels_01_pieces_arm_1k.jpg"
+    ]
+  },
+  "wooden_crate_01": {
+    "gltf": "wooden_crate_01.gltf",
+    "files": [
+      "wooden_crate_01.bin",
+      "textures/wooden_crate_01_nor_gl_1k.jpg",
+      "textures/wooden_crate_01_diff_1k.jpg",
+      "textures/wooden_crate_01_arm_1k.jpg"
+    ]
+  },
+  "wooden_bucket_01": {
+    "gltf": "wooden_bucket_01.gltf",
+    "files": [
+      "wooden_bucket_01.bin",
+      "textures/wooden_bucket_01_nor_gl_1k.jpg",
+      "textures/wooden_bucket_01_diff_1k.jpg",
+      "textures/wooden_bucket_01_arm_1k.jpg"
+    ]
+  },
+  "wooden_lantern_01": {
+    "gltf": "wooden_lantern_01.gltf",
+    "files": [
+      "wooden_lantern_01.bin",
+      "textures/wooden_lantern_01_nor_gl_1k.jpg",
+      "textures/wooden_lantern_01_diff_1k.jpg",
+      "textures/wooden_lantern_01_arm_1k.jpg",
+      "textures/wooden_lantern_01_glass_nor_gl_1k.jpg",
+      "textures/wooden_lantern_01_glass_diff_1k.jpg",
+      "textures/wooden_lantern_01_glass_arm_1k.jpg"
+    ]
+  },
+  "island_tree_01": {
+    "gltf": "island_tree_01.gltf",
+    "files": [
+      "island_tree_01.bin",
+      "island_tree_01.gltf",
+      "textures/island_tree_01_arm_1k.jpg",
+      "textures/island_tree_01_branches_arm_1k.jpg",
+      "textures/island_tree_01_branches_diff_1k.jpg",
+      "textures/island_tree_01_branches_nor_gl_1k.jpg",
+      "textures/island_tree_01_diff_1k.jpg",
+      "textures/island_tree_01_leaves_arm_1k.jpg",
+      "textures/island_tree_01_leaves_diff_1k.jpg",
+      "textures/island_tree_01_leaves_nor_gl_1k.jpg",
+      "textures/island_tree_01_nor_gl_1k.jpg"
+    ]
+  },
+  "island_tree_03": {
+    "gltf": "island_tree_03.gltf",
+    "files": [
+      "island_tree_03.bin",
+      "island_tree_03.gltf",
+      "textures/island_tree_03_arm_1k.jpg",
+      "textures/island_tree_03_branches_arm_1k.jpg",
+      "textures/island_tree_03_branches_diff_1k.jpg",
+      "textures/island_tree_03_branches_nor_gl_1k.jpg",
+      "textures/island_tree_03_diff_1k.jpg",
+      "textures/island_tree_03_leaves_arm_1k.jpg",
+      "textures/island_tree_03_leaves_diff_1k.jpg",
+      "textures/island_tree_03_leaves_nor_gl_1k.jpg",
+      "textures/island_tree_03_nor_gl_1k.jpg"
+    ]
+  },
+  "rock_moss_set_01": {
+    "gltf": "rock_moss_set_01.gltf",
+    "files": [
+      "rock_moss_set_01.bin",
+      "rock_moss_set_01.gltf",
+      "textures/rock_moss_set_01_diff_1k.jpg",
+      "textures/rock_moss_set_01_nor_gl_1k.jpg",
+      "textures/rock_moss_set_01_rough_1k.jpg"
+    ]
+  },
+  "rock_moss_set_02": {
+    "gltf": "rock_moss_set_02.gltf",
+    "files": [
+      "rock_moss_set_02.bin",
+      "rock_moss_set_02.gltf",
+      "textures/rock_moss_set_02_diff_1k.jpg",
+      "textures/rock_moss_set_02_nor_gl_1k.jpg",
+      "textures/rock_moss_set_02_rough_1k.jpg"
+    ]
+  },
+  "boulder_01": {
+    "gltf": "boulder_01.gltf",
+    "files": [
+      "boulder_01.bin",
+      "boulder_01.gltf",
+      "textures/boulder_01_arm_1k.jpg",
+      "textures/boulder_01_diff_1k.jpg",
+      "textures/boulder_01_nor_gl_1k.jpg"
+    ]
+  },
+  "stone_01": {
+    "gltf": "stone_01.gltf",
+    "files": [
+      "stone_01.bin",
+      "stone_01.gltf",
+      "textures/stone_01_arm_1k.jpg",
+      "textures/stone_01_diff_1k.jpg",
+      "textures/stone_01_nor_gl_1k.jpg"
+    ]
+  },
+  "shrub_01": {
+    "gltf": "shrub_01.gltf",
+    "files": [
+      "shrub_01.bin",
+      "shrub_01.gltf",
+      "textures/shrub_01_arm_1k.jpg",
+      "textures/shrub_01_diff_1k.jpg",
+      "textures/shrub_01_nor_gl_1k.jpg"
+    ]
+  },
+  "shrub_02": {
+    "gltf": "shrub_02.gltf",
+    "files": [
+      "shrub_02.bin",
+      "shrub_02.gltf",
+      "textures/shrub_02_arm_1k.jpg",
+      "textures/shrub_02_diff_1k.jpg",
+      "textures/shrub_02_nor_gl_1k.jpg"
+    ]
+  },
+  "shrub_03": {
+    "gltf": "shrub_03.gltf",
+    "files": [
+      "shrub_03.bin",
+      "shrub_03.gltf",
+      "textures/shrub_03_arm_1k.jpg",
+      "textures/shrub_03_diff_1k.jpg",
+      "textures/shrub_03_nor_gl_1k.jpg"
+    ]
+  },
+  "fern_02": {
+    "gltf": "fern_02.gltf",
+    "files": [
+      "fern_02.bin",
+      "fern_02.gltf",
+      "textures/fern_02_arm_1k.jpg",
+      "textures/fern_02_diff_1k.jpg",
+      "textures/fern_02_nor_gl_1k.jpg"
+    ]
+  },
+  "celandine_01": {
+    "gltf": "celandine_01.gltf",
+    "files": [
+      "celandine_01.bin",
+      "celandine_01.gltf",
+      "textures/celandine_01_arm_1k.jpg",
+      "textures/celandine_01_diff_1k.jpg",
+      "textures/celandine_01_nor_gl_1k.jpg"
+    ]
+  },
+  "moss_01": {
+    "gltf": "moss_01.gltf",
+    "files": [
+      "moss_01.bin",
+      "moss_01.gltf",
+      "textures/moss_01_arm_1k.jpg",
+      "textures/moss_01_diff_1k.jpg",
+      "textures/moss_01_nor_gl_1k.jpg"
+    ]
+  },
+  "dead_tree_trunk": {
+    "gltf": "dead_tree_trunk.gltf",
+    "files": [
+      "dead_tree_trunk.bin",
+      "dead_tree_trunk.gltf",
+      "textures/dead_tree_trunk_arm_1k.jpg",
+      "textures/dead_tree_trunk_diff_1k.jpg",
+      "textures/dead_tree_trunk_nor_gl_1k.jpg"
+    ]
+  },
+  "tree_stump_01": {
+    "gltf": "tree_stump_01.gltf",
+    "files": [
+      "textures/tree_stump_01_arm_1k.jpg",
+      "textures/tree_stump_01_diff_1k.jpg",
+      "textures/tree_stump_01_nor_gl_1k.jpg",
+      "tree_stump_01.bin",
+      "tree_stump_01.gltf"
+    ]
+  },
+  "dry_branches_medium_01": {
+    "gltf": "dry_branches_medium_01.gltf",
+    "files": [
+      "dry_branches_medium_01.bin",
+      "dry_branches_medium_01.gltf",
+      "textures/dry_branches_medium_01_arm_1k.jpg",
+      "textures/dry_branches_medium_01_diff_1k.jpg",
+      "textures/dry_branches_medium_01_nor_gl_1k.jpg"
+    ]
+  },
+  "wooden_crate_02": {
+    "gltf": "wooden_crate_02.gltf",
+    "files": [
+      "textures/wooden_crate_02_arm_1k.jpg",
+      "textures/wooden_crate_02_diff_1k.jpg",
+      "textures/wooden_crate_02_nor_gl_1k.jpg",
+      "wooden_crate_02.bin",
+      "wooden_crate_02.gltf"
+    ]
+  },
+  "wine_barrel_01": {
+    "gltf": "wine_barrel_01.gltf",
+    "files": [
+      "textures/wine_barrel_01_arm_1k.jpg",
+      "textures/wine_barrel_01_diff_1k.jpg",
+      "textures/wine_barrel_01_nor_gl_1k.jpg",
+      "wine_barrel_01.bin",
+      "wine_barrel_01.gltf"
+    ]
+  },
+  "planter_box_01": {
+    "gltf": "planter_box_01.gltf",
+    "files": [
+      "planter_box_01.bin",
+      "planter_box_01.gltf",
+      "textures/planter_box_01_arm_1k.jpg",
+      "textures/planter_box_01_diff_1k.jpg",
+      "textures/planter_box_01_nor_gl_1k.jpg"
+    ]
+  },
+  "textures": {
+    "mossy_stone_wall": {
+      "use": "Soulwell ring, breach arch, column stubs, Anwel footings",
+      "maps": {
+        "diff": "mossy_stone_wall_diff_1k.jpg",
+        "nor_gl": "mossy_stone_wall_nor_gl_1k.jpg",
+        "rough": "mossy_stone_wall_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "mossy_cobblestone": {
+      "use": "Terrace flagstones + steps",
+      "maps": {
+        "diff": "mossy_cobblestone_diff_1k.jpg",
+        "nor_gl": "mossy_cobblestone_nor_gl_1k.jpg",
+        "rough": "mossy_cobblestone_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "plastered_wall": {
+      "use": "Anwel house wall panels",
+      "maps": {
+        "diff": "plastered_wall_diff_1k.jpg",
+        "nor_gl": "plastered_wall_nor_gl_1k.jpg",
+        "rough": "plastered_wall_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "wood_planks": {
+      "use": "Timber frame, doors, dock planks",
+      "maps": {
+        "diff": "wood_planks_diff_1k.jpg",
+        "nor_gl": "wood_planks_nor_gl_1k.jpg",
+        "rough": "wood_planks_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "thatch_roof_angled": {
+      "use": "Thatch cottage roofs",
+      "maps": {
+        "diff": "thatch_roof_angled_diff_1k.jpg",
+        "nor_gl": "thatch_roof_angled_nor_gl_1k.jpg",
+        "rough": "thatch_roof_angled_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "roof_slates_02": {
+      "use": "Slate roofs (reeve hall, barn)",
+      "maps": {
+        "diff": "roof_slates_02_diff_1k.jpg",
+        "nor_gl": "roof_slates_02_nor_gl_1k.jpg",
+        "rough": "roof_slates_02_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "brown_mud_leaves_01": {
+      "use": "Tree-base soil blend discs",
+      "maps": {
+        "diff": "brown_mud_leaves_01_diff_1k.jpg",
+        "nor_gl": "brown_mud_leaves_01_nor_gl_1k.jpg",
+        "rough": "brown_mud_leaves_01_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "forest_floor": {
+      "use": "Well surround + dark forest ground patches",
+      "maps": {
+        "diff": "forest_floor_diff_1k.jpg",
+        "nor_gl": "forest_floor_nor_gl_1k.jpg",
+        "rough": "forest_floor_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "aerial_grass_rock": {
+      "use": "Splat channel 0: meadow grass (dominant Heartvale ground)",
+      "maps": {
+        "diff": "aerial_grass_rock_diff_1k.jpg",
+        "nor_gl": "aerial_grass_rock_nor_gl_1k.jpg",
+        "rough": "aerial_grass_rock_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "withered_grass": {
+      "use": "Splat channel 1: dry/summer grass patches",
+      "maps": {
+        "diff": "withered_grass_diff_1k.jpg",
+        "nor_gl": "withered_grass_nor_gl_1k.jpg",
+        "rough": "withered_grass_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "muddy_tracks": {
+      "use": "Splat channel 2: dirt roads and village lanes",
+      "maps": {
+        "diff": "muddy_tracks_diff_1k.jpg",
+        "nor_gl": "muddy_tracks_nor_gl_1k.jpg",
+        "rough": "muddy_tracks_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "dry_river_pebbles": {
+      "use": "Splat channel 3: riverbed under water",
+      "maps": {
+        "diff": "dry_river_pebbles_diff_1k.jpg",
+        "nor_gl": "dry_river_pebbles_nor_gl_1k.jpg",
+        "rough": "dry_river_pebbles_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "brown_mud": {
+      "use": "Splat channel 4: wet bank mud / shoreline",
+      "maps": {
+        "diff": "brown_mud_diff_1k.jpg",
+        "nor_gl": "brown_mud_nor_gl_1k.jpg",
+        "rough": "brown_mud_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    }
+  }
+}

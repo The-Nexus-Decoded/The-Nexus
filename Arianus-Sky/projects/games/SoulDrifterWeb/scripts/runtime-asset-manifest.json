@@ -11,7 +11,8 @@
     "assets/generated/action-icons/*-atlas.png",
     "assets/generated/characters/advanced/**",
     "lore-atlas/assets/P-*_painted.png",
-    "lore-atlas/assets/maps/*.svg"
+    "lore-atlas/assets/maps/*.svg",
+    "lore-atlas/assets/maps/landmasses/**/*.png"
   ],
   "protectedPaths": [
     "weapon-lab.html",

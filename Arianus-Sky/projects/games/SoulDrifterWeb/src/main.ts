@@ -52,11 +52,39 @@ async function launchGame(profile: CharacterProfile, resumeSavedSoul: boolean): 
 }
 
 void (async () => {
+  // Zone preview branch: ?zonePreview=hv-1 renders the Heartvale outdoor zone
+  // straight from the existing exports, bypassing character creation. Used by
+  // the visual review gate (ZONE_BUILD_RUNBOOK.md §7) — World3D is untouched.
+  const searchParams = new URL(window.location.href).searchParams;
+  const previewZone = searchParams.get("zonePreview");
+  if (previewZone) {
+    const { startZonePreview } = await import("./game/zones/heartvale/preview");
+    const shell = document.getElementById("character-creation");
+    if (shell) shell.hidden = true;
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    await startZonePreview(host, previewZone);
+    return;
+  }
+
   // Dungeon preview branch: ?dungeonPreview=breach-v2 renders the BREACH-V2
   // starting zone straight from the seeded generator, bypassing character
   // creation. Used by the visual review gate (DUNGEON_BUILD_RUNBOOK §5.5) —
   // Level 01 (World3D) is untouched.
   if (await startBreachV2PreviewRoute()) return;
+
+  // Hidden dev shortcut: ?dev=1 adds a small zone-preview launcher that
+  // normal players never see (test teleport tooling lives in the preview).
+  if (searchParams.get("dev") === "1") {
+    const devLink = document.createElement("a");
+    devLink.href = "?zonePreview=hv-1&dev=1";
+    devLink.textContent = "DEV: Heartvale zone preview";
+    devLink.style.cssText =
+      "position:fixed;bottom:10px;right:10px;z-index:9999;padding:6px 10px;" +
+      "background:rgba(8,10,8,0.8);color:#c9a84c;border:1px solid #4a4632;" +
+      "border-radius:6px;font:12px monospace;text-decoration:none;";
+    document.body.appendChild(devLink);
+  }
   await bootstrap();
 })();
 

@@ -1,0 +1,98 @@
+{
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 23052,
+      "min": [-0.740783095, -0.0670509115, -0.948440492],
+      "max": [0.522253096, 0.923806548, 0.873760879]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "type": "VEC2",
+      "count": 23052
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 23052
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 23052
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5125,
+      "type": "SCALAR",
+      "count": 42144
+    }
+  ],
+  "asset": {
+    "generator": "SideFX Houdini",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 276624
+    },
+    {
+      "buffer": 0,
+      "byteLength": 276624,
+      "byteOffset": 276624
+    },
+    {
+      "buffer": 0,
+      "byteLength": 276624,
+      "byteOffset": 553248
+    },
+    {
+      "buffer": 0,
+      "byteLength": 276624,
+      "byteOffset": 829872
+    },
+    {
+      "buffer": 0,
+      "byteLength": 168576,
+      "byteOffset": 1106496
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "boulder_01.lod.boulder_01_data.bin",
+      "byteLength": 1275072
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "indices": 4,
+          "attributes": {
+            "POSITION": 0,
+            "TEXCOORD_0": 1,
+            "NORMAL": 2,
+            "TANGENT": 3
+          }
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [ 0 ]
+    }
+  ]
+}
