@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
   SKIN_TONES,
   type CanonicalHairStyleId,
@@ -11,6 +12,7 @@ import {
   type SkinToneId,
 } from "./game/character";
 import { HUMAN_FOUNDATION_MODEL_PATH } from "./game/avatarIdentity";
+import { lightingTuningRegistry } from "./game/lightingTuning";
 import {
   applyModularAppearance,
   cloneActorMaterial,
@@ -193,16 +195,40 @@ function trackNodeName(trackName: string): string {
 function clipNodeNames(clip: THREE.AnimationClip): ReadonlySet<string> {
   return new Set(clip.tracks.map((track) => trackNodeName(track.name).toLowerCase()));
 }
-const CREATOR_BODY_FRONT_YAW = -Math.PI / 2;
-const CREATOR_FACE_FRONT_YAW = 0;
 
-export type CreationPreviewView = "body" | "face";
+/**
+ * The four authored camera stops. `medium` is head-to-mid-chest (name, memories), `body`
+ * the full figure, `face` the head-and-shoulders portrait, `hero` the low three-quarter
+ * shot of the imprint. Stations only ever move between these; there is no free zoom.
+ */
+export type CreationPreviewView = "medium" | "body" | "face" | "hero";
+
+/** Intensity multipliers over CREATION_LIGHT_BASE; each station authors one of these. */
+export interface CreationLightState {
+  key: number;
+  fill: number;
+  rim: number;
+  under: number;
+}
+
+export const CREATION_LIGHT_BASE = Object.freeze({ hemisphere: 0.7, key: 26, fill: 6, rim: 18, under: 5 });
+export const CREATION_RIM_DEFAULT = 0x6de6dc;
+/** Base-colour-only skin with KHR specular 1.6 turns to plastic above this. */
+export const CREATION_SKIN_ENV_INTENSITY = 0.35;
+export const CREATION_CAMERA_TWEEN_MS = 720;
 
 export interface CreationPreviewOptions {
   view?: CreationPreviewView;
   autoRotate?: boolean;
   /** Called with a human-readable reason whenever the model or its idle cannot be shown. */
   onLoadFailure?: (reason: string) => void;
+  /** Cuts camera tweens, stills the motes, keeps the head from following the pointer. */
+  reducedMotion?: boolean;
+}
+
+export interface CreationCameraStop {
+  position: THREE.Vector3;
+  target: THREE.Vector3;
 }
 
 interface CreationPreviewFraming {
@@ -261,6 +287,83 @@ export function bodyPreviewFitDistance(
   // would frame empty corner volume and make the body unreadably small.
   return Math.max(verticalDistance, horizontalDistance) * 1.2;
 }
+
+function cameraStop(px: number, py: number, pz: number, tx: number, ty: number, tz: number): CreationCameraStop {
+  return { position: new THREE.Vector3(px, py, pz), target: new THREE.Vector3(tx, ty, tz) };
+}
+
+/**
+ * Where the camera stands for a stop, from the cached framing. Every stop keeps the
+ * camera on +Z of the figure; only the pivot yaws.
+ */
+export function creationCameraStop(
+  view: CreationPreviewView,
+  framing: CreationPreviewFraming,
+  aspect: number,
+  fovDegrees: number,
+): CreationCameraStop {
+  const { center, boundsSize, bodyHeight, headY } = framing;
+  const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(fovDegrees * 0.5));
+  const distanceForSpan = (span: number): number => span / (2 * tanHalfFov);
+  switch (view) {
+    case "face": {
+      // Head-and-shoulders portrait. `headY` is the Head bone (skull base, 0.377 on the
+      // 0.9995-unit pilot); the crown sits ~0.12 above it and the chin ~0.03 below. A
+      // 0.20 x bodyHeight span centred 0.035 above the bone puts the chin ~19% up the
+      // frame, the crown ~94% up and the eyes just above centre.
+      const y = headY + bodyHeight * 0.035;
+      return cameraStop(center.x, y, center.z + distanceForSpan(bodyHeight * 0.20), center.x, y, center.z);
+    }
+    case "medium": {
+      const y = headY - bodyHeight * 0.12;
+      return cameraStop(center.x, y, center.z + distanceForSpan(bodyHeight * 0.42), center.x, y, center.z);
+    }
+    case "hero":
+      // Low three-quarter: the camera sits below the chest and looks up at the shoulders.
+      return cameraStop(
+        center.x, center.y - bodyHeight * 0.05, center.z + distanceForSpan(bodyHeight * 0.78),
+        center.x, center.y + bodyHeight * 0.30, center.z,
+      );
+    default: {
+      const distance = bodyPreviewFitDistance(boundsSize, aspect, fovDegrees);
+      return cameraStop(
+        center.x, center.y + bodyHeight * 0.06, center.z + distance,
+        center.x, center.y + bodyHeight * 0.02, center.z,
+      );
+    }
+  }
+}
+
+export function easeInOutCubic(t: number): number {
+  const x = THREE.MathUtils.clamp(t, 0, 1);
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+}
+
+/** Soft radial blob under the feet; no shadow maps anywhere in the creator. */
+function contactShadowTexture(): THREE.CanvasTexture {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  if (context) {
+    const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    gradient.addColorStop(0, "rgba(0, 0, 0, 0.55)");
+    gradient.addColorStop(0.55, "rgba(0, 0, 0, 0.22)");
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, size, size);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const MOTE_RADIUS = 2.2;
+const MOTE_HEIGHT = 2.4;
+const MOTE_RISE_PER_SECOND = 0.04;
+const MOTE_TEAL = new THREE.Color(0x7af4df);
+const MOTE_BRONZE = new THREE.Color(0xefb85f);
 
 /**
  * Holds the neck and head at the clip's neutral first frame so the creator
@@ -322,8 +425,8 @@ export class CreationAvatarPreview {
   private readonly camera: THREE.PerspectiveCamera;
   private model: THREE.Object3D | undefined;
   private appearance: CreationPreviewAppearance;
-  private yaw = CREATOR_BODY_FRONT_YAW;
-  private targetYaw = CREATOR_BODY_FRONT_YAW;
+  private yaw = 0;
+  private targetYaw = 0;
   private dragging = false;
   private lastPointerX = 0;
   private lastInteractionAt = performance.now();
@@ -349,6 +452,26 @@ export class CreationAvatarPreview {
   /** Pointer position on the canvas in NDC, right and up positive. */
   private readonly gazeTarget = new THREE.Vector2();
   private gazeSeenAt = 0;
+  private readonly reducedMotion: boolean;
+  private presentationYaw = 0;
+  private viewOffsetFraction = 0;
+  private appliedViewOffset = 0;
+  private cameraSettled = false;
+  private cameraTween: { fromPosition: THREE.Vector3; fromTarget: THREE.Vector3; startedAt: number; durationMs: number } | null = null;
+  private readonly cameraTarget = new THREE.Vector3();
+  private readonly lightState: CreationLightState = { key: 1, fill: 0.6, rim: 1, under: 1 };
+  private readonly lightTarget: CreationLightState = { key: 1, fill: 0.6, rim: 1, under: 1 };
+  private readonly rimColorTarget = new THREE.Color(CREATION_RIM_DEFAULT);
+  private readonly keyLight: THREE.PointLight;
+  private readonly fillLight: THREE.PointLight;
+  private readonly rimLight: THREE.PointLight;
+  private readonly underLight: THREE.PointLight;
+  private readonly contactShadow: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  private readonly motes: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial>;
+  private readonly moteBase: Float32Array;
+  private readonly motePhase: Float32Array;
+  private moteSeconds = 0;
+  private motePulseUntil = 0;
   private cssWidth = 0;
   private cssHeight = 0;
   private appliedPixelRatio = 0;
@@ -363,23 +486,70 @@ export class CreationAvatarPreview {
     this.previewView = options.view ?? "body";
     this.yaw = this.frontYaw();
     this.targetYaw = this.yaw;
-    this.autoRotate = options.autoRotate ?? false;
+    this.reducedMotion = options.reducedMotion ?? false;
+    this.autoRotate = this.reducedMotion ? false : (options.autoRotate ?? false);
+    this.gazeEnabled = !this.reducedMotion;
     this.onLoadFailure = options.onLoadFailure;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    // The world's exposure, so the creator predicts how the Well will light this body.
+    this.renderer.toneMappingExposure = lightingTuningRegistry.snapshot().exposure;
     this.renderer.setClearColor(0x000000, 0);
     this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
     this.rotationPivot.rotation.y = this.yaw;
     this.scene.add(this.rotationPivot);
 
-    this.scene.add(new THREE.HemisphereLight(0xbfd9d4, 0x1c1611, 1.15));
-    const key = new THREE.PointLight(0xffd1b7, 32, 24, 2);
-    key.position.set(-1.6, 3.1, 2.4);
-    const rim = new THREE.PointLight(0x6de6dc, 14, 18, 2);
-    rim.position.set(1.9, 2.2, -2.1);
-    this.scene.add(key, rim);
+    this.scene.add(new THREE.HemisphereLight(0xbfd9d4, 0x1c1611, CREATION_LIGHT_BASE.hemisphere));
+    this.keyLight = new THREE.PointLight(0xffd1b7, CREATION_LIGHT_BASE.key, 24, 2);
+    this.keyLight.position.set(-1.6, 3.1, 2.4);
+    this.rimLight = new THREE.PointLight(CREATION_RIM_DEFAULT, CREATION_LIGHT_BASE.rim, 18, 2);
+    this.rimLight.position.set(1.9, 2.2, -2.1);
+    this.fillLight = new THREE.PointLight(0x6f8fb8, CREATION_LIGHT_BASE.fill * 0.6, 18, 2);
+    this.fillLight.position.set(2.2, 1.6, 2.0);
+    // Low teal from the Well itself: shins, hands and the underside of the jaw.
+    this.underLight = new THREE.PointLight(0x3fd6c6, CREATION_LIGHT_BASE.under, 6, 2);
+    this.underLight.position.set(0.9, 0.35, 0.6);
+    this.scene.add(this.keyLight, this.rimLight, this.fillLight, this.underLight);
+
+    this.contactShadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.9, 0.9),
+      new THREE.MeshBasicMaterial({ map: contactShadowTexture(), transparent: true, depthWrite: false }),
+    );
+    this.contactShadow.rotation.x = -Math.PI / 2;
+    this.contactShadow.visible = false;
+    this.scene.add(this.contactShadow);
+
+    const moteCount = window.innerWidth <= 1079 ? 40 : 90;
+    const positions = new Float32Array(moteCount * 3);
+    const colors = new Float32Array(moteCount * 3);
+    this.moteBase = new Float32Array(moteCount * 2);
+    this.motePhase = new Float32Array(moteCount);
+    for (let i = 0; i < moteCount; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.sqrt(Math.random()) * MOTE_RADIUS;
+      this.moteBase[i * 2] = Math.cos(angle) * radius;
+      this.moteBase[i * 2 + 1] = Math.sin(angle) * radius;
+      this.motePhase[i] = Math.random() * Math.PI * 2;
+      positions[i * 3] = this.moteBase[i * 2]!;
+      positions[i * 3 + 1] = Math.random() * MOTE_HEIGHT;
+      positions[i * 3 + 2] = this.moteBase[i * 2 + 1]!;
+    }
+    const moteGeometry = new THREE.BufferGeometry();
+    moteGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    moteGeometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    this.motes = new THREE.Points(moteGeometry, new THREE.PointsMaterial({
+      size: 0.018,
+      sizeAttenuation: true,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }));
+    this.motes.visible = false;
+    this.scene.add(this.motes);
+    this.updateMotes(0);
 
     canvas.addEventListener("pointerdown", this.onPointerDown);
     window.addEventListener("pointermove", this.onPointerMove);
@@ -436,6 +606,15 @@ export class CreationAvatarPreview {
         helpers.forEach((helper) => helper.removeFromParent());
         this.model = model;
         this.rotationPivot.add(model);
+        this.ensureEnvironment();
+        model.traverse((child) => {
+          if (!(child instanceof THREE.Mesh)) return;
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          for (const material of materials) {
+            if (material instanceof THREE.MeshStandardMaterial) material.envMapIntensity = CREATION_SKIN_ENV_INTENSITY;
+          }
+        });
+        this.cameraSettled = false;
         this.onAvailabilityChange?.(inspectCreationPreviewAvailability(model));
         this.applyAppearance();
         this.syncPreviewMotion();
@@ -454,16 +633,101 @@ export class CreationAvatarPreview {
     this.applyAppearance();
   }
 
+  /** Moves to another camera stop with the authored tween; the idle keeps playing. */
   public setView(view: CreationPreviewView): void {
     if (this.previewView === view) return;
     this.previewView = view;
+    this.beginCameraTween();
     this.resetFacing();
-    this.syncPreviewMotion();
   }
 
   public setAutoRotate(enabled: boolean): void {
-    this.autoRotate = enabled;
+    this.autoRotate = enabled && !this.reducedMotion;
     this.lastInteractionAt = performance.now();
+  }
+
+  /** The station's authored yaw (radians); `resetFacing()` and the front-view button return to it. */
+  public setPresentationYaw(radians: number): void {
+    this.presentationYaw = radians;
+    this.targetYaw = radians;
+    this.lastInteractionAt = performance.now();
+  }
+
+  /** Shifts the figure sideways in the frame (0.14 = left of centre on desktop, 0 on phones). */
+  public setViewOffset(fraction: number): void {
+    this.viewOffsetFraction = fraction;
+  }
+
+  public setLightState(state: Partial<CreationLightState>): void {
+    Object.assign(this.lightTarget, state);
+  }
+
+  public setRimColor(hex: number): void {
+    this.rimColorTarget.set(hex);
+  }
+
+  /** Briefly doubles the motes' presence (station arrival, a chosen tone). */
+  public pulseMotes(durationMs = 3000): void {
+    this.motePulseUntil = performance.now() + durationMs;
+  }
+
+  private beginCameraTween(): void {
+    if (!this.cameraSettled) return;
+    this.cameraTween = {
+      fromPosition: this.camera.position.clone(),
+      fromTarget: this.cameraTarget.clone(),
+      startedAt: performance.now(),
+      durationMs: this.reducedMotion ? 0 : CREATION_CAMERA_TWEEN_MS,
+    };
+  }
+
+  private ensureEnvironment(): void {
+    if (this.scene.environment) return;
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+  }
+
+  private applyLights(deltaSeconds: number): void {
+    const blend = 1 - Math.exp(-deltaSeconds / 0.23);
+    for (const channel of ["key", "fill", "rim", "under"] as const) {
+      this.lightState[channel] += (this.lightTarget[channel] - this.lightState[channel]) * blend;
+    }
+    this.keyLight.intensity = CREATION_LIGHT_BASE.key * this.lightState.key;
+    this.fillLight.intensity = CREATION_LIGHT_BASE.fill * this.lightState.fill;
+    this.rimLight.intensity = CREATION_LIGHT_BASE.rim * this.lightState.rim;
+    this.underLight.intensity = CREATION_LIGHT_BASE.under * this.lightState.under;
+    this.rimLight.color.lerp(this.rimColorTarget, 1 - Math.exp(-deltaSeconds / 0.18));
+  }
+
+  private updateMotes(deltaSeconds: number): void {
+    const geometry = this.motes.geometry;
+    const positions = geometry.getAttribute("position") as THREE.BufferAttribute;
+    const colors = geometry.getAttribute("color") as THREE.BufferAttribute;
+    const count = positions.count;
+    const now = performance.now();
+    const pulse = now < this.motePulseUntil ? 1.6 : 1;
+    this.motes.material.size = 0.018 * pulse;
+    this.motes.material.opacity = Math.min(1, 0.85 * pulse);
+    const animate = !this.reducedMotion && deltaSeconds > 0;
+    if (animate) this.moteSeconds += deltaSeconds;
+    const scratch = new THREE.Color();
+    for (let i = 0; i < count; i += 1) {
+      let y = positions.getY(i);
+      if (animate) {
+        y += MOTE_RISE_PER_SECOND * deltaSeconds;
+        if (y > MOTE_HEIGHT) y -= MOTE_HEIGHT;
+        const drift = Math.sin(this.moteSeconds * Math.PI * 2 * 0.3 + this.motePhase[i]!) * 0.05;
+        positions.setXYZ(i, this.moteBase[i * 2]! + drift, y, this.moteBase[i * 2 + 1]! - drift * 0.6);
+      }
+      const height = y / MOTE_HEIGHT;
+      // Additive blending: darker is fainter, so the top 0.4 fades by dimming.
+      const fade = height > 1 - 0.4 / MOTE_HEIGHT ? (1 - height) / (0.4 / MOTE_HEIGHT) : 1;
+      scratch.copy(MOTE_TEAL).lerp(MOTE_BRONZE, height).multiplyScalar(fade);
+      colors.setXYZ(i, scratch.r, scratch.g, scratch.b);
+    }
+    positions.needsUpdate = true;
+    colors.needsUpdate = true;
   }
 
   /**
@@ -556,9 +820,8 @@ export class CreationAvatarPreview {
   }
 
   private frontYaw(): number {
-    // Both stations share one upright front yaw. The old body-only -PI/2 existed
-    // solely to cancel the `skeleton.pose()` orientation bug removed below.
-    return CREATOR_FACE_FRONT_YAW;
+    // Every stop is upright; stations may author a presentation yaw (calling, review).
+    return this.presentationYaw;
   }
 
   public resetFacing(): void {
@@ -593,10 +856,15 @@ export class CreationAvatarPreview {
       });
       this.rotationPivot.remove(this.model);
     }
+    this.scene.environment?.dispose();
+    this.contactShadow.geometry.dispose();
+    this.contactShadow.material.map?.dispose();
+    this.contactShadow.material.dispose();
+    this.motes.geometry.dispose();
+    this.motes.material.dispose();
     this.renderer.dispose();
-    // The creator rebuilds this preview on every step change; without an
-    // explicit context loss mobile Safari drops the oldest context and the
-    // canvas goes blank after a handful of switches.
+    // Without an explicit context loss mobile Safari drops the oldest context
+    // when the game's own renderer starts, and the canvas goes blank.
     this.renderer.forceContextLoss();
   }
 
@@ -834,6 +1102,11 @@ export class CreationAvatarPreview {
     });
     const headY = head?.getWorldPosition(new THREE.Vector3()).y ?? bounds.min.y + bodyHeight * 0.88;
     this.framing = { center, boundsSize, bodyHeight, headY };
+    const floorY = center.y - boundsSize.y * 0.5;
+    this.contactShadow.position.set(center.x, floorY + 0.002, center.z);
+    this.contactShadow.visible = true;
+    this.motes.position.set(center.x, floorY, center.z);
+    this.motes.visible = true;
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
@@ -857,25 +1130,48 @@ export class CreationAvatarPreview {
 
   private render(): void {
     if (this.disposed) return;
+    try {
+      this.renderFrame();
+    } catch (error) {
+      // A throw inside a requestAnimationFrame callback ends the loop silently
+      // in some hosts; record it where a harness can read it, then rethrow.
+      const errors = ((window as Window & { __stageErrors?: unknown[] }).__stageErrors ??= []);
+      errors.push(error);
+      throw error;
+    }
+  }
+
+  private renderFrame(): void {
     const now = performance.now();
     const deltaSeconds = Math.min(0.05, Math.max(0, (now - this.lastFrameAt) / 1000));
     this.lastFrameAt = now;
     this.mixer?.update(deltaSeconds);
     this.applyBreath(deltaSeconds);
     this.applyGaze(deltaSeconds);
+    this.applyLights(deltaSeconds);
+    this.updateMotes(deltaSeconds);
     const width = Math.max(1, Math.round(this.canvas.clientWidth));
     const height = Math.max(1, Math.round(this.canvas.clientHeight));
     // Compare CSS pixels against CSS pixels. `canvas.width` becomes a device
     // pixel value once a pixel ratio is set, so the old comparison could never
     // match again and setSize ran on every frame.
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-    if (width !== this.cssWidth || height !== this.cssHeight || pixelRatio !== this.appliedPixelRatio) {
+    if (width !== this.cssWidth || height !== this.cssHeight || pixelRatio !== this.appliedPixelRatio
+      || this.viewOffsetFraction !== this.appliedViewOffset) {
       this.cssWidth = width;
       this.cssHeight = height;
       this.appliedPixelRatio = pixelRatio;
+      this.appliedViewOffset = this.viewOffsetFraction;
       this.renderer.setPixelRatio(pixelRatio);
       this.renderer.setSize(width, height, false);
       this.camera.aspect = width / height;
+      // A positive offset shows the right part of the full frustum, which moves the
+      // figure left - clear of the folio on the right.
+      if (this.viewOffsetFraction !== 0) {
+        this.camera.setViewOffset(width, height, Math.round(this.viewOffsetFraction * width), 0, width, height);
+      } else {
+        this.camera.clearViewOffset();
+      }
       this.camera.updateProjectionMatrix();
     }
 
@@ -890,29 +1186,26 @@ export class CreationAvatarPreview {
         this.frame = requestAnimationFrame(() => this.render());
         return;
       }
-      const { center, boundsSize, bodyHeight, headY } = framing;
-      if (this.previewView === "face") {
-        this.camera.up.set(0, 1, 0);
-        // Head-and-shoulders portrait. `headY` is the Head bone (skull base,
-        // 0.377 on the 0.9995-unit pilot); the crown sits ~0.12 above it and
-        // the chin ~0.03 below. A 0.20 x bodyHeight span centred 0.035 above
-        // the bone puts the chin ~19% up the frame, the crown ~94% up and the
-        // eyes just above centre, with the neck and collar still visible. The
-        // previous 0.32 span aimed at the neck framed a chest-up medium shot
-        // in which hairline, ears and skin could not be judged.
-        const portraitSpan = bodyHeight * 0.20;
-        const portraitTargetY = headY + bodyHeight * 0.035;
-        const distance = portraitSpan / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5)));
-        this.camera.position.set(center.x, portraitTargetY, center.z + distance);
-        this.camera.lookAt(center.x, portraitTargetY, center.z);
+      const stop = creationCameraStop(this.previewView, framing, this.camera.aspect, this.camera.fov);
+      const tween = this.cameraTween;
+      if (!this.cameraSettled) {
+        this.camera.position.copy(stop.position);
+        this.cameraTarget.copy(stop.target);
+        this.cameraSettled = true;
+        this.cameraTween = null;
+      } else if (tween) {
+        const progress = tween.durationMs <= 0 ? 1 : (now - tween.startedAt) / tween.durationMs;
+        const t = easeInOutCubic(progress);
+        this.camera.position.lerpVectors(tween.fromPosition, stop.position, t);
+        this.cameraTarget.lerpVectors(tween.fromTarget, stop.target, t);
+        if (progress >= 1) this.cameraTween = null;
       } else {
-        // The figure is upright once the idle clip drives the rig, so the
-        // body station uses the ordinary world up axis.
-        this.camera.up.set(0, 1, 0);
-        const distance = bodyPreviewFitDistance(boundsSize, this.camera.aspect, this.camera.fov);
-        this.camera.position.set(center.x, center.y + bodyHeight * 0.06, center.z + distance);
-        this.camera.lookAt(center.x, center.y + bodyHeight * 0.02, center.z);
+        this.camera.position.copy(stop.position);
+        this.cameraTarget.copy(stop.target);
       }
+      // The figure is upright once the idle drives the rig: ordinary world up.
+      this.camera.up.set(0, 1, 0);
+      this.camera.lookAt(this.cameraTarget);
     }
     this.renderer.render(this.scene, this.camera);
     this.frame = requestAnimationFrame(() => this.render());
