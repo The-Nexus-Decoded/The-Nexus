@@ -17,6 +17,8 @@ import {
   inspectCreationPreviewAvailability,
   creatorBreathEnvelope,
   creatorGazeAngles,
+  creatorWheelZoomStep,
+  creationZoomedStop,
   previewModelUrl,
   resolveCreatorReactionSpec,
   stabilizeCreatorRelaxedIdle,
@@ -768,5 +770,29 @@ describe("creator preview model routing", () => {
     expect(previewModelUrl("elf")).toBe("/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb");
     expect(previewModelUrl("dwarf")).toBe("/assets/3d/characters/human-shadowknight/human-shadowknight.glb");
     expect(previewModelUrl("halfling")).toBe("/assets/3d/characters/human-shadowknight/human-shadowknight.glb");
+  });
+});
+
+describe("creator wheel zoom", () => {
+  it("maps wheel input to a zoom step in the same range for pixels, lines and pages", () => {
+    expect(creatorWheelZoomStep(-100, 0)).toBeCloseTo(100 / 900, 6);
+    expect(creatorWheelZoomStep(100, 0)).toBeCloseTo(-100 / 900, 6);
+    expect(creatorWheelZoomStep(-3, 1)).toBeCloseTo(48 / 900, 6);
+    expect(creatorWheelZoomStep(-1, 2)).toBeCloseTo(400 / 900, 6);
+    expect(creatorWheelZoomStep(0, 0)).toBe(0);
+  });
+
+  it("dollies from the station stop to the face stop and clamps at both ends", () => {
+    const station = { position: new THREE.Vector3(0, 0.5, 2), target: new THREE.Vector3(0, 0.4, 0) };
+    const face = { position: new THREE.Vector3(0, 0.9, 0.6), target: new THREE.Vector3(0, 0.9, 0) };
+    expect(creationZoomedStop(station, face, 0).position.distanceTo(station.position)).toBeCloseTo(0, 6);
+    expect(creationZoomedStop(station, face, 1).target.distanceTo(face.target)).toBeCloseTo(0, 6);
+    const half = creationZoomedStop(station, face, 0.5);
+    expect(half.position.z).toBeCloseTo(1.3, 6);
+    expect(half.target.y).toBeCloseTo(0.65, 6);
+    expect(creationZoomedStop(station, face, 4).position.distanceTo(face.position)).toBeCloseTo(0, 6);
+    expect(creationZoomedStop(station, face, -2).position.distanceTo(station.position)).toBeCloseTo(0, 6);
+    // the inputs are not mutated
+    expect(station.position.z).toBe(2);
   });
 });

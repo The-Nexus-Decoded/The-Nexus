@@ -499,6 +499,31 @@ function cameraStop(px: number, py: number, pz: number, tx: number, ty: number, 
  * Where the camera stands for a stop, from the cached framing. Every stop keeps the
  * camera on +Z of the figure; only the pivot yaws.
  */
+/**
+ * Scroll-wheel zoom. A wheel over the stage dollies the camera from the
+ * station's stop toward the face stop; scrolling back returns it. Lines and
+ * pages are normalised to pixels so a mouse, a trackpad and a Firefox line
+ * scroll all cover the same range: about nine 100 px notches from body to face.
+ */
+export const CREATOR_WHEEL_ZOOM_PER_PIXEL = 1 / 900;
+export const CREATOR_ZOOM_RESPONSE_SECONDS = 0.12;
+
+export function creatorWheelZoomStep(deltaY: number, deltaMode: number): number {
+  const pixels = deltaMode === 1 ? deltaY * 16 : deltaMode === 2 ? deltaY * 400 : deltaY;
+  // scrolling up (negative deltaY) zooms in; a zero delta is a plain 0, never -0
+  const step = -pixels * CREATOR_WHEEL_ZOOM_PER_PIXEL;
+  return step === 0 ? 0 : step;
+}
+
+/** The camera stop `zoom` (0..1) of the way from the station's stop to the face stop. */
+export function creationZoomedStop(station: CreationCameraStop, face: CreationCameraStop, zoom: number): CreationCameraStop {
+  const t = Math.min(1, Math.max(0, zoom));
+  return {
+    position: station.position.clone().lerp(face.position, t),
+    target: station.target.clone().lerp(face.target, t),
+  };
+}
+
 export function creationCameraStop(
   view: CreationPreviewView,
   framing: CreationPreviewFraming,
@@ -708,6 +733,9 @@ export class CreationAvatarPreview {
   private reducedMotion: boolean;
   private presentationYaw = 0;
   private viewOffsetFraction = 0;
+  /** Wheel zoom toward the face stop, smoothed toward `zoomTarget` every frame. */
+  private zoom = 0;
+  private zoomTarget = 0;
   private appliedViewOffset = 0;
   private cameraSettled = false;
   private cameraTween: { fromPosition: THREE.Vector3; fromTarget: THREE.Vector3; startedAt: number; durationMs: number } | null = null;
@@ -808,6 +836,8 @@ export class CreationAvatarPreview {
     this.updateMotes(0);
 
     canvas.addEventListener("pointerdown", this.onPointerDown);
+    // The stage never scrolls, so the wheel is the zoom; passive: false lets it stop the page.
+    canvas.addEventListener("wheel", this.onWheel, { passive: false });
     window.addEventListener("pointermove", this.onPointerMove);
     window.addEventListener("pointerup", this.onPointerUp);
     // A cancelled touch - an incoming call, a gesture takeover - never fires
@@ -900,7 +930,23 @@ export class CreationAvatarPreview {
     this.previewView = view;
     this.beginCameraTween();
     this.resetFacing();
+    this.zoom = 0;
+    this.zoomTarget = 0;
     return true;
+  }
+
+  /** 0 = the station's own stop, 1 = the face stop; the frame eases toward it. */
+  public setZoom(fraction: number): void {
+    this.zoomTarget = Math.min(1, Math.max(0, fraction));
+    this.lastInteractionAt = performance.now();
+  }
+
+  public zoomBy(step: number): void {
+    this.setZoom(this.zoomTarget + step);
+  }
+
+  public get zoomFraction(): number {
+    return this.zoom;
   }
 
   public setAutoRotate(enabled: boolean): void {
@@ -1211,6 +1257,7 @@ export class CreationAvatarPreview {
     this.motionRequest += 1;
     cancelAnimationFrame(this.frame);
     this.canvas.removeEventListener("pointerdown", this.onPointerDown);
+    this.canvas.removeEventListener("wheel", this.onWheel);
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onPointerUp);
     window.removeEventListener("pointercancel", this.onPointerUp);
@@ -1541,6 +1588,11 @@ export class CreationAvatarPreview {
     this.motes.visible = true;
   }
 
+  private readonly onWheel = (event: WheelEvent): void => {
+    event.preventDefault();
+    this.zoomBy(creatorWheelZoomStep(event.deltaY, event.deltaMode));
+  };
+
   private readonly onPointerDown = (event: PointerEvent): void => {
     this.dragging = true;
     this.lastPointerX = event.clientX;
@@ -1623,7 +1675,11 @@ export class CreationAvatarPreview {
         this.frame = requestAnimationFrame(() => this.render());
         return;
       }
-      const stop = creationCameraStop(this.previewView, framing, this.camera.aspect, this.camera.fov);
+      const stationStop = creationCameraStop(this.previewView, framing, this.camera.aspect, this.camera.fov);
+      this.zoom += (this.zoomTarget - this.zoom) * (1 - Math.exp(-deltaSeconds / CREATOR_ZOOM_RESPONSE_SECONDS));
+      const stop = this.zoom > 0.0005 && this.previewView !== "face"
+        ? creationZoomedStop(stationStop, creationCameraStop("face", framing, this.camera.aspect, this.camera.fov), this.zoom)
+        : stationStop;
       const tween = this.cameraTween;
       if (!this.cameraSettled) {
         this.camera.position.copy(stop.position);
