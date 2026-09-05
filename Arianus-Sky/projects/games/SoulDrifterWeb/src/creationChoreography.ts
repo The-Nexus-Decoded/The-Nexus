@@ -153,11 +153,20 @@ export const CREATOR_CUE_TIMING = Object.freeze({
 export const CREATOR_CUE_AMPLITUDE = Object.freeze({
   /** Head, about its ear-to-ear axis; positive nods down. */
   nodPitchDegrees: 7,
-  /** Head, about its up axis; the swing alternates sides. */
-  shakeYawDegrees: 6,
-  /** Spine1 lifts the chest; the shoulders square by mirrored rotations about their length. */
-  braceSpinePitchDegrees: -2.5,
-  braceShoulderDegrees: 1.5,
+  /**
+   * Head, about its up axis; the swing alternates sides. Four degrees past the design's
+   * first figure (6): at 6 a 200x200 crop on the crown moved 5.8/255 per pixel at
+   * 1440x900 and at 8 its second swing still read 5.9, under the gate; at 10 the crown
+   * reads 7.3-8.8 and every crop centred on the head 10.4-17.0.
+   */
+  shakeYawDegrees: 10,
+  /**
+   * Spine1 lifts the chest; the shoulders square by mirrored rotations about their length.
+   * Twice the design's first figures (-2.5 / 1.5): at those a 200x200 shoulder crop at
+   * 1440x900 moved 5.1-7.1/255 per pixel, on the gate; doubled it moves 8.5-12.8.
+   */
+  braceSpinePitchDegrees: -5,
+  braceShoulderDegrees: 3,
   /** Hips slide sideways and Spine1 counter-rolls so the head stays over the feet. */
   settleHipsMetres: 0.012,
   settleSpineRollDegrees: 1.2,
@@ -206,6 +215,53 @@ export function cueEnvelope(cue: CreatorCue, elapsedMs: number): number {
     default:
       return easeInOutCubic(elapsedMs / CREATOR_CUE_TIMING.settle.durationMs);
   }
+}
+
+// ---------------------------------------------------------------------- pixel gate
+
+export interface RgbMean {
+  r: number;
+  g: number;
+  b: number;
+}
+
+/** Mean RGB (0..255) of an RGBA buffer as `gl.readPixels` delivers it; alpha is ignored. */
+export function meanRgb(rgba: Uint8Array): RgbMean {
+  const count = rgba.length / 4;
+  if (!(count >= 1)) return { r: 0, g: 0, b: 0 };
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  for (let offset = 0; offset < rgba.length; offset += 4) {
+    r += rgba[offset]!;
+    g += rgba[offset + 1]!;
+    b += rgba[offset + 2]!;
+  }
+  return { r: r / count, g: g / count, b: b / count };
+}
+
+/**
+ * Mean absolute per-channel difference (0..255) per pixel between two RGBA buffers of one
+ * size. This is the statistic behind the cue gate. A nod or a shake moves features and
+ * silhouette edges around inside the crop, which leaves the crop's mean colour where it
+ * was (measured at 1440x900: under 3.3/255 for a nod at every amplitude up to 21 degrees,
+ * and not rising with amplitude), while every pixel that moved counts here.
+ */
+export function meanAbsoluteRgbDifference(before: Uint8Array, after: Uint8Array): RgbMean {
+  if (before.length !== after.length) {
+    throw new RangeError(`Cannot compare ${before.length} bytes with ${after.length} bytes.`);
+  }
+  const count = before.length / 4;
+  if (!(count >= 1)) return { r: 0, g: 0, b: 0 };
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  for (let offset = 0; offset < before.length; offset += 4) {
+    r += Math.abs(before[offset]! - after[offset]!);
+    g += Math.abs(before[offset + 1]! - after[offset + 1]!);
+    b += Math.abs(before[offset + 2]! - after[offset + 2]!);
+  }
+  return { r: r / count, g: g / count, b: b / count };
 }
 
 // -------------------------------------------------------------------------- awaken

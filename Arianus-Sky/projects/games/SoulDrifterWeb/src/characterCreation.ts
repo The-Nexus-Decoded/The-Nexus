@@ -297,8 +297,9 @@ export class CharacterCreation {
     if (import.meta.env.DEV) {
       // Hands the live preview to the QA harness and to manual checks such as
       // `__souldrifterCreationPreview.playReaction("listen")` in DevTools, and the
-      // pixel gate behind every cue: `sampleRegion` reads the figure back from the
-      // drawing buffer, so a cue that does not move the numbers cannot ship.
+      // pixel gate behind every cue: `sampleRegion` reads a crop back from the drawing
+      // buffer and reports how far it moved per pixel since its last sample (`diff`),
+      // so a cue that does not move it cannot ship.
       const debugWindow = window as Window & {
         __souldrifterCreationPreview?: CreationAvatarPreview | null;
         __SOULDRIFTER_CREATOR_DEBUG__?: { sampleRegion: CreationAvatarPreview["sampleRegion"] };
@@ -415,7 +416,9 @@ export class CharacterCreation {
 
   private readonly onPopState = (event: PopStateEvent): void => {
     const state = event.state as Partial<CreationHistoryState> | null;
-    if (!state?.souldrifterCreation || this.root.hidden || !state.step) return;
+    // Awaken owns the shell until the hide step: a Back press during the Farewell must
+    // not re-render a station under a timeline that is about to boot the game.
+    if (!state?.souldrifterCreation || this.root.hidden || this.completing || !state.step) return;
     this.step = state.step;
     this.memoryIndex = Number.isInteger(state.memoryIndex) ? Math.max(0, state.memoryIndex ?? 0) : 0;
     this.render();

@@ -44,10 +44,14 @@ import {
   gazeDriftYaw,
   gazeTargetFromPointer,
   holdEnvelope,
+  meanAbsoluteRgbDifference,
+  meanRgb,
   scaleGazeAngles,
+  stationGazeLimits,
   type CreatorCue,
   type CreatorGazeAngles,
   type CreatorStationChoreography,
+  type RgbMean,
 } from "./creationChoreography";
 
 const PREVIEW_MODEL_LEGACY_HUMAN = "/assets/3d/characters/human-shadowknight/human-shadowknight.glb";
@@ -416,6 +420,19 @@ export const CREATION_RIM_DEFAULT = 0x6de6dc;
 /** Base-colour-only skin with KHR specular 1.6 turns to plastic above this. */
 export const CREATION_SKIN_ENV_INTENSITY = 0.35;
 export const CREATION_CAMERA_TWEEN_MS = 720;
+/** `sampleRegion` keeps the last read of this many distinct regions to diff against. */
+const CREATOR_REGION_SAMPLE_SLOTS = 8;
+
+/** What `sampleRegion` reads back for one crop. */
+export interface CreationRegionSample extends RgbMean {
+  /** Device pixels read. */
+  pixels: number;
+  /**
+   * Mean absolute per-channel difference per pixel from the previous sample of this same
+   * region; null on a region's first sample. The pixel gate reads this.
+   */
+  diff: RgbMean | null;
+}
 
 export interface CreationPreviewOptions {
   view?: CreationPreviewView;
@@ -756,6 +773,8 @@ export class CreationAvatarPreview {
   private cssWidth = 0;
   private cssHeight = 0;
   private appliedPixelRatio = 0;
+  /** Last pixels read per region key, so the next sample of that region can report `diff`. */
+  private readonly regionSamples = new Map<string, Uint8Array>();
 
   public constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -1159,12 +1178,16 @@ export class CreationAvatarPreview {
   }
 
   /**
-   * Renders one frame and reads the mean RGB (0..255) of a canvas region, given in CSS
-   * pixels from the top-left, back from the drawing buffer in the same task. This is
-   * the pixel gate behind every cue: a cue that does not move these numbers does not ship.
+   * Renders one frame and reads a canvas region (CSS pixels from the top-left) back from
+   * the drawing buffer in the same task: the crop's mean RGB (0..255) and, from the second
+   * sample of the same region on, `diff`, the mean absolute per-channel difference per
+   * pixel since the previous sample. `diff` is the pixel gate behind every cue: a cue that
+   * does not move it does not ship. The mean alone cannot see a rotation (a nod moves the
+   * face inside the crop, not the crop's colour), which is why the gate reads `diff`.
+   * Null before the first frame has sized the canvas.
    */
-  public sampleRegion(region: { x: number; y: number; w: number; h: number }): { r: number; g: number; b: number; pixels: number } | null {
-    if (this.disposed) return null;
+  public sampleRegion(region: { x: number; y: number; w: number; h: number }): CreationRegionSample | null {
+    if (this.disposed || this.cssWidth === 0 || this.cssHeight === 0) return null;
     this.renderer.render(this.scene, this.camera);
     const gl = this.renderer.getContext();
     const ratio = this.appliedPixelRatio || 1;
@@ -1175,16 +1198,19 @@ export class CreationAvatarPreview {
     const y = Math.round((this.cssHeight - region.y - region.h) * ratio);
     const pixels = new Uint8Array(width * height * 4);
     gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-    let r = 0;
-    let g = 0;
-    let b = 0;
-    for (let offset = 0; offset < pixels.length; offset += 4) {
-      r += pixels[offset]!;
-      g += pixels[offset + 1]!;
-      b += pixels[offset + 2]!;
+    const key = `${region.x},${region.y},${region.w},${region.h}`;
+    const previous = this.regionSamples.get(key);
+    // Re-insert so the map stays in most-recently-sampled order and the oldest region drops first.
+    this.regionSamples.delete(key);
+    this.regionSamples.set(key, pixels);
+    if (this.regionSamples.size > CREATOR_REGION_SAMPLE_SLOTS) {
+      for (const oldest of this.regionSamples.keys()) {
+        this.regionSamples.delete(oldest);
+        break;
+      }
     }
-    const count = width * height;
-    return { r: r / count, g: g / count, b: b / count, pixels: count };
+    const diff = previous && previous.length === pixels.length ? meanAbsoluteRgbDifference(previous, pixels) : null;
+    return { ...meanRgb(pixels), pixels: width * height, diff };
   }
 
   private settleReaction(): void {
@@ -1255,6 +1281,7 @@ export class CreationAvatarPreview {
   public dispose(): void {
     this.disposed = true;
     this.motionRequest += 1;
+    this.regionSamples.clear();
     cancelAnimationFrame(this.frame);
     this.canvas.removeEventListener("pointerdown", this.onPointerDown);
     this.canvas.removeEventListener("wheel", this.onWheel);
@@ -1387,8 +1414,12 @@ export class CreationAvatarPreview {
     } else {
       wanted = { ...CREATOR_GAZE_NEUTRAL };
     }
-    // Unattended, the target wanders a little so the figure never stares at one point.
-    wanted.yaw += gazeDriftYaw(now - this.gazeSeenAt) * this.gazeProfile.gazeScale;
+    // Unattended, the target wanders a little so the figure never stares at one point;
+    // the sway stays inside the station's limit instead of adding to a target already on it.
+    const limit = stationGazeLimits(this.gazeProfile, CREATOR_GAZE_LIMITS);
+    wanted.yaw = THREE.MathUtils.clamp(
+      wanted.yaw + gazeDriftYaw(now - this.gazeSeenAt) * this.gazeProfile.gazeScale, -limit.yaw, limit.yaw,
+    );
     const bias = this.gazeBias;
     if (bias) {
       const elapsed = now - bias.startedAt;

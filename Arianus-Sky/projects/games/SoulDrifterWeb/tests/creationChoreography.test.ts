@@ -14,6 +14,8 @@ import {
   gazeDriftYaw,
   gazeTargetFromPointer,
   holdEnvelope,
+  meanAbsoluteRgbDifference,
+  meanRgb,
   memoryListenDelayMs,
   resolveWithin,
   scaleGazeAngles,
@@ -506,5 +508,52 @@ describe("awaken timeline", () => {
     await vi.advanceTimersByTimeAsync(100);
     inTime(true);
     await expect(bound).resolves.toBe(true);
+  });
+});
+
+describe("pixel gate statistics", () => {
+  const SIZE = 40;
+  const FEATURE = 12;
+  /** A 40x40 RGBA crop: dark ground with one bright 12x12 feature whose top-left is (x, y). */
+  function crop(featureX: number, featureY: number): Uint8Array {
+    const rgba = new Uint8Array(SIZE * SIZE * 4);
+    for (let y = 0; y < SIZE; y += 1) {
+      for (let x = 0; x < SIZE; x += 1) {
+        const inside = x >= featureX && x < featureX + FEATURE && y >= featureY && y < featureY + FEATURE;
+        const offset = (y * SIZE + x) * 4;
+        rgba[offset] = inside ? 200 : 20;
+        rgba[offset + 1] = inside ? 160 : 20;
+        rgba[offset + 2] = inside ? 140 : 20;
+        rgba[offset + 3] = 255;
+      }
+    }
+    return rgba;
+  }
+
+  it("reads the mean RGB of an RGBA buffer and ignores alpha", () => {
+    expect(meanRgb(new Uint8Array([10, 20, 30, 255, 30, 40, 50, 0]))).toEqual({ r: 20, g: 30, b: 40 });
+    expect(meanRgb(new Uint8Array(0))).toEqual({ r: 0, g: 0, b: 0 });
+  });
+
+  it("counts a feature that moves inside the crop, which the crop's mean cannot see", () => {
+    const before = crop(10, 10);
+    const moved = crop(10, 16);
+    // Same pixels, elsewhere: the difference of the means is exactly zero.
+    expect(meanRgb(moved)).toEqual(meanRgb(before));
+    // Six rows of the feature left and six entered: 144 of 1600 pixels changed by (180, 140, 120).
+    const diff = meanAbsoluteRgbDifference(before, moved);
+    expect(diff.r).toBeCloseTo((144 * 180) / 1600, 6);
+    expect(diff.g).toBeCloseTo((144 * 140) / 1600, 6);
+    expect(diff.b).toBeCloseTo((144 * 120) / 1600, 6);
+    expect(Math.min(diff.r, diff.g, diff.b)).toBeGreaterThanOrEqual(6);
+    expect(meanAbsoluteRgbDifference(before, before)).toEqual({ r: 0, g: 0, b: 0 });
+    expect(meanAbsoluteRgbDifference(new Uint8Array(0), new Uint8Array(0))).toEqual({ r: 0, g: 0, b: 0 });
+  });
+
+  it("is symmetric and refuses crops of different sizes", () => {
+    const a = crop(4, 4);
+    const b = crop(20, 8);
+    expect(meanAbsoluteRgbDifference(a, b)).toEqual(meanAbsoluteRgbDifference(b, a));
+    expect(() => meanAbsoluteRgbDifference(a, new Uint8Array(8))).toThrow(RangeError);
   });
 });
