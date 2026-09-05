@@ -146,7 +146,7 @@ describe("runtime asset budget", () => {
       .resolves.toContain("runtime-4k");
   });
 
-  it("protects exactly the Human foundation files the creator and in-game bodies fetch", async () => {
+  it("protects exactly the Human foundation files the creator, the parted hair, and in-game bodies fetch", async () => {
     const manifest = await loadAssetManifest();
     const publicRoot = resolve(import.meta.dirname, "../public");
     const shipped = [
@@ -155,6 +155,7 @@ describe("runtime asset budget", () => {
       "assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-male-locomotion-01.glb",
       "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb",
       "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb",
+      "assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
     ];
 
     expect(manifest.developmentOnlyGlobs).toEqual([

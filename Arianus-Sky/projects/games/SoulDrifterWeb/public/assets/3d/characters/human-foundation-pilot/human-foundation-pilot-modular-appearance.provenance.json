@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "issue": 487,
-  "status": "LOCAL_MODULAR_APPEARANCE_QUARANTINED",
-  "ownerReviewStatus": "OWNER_LIVE_REJECTION_RECORDED",
-  "route": "FAIL_CLOSED_REBUILD_IN_PROGRESS",
+  "status": "LOCAL_MODULAR_APPEARANCE_PARTIAL",
+  "ownerReviewStatus": "OWNER_APPROVED_SILHOUETTE_DRAFT11_2026-09-04_CARD_BUILD_PENDING_LIVE_REVIEW",
+  "route": "LOCAL_AUTHORED_DESIGNED_VOLUME_CARDS",
   "legacyPackPolicy": "REFERENCE_ONLY_NOT_IMPORTED",
   "toolchain": {
     "binary": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/blender.exe",
@@ -44,7 +44,8 @@
               "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/short04/short04_diffuse.png",
               "sha256": "0BEF7FC0E403DB5A40FABB2111EBFA6F7E8158E204C6E56B8DA98E9EF527846E"
             }
-          }
+          },
+          "disposition": "SUPERSEDED_BY_LOCAL_AUTHORED_CARDS_NOT_IMPORTED"
         },
         "SK_Hair_TiedBack": {
           "asset": "ponytail01",
@@ -623,6 +624,113 @@
           "runtimeTriangleCount": 116834,
           "conversionStep": "EVALUATED_INTERPOLATED_HAIR_CURVES_TO_SURFACE_ORIENTED_RUNTIME_CARDS"
         }
+      },
+      "SK_Hair_Parted": {
+        "route": "PROJECT_AUTHORED_EXACT_HEAD_DESIGNED_VOLUME_CARDS",
+        "sourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+        "license": "PROJECT_ORIGINAL",
+        "geometryPolicy": "DESIGNED_LIFT_FIELD_OVER_WELDED_SCALP_PLUS_FLOW_MARCHED_CARDS_SKINNED_TO_HEAD",
+        "ownerApproval": {
+          "silhouetteDraft": "draft11",
+          "date": "2026-09-04",
+          "evidence": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/silhouette-gate-draft11/owner-contact-sheet.png"
+        },
+        "gateScript": {
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_silhouette_gate.py",
+          "sha256": "574438B8CB889AF59F79A3A7BD0C6A80F46DE90C48F5A32D9DD69742CA9239CD"
+        },
+        "buildScript": {
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_card_build.py",
+          "sha256": "D6D79CC95DC6E0DF7252F55CFF428BDEC73F08539A76F65C82629D16ABB03175"
+        },
+        "postScript": {
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_card_post.py",
+          "sha256": "682D9294464926D9CBD89B845AB77BEBCBD3ED3599186244D79DEC1E49BAF0D0"
+        },
+        "atlas": {
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-parted-cards-atlas.png",
+          "sha256": "992F1186FE7D5A4BD2976C19F477AD42405FB9FF0274EC8F7AABE70216E58235",
+          "generator": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_atlas_build.py"
+        },
+        "capTile": {
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-parted-cap-tile.png",
+          "sha256": "EA6540A13899F40B3F9218B84300D354CF74A01B2A377F050EB71468A126BBD5"
+        },
+        "follicleMask": {
+          "url": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+          "sha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+          "undercoatStrength": 0.3,
+          "uvSet": "UVMap"
+        },
+        "cards": "cards: 1272 ({'edge': 217, 'short': 393, 'clump': 150, 'lane': 45, 'nape': 129, 'surface': 338}); verts 25312",
+        "meshes": {
+          "SK_Hair_Parted_Cards": {
+            "vertices": 25312,
+            "triangles": 22768,
+            "material": "MAT_HumanHair_Tintable_Parted_Cards"
+          },
+          "SK_Hair_Parted_Mass": {
+            "vertices": 6799,
+            "triangles": 12560,
+            "material": "MAT_HumanHair_Tintable_Parted_Mass"
+          }
+        },
+        "silhouetteVsDraft11": {
+          "01-front": {
+            "iou": 0.9601,
+            "areaRatio": 0.9721,
+            "topOutlineMeanPx": 10.2,
+            "topOutlineMaxPx": 46,
+            "onlyInCardsPx": 1234,
+            "onlyInDraftPx": 6875
+          },
+          "02-front34-L": {
+            "iou": 0.9547,
+            "areaRatio": 0.9626,
+            "topOutlineMeanPx": 9.9,
+            "topOutlineMaxPx": 63,
+            "onlyInCardsPx": 833,
+            "onlyInDraftPx": 8603
+          },
+          "03-front34-R": {
+            "iou": 0.9588,
+            "areaRatio": 0.9664,
+            "topOutlineMeanPx": 8.9,
+            "topOutlineMaxPx": 69,
+            "onlyInCardsPx": 807,
+            "onlyInDraftPx": 7782
+          },
+          "04-profile-L": {
+            "iou": 0.9562,
+            "areaRatio": 0.9674,
+            "topOutlineMeanPx": 7.8,
+            "topOutlineMaxPx": 29,
+            "onlyInCardsPx": 1145,
+            "onlyInDraftPx": 7706
+          },
+          "09-crown": {
+            "iou": 0.9462,
+            "areaRatio": 0.9598,
+            "topOutlineMeanPx": 10.6,
+            "topOutlineMaxPx": 110,
+            "onlyInCardsPx": 1574,
+            "onlyInDraftPx": 10588
+          },
+          "11-pitch+25": "reference mask empty (draft-11 render of this view is blank); skipped",
+          "12-pitch-25": {
+            "iou": 0.9602,
+            "areaRatio": 0.9705,
+            "topOutlineMeanPx": 11.1,
+            "topOutlineMaxPx": 63,
+            "onlyInCardsPx": 1184,
+            "onlyInDraftPx": 7846
+          }
+        },
+        "runtimeMaterial": "MAT_HumanHair_Tintable_Parted (cards + mass), alphaMode MASK, doubleSided, KHR_materials_anisotropy, KHR_materials_specular 0.25, souldrifterTintChannel HAIR",
+        "evidence": {
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\owner-contact-sheet.png"
+        }
       }
     }
   },
@@ -631,7 +739,9 @@
     "rootBone": "mixamorig:Hips",
     "boneCount": 65,
     "materialFamily": "MAT_HumanHair_Tintable",
-    "moduleNames": [],
+    "moduleNames": [
+      "SK_Hair_Parted"
+    ],
     "requiredModuleNames": [
       "SK_Hair_Cropped",
       "SK_Hair_Parted",
@@ -647,7 +757,6 @@
     ],
     "withheldModules": {
       "SK_Hair_Cropped": "owner live review revoked the prior approval; source fit/material must be rebuilt and re-proven against the exact head",
-      "SK_Hair_Parted": "owner live review revoked the prior approval; current rigid cap/hairline fit is not production acceptable",
       "SK_Hair_CurlyCoiled": "owner live review found a bright exposed forehead band and underlay seam",
       "SK_Hair_Long": "new exact-head strand candidate remains under front/side/rear/collision QA",
       "SK_Hair_TiedBack": "owner live review found a glossy rigid cap plus ear/neck/body penetration",
@@ -676,22 +785,63 @@
       "full-beard"
     ]
   },
-  "modules": {},
+  "modules": {
+    "SK_Hair_Parted": {
+      "status": "LOCAL_AUTHORING_VALIDATED",
+      "children": [
+        "SK_Hair_Parted_Cards",
+        "SK_Hair_Parted_Mass"
+      ],
+      "meshes": {
+        "SK_Hair_Parted_Cards": {
+          "vertices": 25312,
+          "triangles": 22768,
+          "material": "MAT_HumanHair_Tintable_Parted_Cards"
+        },
+        "SK_Hair_Parted_Mass": {
+          "vertices": 6799,
+          "triangles": 12560,
+          "material": "MAT_HumanHair_Tintable_Parted_Mass"
+        }
+      },
+      "materials": [
+        "MAT_HumanHair_Tintable_Parted_Cards",
+        "MAT_HumanHair_Tintable_Parted_Mass"
+      ],
+      "images": [
+        "hair-parted-cards-atlas",
+        "hair-parted-cap-tile"
+      ],
+      "headWeighted": true
+    }
+  },
   "validation": {
     "status": "PASS",
     "moduleNamesExact": true,
-    "officialCc0HairSources": true,
+    "officialCc0HairSources": false,
+    "officialCc0HairSourcesNote": "no MakeHuman geometry is imported; the module is project-authored on the exact head",
     "legacyGeometryImported": false,
     "separateTintableMaterials": true,
     "allVerticesHeadWeighted": true,
     "permanentFusion": false,
     "visualGate": "PASS_FAIL_CLOSED_PER_MODULE",
+    "silhouetteGate": "PASS_IOU_GE_0.93_VS_OWNER_APPROVED_DRAFT11",
+    "silhouetteIoUByView": {
+      "01-front": 0.9601,
+      "02-front34-L": 0.9547,
+      "03-front34-R": 0.9588,
+      "04-profile-L": 0.9562,
+      "09-crown": 0.9462,
+      "12-pitch-25": 0.9602
+    },
     "withheldModulesExcluded": true
   },
   "freshImport": {
     "status": "PASS",
-    "meshCount": 0,
-    "moduleNames": [],
+    "meshCount": 2,
+    "moduleNames": [
+      "SK_Hair_Parted"
+    ],
     "boneCount": 65,
     "rootBones": [
       "mixamorig:Hips"
@@ -700,27 +850,22 @@
     "approvalMetadataRoundTrips": true
   },
   "evidence": {
-    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v212-cropped-official-zones-close",
-    "smoke": true,
-    "hairTint": "dark",
-    "clay": false,
-    "workbenchMaterial": false,
-    "skinPreviewMode": "IMPORTED_SOURCE_PBR_MATERIAL_UNCHANGED",
-    "view": "crown-hairline-close",
+    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13",
+    "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\owner-contact-sheet.png",
+    "ownerViews": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\owner-view",
+    "silhouettes": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\silhouette",
+    "hairTint": "preview multiply (0.42, 0.27, 0.17); runtime tints from HAIR_COLORS",
+    "renderer": "Blender 5.2.1 EEVEE, 1024 px, ortho 0.215",
     "modules": {
-      "SK_Hair_Cropped": {
-        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v212-cropped-official-zones-close/SK_Hair_Cropped/front.png",
-        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v212-cropped-official-zones-close/SK_Hair_Cropped/side.png",
-        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v212-cropped-official-zones-close/SK_Hair_Cropped/rear.png",
-        "turntableFrameCount": 0,
-        "turntableFrames": []
+      "SK_Hair_Parted": {
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\owner-contact-sheet.png"
       }
     }
   },
   "output": {
-    "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.glb",
-    "bytes": 21816,
-    "sha256": "A9D1EAEB6D2489138B49C90A2BC87DF9AE9C2818A42A1FF3F18069E37802DE6A"
+    "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb\\public/assets/3d/characters/human-foundation-pilot\\human-foundation-pilot-modular-appearance.glb",
+    "bytes": 3237468,
+    "sha256": "FF64ECA62394EF8790B934B6FB4DCB1CB7DACC1F147E6370BFA655350C9A88FB"
   },
   "runtimeNotes": [
     "Shaved-buzzed remains the zero-volume baseline and is not duplicated.",
@@ -728,6 +873,9 @@
     "No modular appearance mesh is embedded while the owner-rejected set is quarantined.",
     "The canonical 65-bone armature is retained so the fail-closed artifact preserves its runtime contract.",
     "Replacement candidates must pass exact-head fit, material, tint, greying, collision, and deformation QA before promotion.",
-    "Hair and facial-hair candidates remain separate from skin and are not creator-selectable until promoted."
+    "Hair and facial-hair candidates remain separate from skin and are not creator-selectable until promoted.",
+    "SK_Hair_Parted is skinned 100% to mixamorig:Head and rebound to the target skeleton by bone name; it contains no scalp/underlay child.",
+    "The module's extras carry the approved follicle-mask contract (souldrifterFollicleMask*), so the exact Tripo scalp darkens under the cut; the mask lives in follicle-masks/ and is protected in the runtime asset manifest.",
+    "Both hair materials declare souldrifterTintChannel HAIR: the runtime recolors the neutral-grey strand atlas from HAIR_COLORS and forces alpha-to-coverage, double-sided, roughness >= 0.58."
   ]
 }

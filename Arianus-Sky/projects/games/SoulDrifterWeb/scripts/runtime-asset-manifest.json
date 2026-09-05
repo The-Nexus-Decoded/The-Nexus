@@ -39,7 +39,8 @@
     "assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.glb",
     "assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-male-locomotion-01.glb",
     "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb",
-    "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb"
+    "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb",
+    "assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png"
   ],
   "targets": [
     {

@@ -11,10 +11,15 @@ const provenanceUrl = new URL(
   "../public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.provenance.json",
   import.meta.url,
 );
+const follicleMaskUrl = new URL(
+  "../public/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+  import.meta.url,
+);
 
+const HEAD_SHA256 = "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8";
+const shippedModules = ["SK_Hair_Parted"];
 const withheldModules = [
   "SK_Hair_Cropped",
-  "SK_Hair_Parted",
   "SK_Hair_CurlyCoiled",
   "SK_Hair_Long",
   "SK_Hair_TiedBack",
@@ -30,76 +35,195 @@ function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex").toUpperCase();
 }
 
-function glbJson(bytes) {
+function glb(bytes) {
   expect(bytes.readUInt32LE(0)).toBe(0x46546c67);
   const jsonLength = bytes.readUInt32LE(12);
-  return JSON.parse(bytes.subarray(20, 20 + jsonLength).toString("utf8").replace(/\0+$/g, ""));
+  const json = JSON.parse(bytes.subarray(20, 20 + jsonLength).toString("utf8").replace(/\0+$/g, ""));
+  const binLength = bytes.readUInt32LE(20 + jsonLength);
+  expect(bytes.readUInt32LE(24 + jsonLength)).toBe(0x004e4942);
+  const bin = bytes.subarray(28 + jsonLength, 28 + jsonLength + binLength);
+  return { json, bin };
 }
 
-describe("Human foundation modular appearance quarantine pack", () => {
-  it("fails closed to the canonical armature after the live visual rejection", () => {
-    const json = glbJson(readFileSync(fileURLToPath(assetUrl)));
-    const nodes = json.nodes ?? [];
-    const meshNodes = nodes.filter((node) => Number.isInteger(node.mesh));
+const COMPONENT_READERS = {
+  5121: (view, offset) => view.getUint8(offset),
+  5123: (view, offset) => view.getUint16(offset, true),
+  5125: (view, offset) => view.getUint32(offset, true),
+  5126: (view, offset) => view.getFloat32(offset, true),
+};
+const COMPONENT_BYTES = { 5121: 1, 5123: 2, 5125: 4, 5126: 4 };
+const TYPE_SIZE = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 };
 
-    expect(meshNodes).toHaveLength(0);
-    expect(nodes.map((node) => node.name)).not.toEqual(
-      expect.arrayContaining(withheldModules),
-    );
+/** Reads a tightly packed or strided accessor into a flat array of numbers. */
+function readAccessor(json, bin, index) {
+  const accessor = json.accessors[index];
+  const view = json.bufferViews[accessor.bufferView];
+  const read = COMPONENT_READERS[accessor.componentType];
+  const componentBytes = COMPONENT_BYTES[accessor.componentType];
+  const size = TYPE_SIZE[accessor.type];
+  const stride = view.byteStride ?? componentBytes * size;
+  const base = (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+  const data = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  const out = new Array(accessor.count * size);
+  for (let i = 0; i < accessor.count; i += 1) {
+    for (let c = 0; c < size; c += 1) {
+      out[i * size + c] = read(data, base + i * stride + c * componentBytes);
+    }
+  }
+  return { values: out, size, count: accessor.count };
+}
+
+const bytes = readFileSync(fileURLToPath(assetUrl));
+const { json, bin } = glb(bytes);
+const nodes = json.nodes ?? [];
+const module = nodes.find((node) => node.name === "SK_Hair_Parted");
+
+describe("Human foundation modular appearance pack", () => {
+  it("carries the locally validated parted hair module and nothing that was withheld", () => {
+    const names = nodes.map((node) => node.name);
+    expect(names).toEqual(expect.arrayContaining(shippedModules));
+    for (const withheld of withheldModules) expect(names).not.toContain(withheld);
+    expect(module).toBeDefined();
+    expect(module.extras).toMatchObject({
+      souldrifterApprovalStatus: "LOCAL_AUTHORING_VALIDATED",
+      souldrifterHeadBone: "mixamorig:Head",
+    });
+    const children = (module.children ?? []).map((index) => nodes[index]);
+    expect(children.map((child) => child.name).sort()).toEqual(["SK_Hair_Parted_Cards", "SK_Hair_Parted_Mass"]);
+    for (const child of children) {
+      expect(child.mesh).toBeTypeOf("number");
+      expect(child.skin).toBe(0);
+      // presentation.ts refuses a module that carries its own scalp/underlay
+      expect(child.name).not.toMatch(/scalp|rootcap|undercoat|underlay/i);
+    }
     expect(json.skins).toHaveLength(1);
     expect(json.skins[0].joints).toHaveLength(65);
     expect(json.animations ?? []).toHaveLength(0);
-    expect(json.meshes ?? []).toHaveLength(0);
-    expect(json.materials ?? []).toHaveLength(0);
+    expect(json.meshes).toHaveLength(2);
   });
 
-  it("records exact source/toolchain provenance and fail-closed dispositions", () => {
-    const bytes = readFileSync(fileURLToPath(assetUrl));
+  it("weights every hair vertex fully to mixamorig:Head", () => {
+    const headJoint = json.skins[0].joints.findIndex((index) => nodes[index].name === "mixamorig:Head");
+    expect(headJoint).toBeGreaterThanOrEqual(0);
+    for (const mesh of json.meshes) {
+      for (const primitive of mesh.primitives) {
+        for (const attribute of ["POSITION", "NORMAL", "TEXCOORD_0", "TANGENT", "JOINTS_0", "WEIGHTS_0"]) {
+          expect(primitive.attributes, `${mesh.name} ${attribute}`).toHaveProperty(attribute);
+        }
+        const joints = readAccessor(json, bin, primitive.attributes.JOINTS_0);
+        const weights = readAccessor(json, bin, primitive.attributes.WEIGHTS_0);
+        expect(joints.count).toBe(weights.count);
+        for (let vertex = 0; vertex < joints.count; vertex += 1) {
+          for (let slot = 0; slot < 4; slot += 1) {
+            const weight = weights.values[vertex * 4 + slot];
+            const joint = joints.values[vertex * 4 + slot];
+            if (weight > 1e-4) {
+              expect(joint, `${mesh.name} vertex ${vertex}`).toBe(headJoint);
+              expect(weight).toBeCloseTo(1, 4);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it("feathers the mass at the hairline through vertex alpha", () => {
+    const mass = json.meshes.find((mesh) => mesh.name === "SK_Hair_Parted_Mass");
+    const primitive = mass.primitives[0];
+    expect(primitive.attributes).toHaveProperty("COLOR_0");
+    const color = readAccessor(json, bin, primitive.attributes.COLOR_0);
+    expect(color.size).toBe(4);
+    let feathered = 0;
+    for (let vertex = 0; vertex < color.count; vertex += 1) {
+      const alpha = color.values[vertex * 4 + 3];
+      const max = { 5126: 1, 5123: 65535, 5121: 255 }[json.accessors[primitive.attributes.COLOR_0].componentType];
+      if (alpha / max < 0.99) feathered += 1;
+    }
+    expect(feathered).toBeGreaterThan(200);
+    expect(feathered).toBeLessThan(color.count / 2);
+  });
+
+  it("uses alpha-tested, double-sided, tintable hair materials with anisotropy", () => {
+    expect(json.materials.map((material) => material.name).sort()).toEqual([
+      "MAT_HumanHair_Tintable_Parted_Cards",
+      "MAT_HumanHair_Tintable_Parted_Mass",
+    ]);
+    for (const material of json.materials) {
+      expect(material.alphaMode).toBe("MASK");
+      expect(material.alphaCutoff).toBeGreaterThanOrEqual(0.3);
+      expect(material.doubleSided).toBe(true);
+      expect(material.extras).toMatchObject({ souldrifterTintChannel: "HAIR" });
+      expect(material.pbrMetallicRoughness.baseColorTexture).toBeDefined();
+      expect(material.pbrMetallicRoughness.metallicFactor).toBe(0);
+      expect(material.pbrMetallicRoughness.roughnessFactor).toBeGreaterThanOrEqual(0.58);
+      expect(material.extensions.KHR_materials_anisotropy.anisotropyStrength).toBeGreaterThan(0);
+      expect(material.extensions.KHR_materials_specular.specularFactor).toBeLessThan(1);
+    }
+    expect(json.extensionsUsed).toEqual(expect.arrayContaining(["KHR_materials_anisotropy", "KHR_materials_specular"]));
+    expect(json.images).toHaveLength(2);
+    expect(json.images.map((image) => image.mimeType)).toEqual(["image/png", "image/png"]);
+  });
+
+  it("ships the approved follicle mask its extras point at", () => {
+    expect(module.extras).toMatchObject({
+      souldrifterFollicleMaskStatus: "LOCAL_AUTHORING_VALIDATED",
+      souldrifterFollicleMaskUrl: "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+      souldrifterFollicleMaskUvSet: "UVMap",
+      souldrifterFollicleMaskSourceHeadSha256: HEAD_SHA256,
+    });
+    expect(module.extras.souldrifterFollicleUndercoatStrength).toBeGreaterThan(0);
+    expect(module.extras.souldrifterFollicleUndercoatStrength).toBeLessThanOrEqual(0.3);
+    const mask = readFileSync(fileURLToPath(follicleMaskUrl));
+    expect(mask.subarray(0, 8)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    expect(sha256(mask)).toBe(module.extras.souldrifterFollicleMaskSha256);
+  });
+
+  it("records exact provenance for the parted module and fail-closed dispositions for the rest", () => {
     const provenance = JSON.parse(readFileSync(fileURLToPath(provenanceUrl), "utf8"));
 
     expect(provenance).toMatchObject({
       issue: 487,
-      status: "LOCAL_MODULAR_APPEARANCE_QUARANTINED",
-      ownerReviewStatus: "OWNER_LIVE_REJECTION_RECORDED",
-      route: "FAIL_CLOSED_REBUILD_IN_PROGRESS",
+      status: "LOCAL_MODULAR_APPEARANCE_PARTIAL",
+      route: "LOCAL_AUTHORED_DESIGNED_VOLUME_CARDS",
       toolchain: {
         binary: "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/blender.exe",
         blenderVersion: "5.2.1 LTS",
       },
       source: {
-        exactHead: {
-          sha256: "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
-        },
-        makeHumanSystemPack: {
-          license: "CC0-1.0",
-          archiveSha256: "B542127A8E25547C7C29C19F2D1D2ADB9A664C80396ECD694095DBC8028A0107",
+        exactHead: { sha256: HEAD_SHA256 },
+        localAuthoredHair: {
+          SK_Hair_Parted: {
+            license: "PROJECT_ORIGINAL",
+            sourceHeadSha256: HEAD_SHA256,
+            ownerApproval: { silhouetteDraft: "draft11", date: "2026-09-04" },
+          },
         },
       },
       contract: {
         boneCount: 65,
         headBone: "mixamorig:Head",
         rootBone: "mixamorig:Hips",
-        moduleNames: [],
-        requiredModuleNames: withheldModules,
+        moduleNames: shippedModules,
+        requiredModuleNames: expect.arrayContaining([...shippedModules, ...withheldModules]),
       },
       validation: {
         status: "PASS",
+        allVerticesHeadWeighted: true,
         visualGate: "PASS_FAIL_CLOSED_PER_MODULE",
         withheldModulesExcluded: true,
       },
       freshImport: {
         status: "PASS",
-        meshCount: 0,
+        meshCount: 2,
         boneCount: 65,
-        moduleNames: [],
+        moduleNames: shippedModules,
         embeddedActionCount: 0,
         approvalMetadataRoundTrips: true,
       },
     });
-    expect(Object.keys(provenance.contract.withheldModules).sort()).toEqual(
-      [...withheldModules].sort(),
-    );
-    expect(provenance.validation.withheldModulesExcluded).toBe(true);
+    expect(Object.keys(provenance.contract.withheldModules).sort()).toEqual([...withheldModules].sort());
+    expect(provenance.source.localAuthoredHair.SK_Hair_Parted.follicleMask.sha256)
+      .toBe(module.extras.souldrifterFollicleMaskSha256);
     expect(provenance.output.bytes).toBe(bytes.length);
     expect(provenance.output.sha256).toBe(sha256(bytes));
   });
