@@ -483,6 +483,13 @@ export interface CreationLightState {
  */
 export const CREATION_LIGHT_BASE = Object.freeze({ hemisphere: 0.45, key: 28, fill: 5, rim: 6.5, under: 2.4 });
 export const CREATION_RIM_DEFAULT = 0x6de6dc;
+/** Low teal from the Well itself, a shade deeper than the rim. */
+export const CREATION_UNDERLIGHT_DEFAULT = 0x3fd6c6;
+/**
+ * A bound calling turns the rim and the underlight to its hue over this long, linearly
+ * (design §2.2, §7); null returns both to the Well's teal. Reduced motion cuts.
+ */
+export const CREATION_ACCENT_HUE_TWEEN_MS = 550;
 /** Base-colour-only skin with KHR specular 1.6 turns to plastic above this. */
 export const CREATION_SKIN_ENV_INTENSITY = 0.35;
 export const CREATION_CAMERA_TWEEN_MS = 720;
@@ -623,6 +630,11 @@ export function creatorWheelZoomStep(deltaY: number, deltaMode: number): number 
  */
 export function creatorSkinTintTone(from: THREE.Color, to: THREE.Color, progress: number, target = new THREE.Color()): THREE.Color {
   return target.copy(from).lerp(to, easeOutQuad(progress));
+}
+
+/** The accent colour `progress` (0..1, clamped) of the way from one light colour to the next, linear per §7. */
+export function creatorAccentTone(from: THREE.Color, to: THREE.Color, progress: number, target = new THREE.Color()): THREE.Color {
+  return target.copy(from).lerp(to, Math.min(1, Math.max(0, progress)));
 }
 
 /** The camera stop `zoom` (0..1) of the way from the station's stop to the face stop. */
@@ -852,7 +864,19 @@ export class CreationAvatarPreview {
   private readonly cameraTarget = new THREE.Vector3();
   private readonly lightState: CreationLightState = { key: 1, fill: 0.6, rim: 1, under: 1 };
   private readonly lightTarget: CreationLightState = { key: 1, fill: 0.6, rim: 1, under: 1 };
-  private readonly rimColorTarget = new THREE.Color(CREATION_RIM_DEFAULT);
+  /**
+   * The rim and underlight colours travelling from `from` to `to` since `startedAt`;
+   * `toHex` is the hue `to` was set from (null for the Well's teal), so a repeated bind
+   * of the same calling does not restart the tween.
+   */
+  private readonly accent: {
+    rimFrom: THREE.Color; underFrom: THREE.Color; rimTo: THREE.Color; underTo: THREE.Color; toHex: number | null; startedAt: number; durationMs: number;
+  } = {
+    rimFrom: new THREE.Color(CREATION_RIM_DEFAULT), underFrom: new THREE.Color(CREATION_UNDERLIGHT_DEFAULT),
+    rimTo: new THREE.Color(CREATION_RIM_DEFAULT), underTo: new THREE.Color(CREATION_UNDERLIGHT_DEFAULT),
+    toHex: null, startedAt: 0, durationMs: 0,
+  };
+  private accentActive = false;
   /**
    * The tone the skin tint is derived from right now (`value`), travelling from `from` to
    * `to` since `startedAt`; `toHex` is the palette entry `to` was set from, so a repeated
@@ -917,7 +941,7 @@ export class CreationAvatarPreview {
     this.fillLight = new THREE.PointLight(0x6f8fb8, CREATION_LIGHT_BASE.fill * 0.6, 18, 2);
     this.fillLight.position.set(2.2, 1.6, 2.0);
     // Low teal from the Well itself: shins, hands and the underside of the jaw.
-    this.underLight = new THREE.PointLight(0x3fd6c6, CREATION_LIGHT_BASE.under, 6, 2);
+    this.underLight = new THREE.PointLight(CREATION_UNDERLIGHT_DEFAULT, CREATION_LIGHT_BASE.under, 6, 2);
     this.underLight.position.set(0.9, 0.35, 0.6);
     this.scene.add(this.keyLight, this.rimLight, this.fillLight, this.underLight);
 
@@ -1095,8 +1119,22 @@ export class CreationAvatarPreview {
     Object.assign(this.lightTarget, state);
   }
 
-  public setRimColor(hex: number): void {
-    this.rimColorTarget.set(hex);
+  /**
+   * Points the rim and the underlight at a calling's hue (null: the Well's teal), starting
+   * from wherever the lights are now, so a second calling picked mid-travel turns instead
+   * of jumping. The well-light gradient behind the canvas is the creator's to tint (CSS).
+   */
+  public setAccentHue(hex: number | null): void {
+    const accent = this.accent;
+    if (hex === accent.toHex) return;
+    accent.rimFrom.copy(this.rimLight.color);
+    accent.underFrom.copy(this.underLight.color);
+    accent.rimTo.set(hex ?? CREATION_RIM_DEFAULT);
+    accent.underTo.set(hex ?? CREATION_UNDERLIGHT_DEFAULT);
+    accent.toHex = hex;
+    accent.startedAt = performance.now();
+    accent.durationMs = this.reducedMotion ? 0 : CREATION_ACCENT_HUE_TWEEN_MS;
+    this.accentActive = true;
   }
 
   /** Briefly doubles the motes' presence (station arrival, a chosen tone). */
@@ -1121,7 +1159,7 @@ export class CreationAvatarPreview {
     pmrem.dispose();
   }
 
-  private applyLights(deltaSeconds: number): void {
+  private applyLights(deltaSeconds: number, now: number): void {
     const blend = 1 - Math.exp(-deltaSeconds / 0.23);
     for (const channel of ["key", "fill", "rim", "under"] as const) {
       this.lightState[channel] += (this.lightTarget[channel] - this.lightState[channel]) * blend;
@@ -1130,7 +1168,16 @@ export class CreationAvatarPreview {
     this.fillLight.intensity = CREATION_LIGHT_BASE.fill * this.lightState.fill;
     this.rimLight.intensity = CREATION_LIGHT_BASE.rim * this.lightState.rim;
     this.underLight.intensity = CREATION_LIGHT_BASE.under * this.lightState.under;
-    this.rimLight.color.lerp(this.rimColorTarget, 1 - Math.exp(-deltaSeconds / 0.18));
+    if (this.accentActive) this.applyAccentHue(now);
+  }
+
+  /** Writes the accent colours at `now` onto the rim and the underlight; clears `accentActive` once landed. */
+  private applyAccentHue(now: number): void {
+    const accent = this.accent;
+    const progress = accent.durationMs <= 0 ? 1 : (now - accent.startedAt) / accent.durationMs;
+    creatorAccentTone(accent.rimFrom, accent.rimTo, progress, this.rimLight.color);
+    creatorAccentTone(accent.underFrom, accent.underTo, progress, this.underLight.color);
+    this.accentActive = progress < 1;
   }
 
   private updateMotes(deltaSeconds: number): void {
@@ -1283,6 +1330,7 @@ export class CreationAvatarPreview {
     if (!flag) return;
     this.cameraTween = null;
     this.skinTint.durationMs = 0;
+    this.accent.durationMs = 0;
     this.cues.cancel();
     this.gazeOverride = null;
     this.gazeBias = null;
@@ -1838,7 +1886,7 @@ export class CreationAvatarPreview {
     this.applyBreath(deltaSeconds);
     this.applyGaze(deltaSeconds, now);
     this.applyCues(deltaSeconds, now);
-    this.applyLights(deltaSeconds);
+    this.applyLights(deltaSeconds, now);
     if (this.skinTintActive) this.applySkinTint(now);
     this.updateMotes(deltaSeconds);
     const width = Math.max(1, Math.round(this.canvas.clientWidth));

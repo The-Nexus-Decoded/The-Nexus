@@ -16,9 +16,11 @@ import {
   SKIN_TONES,
   STAT_KEYS,
   STAT_LABELS,
+  type CallingId,
   type CharacterDraft,
   type CharacterProfile,
   type ResolvedCharacterAppearance,
+  type Stats,
 } from "./game/character";
 import {
   CREATION_CAMERA_TWEEN_MS,
@@ -42,6 +44,15 @@ import {
 } from "./creationChoreography";
 import { CreationStageBackdrop } from "./creationStage";
 import { CALLING_ICONS, STAT_ICONS, icon, raceIcon, soulSealIcon, type IconName } from "./creationIcons";
+import {
+  animateStatCounters,
+  blankWeaveStats,
+  changedStats,
+  counterDigits,
+  previewStats,
+  SoulWeave,
+  statDeltaTicks,
+} from "./creationWeave";
 
 export function characterPortraitPath(raceId: string, callingId: string): string {
   if (callingId === "shadowknight") {
@@ -68,21 +79,25 @@ export const STATION_PRESENTATION: Readonly<Record<CreationStep, CreationStation
   name: { view: "medium", yaw: 0, light: { key: 0.25, fill: 0, rim: 1, under: 1.6 } },
   race: { view: "body", yaw: 0, light: { key: 1, fill: 0.6, rim: 1, under: 1 } },
   appearance: { view: "body", yaw: 0, light: { key: 1, fill: 0.6, rim: 1, under: 1 } },
-  calling: { view: "body", yaw: -0.35, light: { key: 1, fill: 0.6, rim: 1, under: 1 } },
+  // The rim and the underlight carry the calling's hue here (§2.2). Against the base rig
+  // (rim 6.5, under 2.4, lowered from the design's 18/5 for skin fidelity at the face
+  // stop) the 200 px shoulder crop moved 2.8-5.1/255 between callings at 1x; at 2x/1.6x
+  // (13/3.8 effective, still under the design's rig) priest against shadowknight reads
+  // 7.3 and the rest 3.2-4.1: the hue is visible without lighting the figure from behind
+  // as hard as the key does from the front.
+  calling: { view: "body", yaw: -0.35, light: { key: 1, fill: 0.6, rim: 2, under: 1.6 } },
   memory: { view: "medium", yaw: 0, light: { key: 0.9, fill: 0.5, rim: 1.1, under: 1 } },
   review: { view: "hero", yaw: -0.18, light: { key: 1, fill: 0.6, rim: 1.2, under: 1.1 } },
 });
 
-const ROMAN = ["I", "II", "III", "IV", "V", "VI"] as const;
-
-/** The one Cinzel word that announces a station; the imprint shows the returned name. */
-export function creatorStationWord(step: CreationStep, panel: "body" | "face", memoryIndex: number, name: string): string {
+/** The one Cinzel word that announces a station (the memory watermark carries the number); the imprint shows the returned name. */
+export function creatorStationWord(step: CreationStep, panel: "body" | "face", name: string): string {
   switch (step) {
     case "name": return "Name";
     case "race": return "Ancestry";
     case "appearance": return panel === "face" ? "Face" : "Body";
     case "calling": return "Calling";
-    case "memory": return `Memory ${ROMAN[memoryIndex] ?? String(memoryIndex + 1)}`;
+    case "memory": return "Memory";
     default: return name.trim() || "Imprint";
   }
 }
@@ -91,6 +106,42 @@ export function creatorStationWord(step: CreationStep, panel: "body" | "face", m
 export function creatorNameLight(nameLength: number): Pick<CreationLightState, "key" | "fill"> {
   const progress = Math.min(1, Math.max(0, nameLength) / 6);
   return { key: 0.25 + 0.75 * progress, fill: 0.6 * progress };
+}
+
+/**
+ * The hue a bound calling lends the rim light, the underlight and the well-light behind
+ * the figure (design §2.2). The default, with no calling bound, is the Well's own teal.
+ */
+export const CALLING_ACCENT_HUES: Readonly<Record<CallingId, number>> = Object.freeze({
+  warrior: 0xefb85f,
+  mage: 0x5b79b6,
+  priest: 0xfff2d2,
+  sharpshooter: 0x2b9c98,
+  paladin: 0xa87535,
+  summoner: 0x7af4df,
+  asura: 0xf07a62,
+  slayer: 0x9fb3c8,
+  shadowknight: 0x3b5a6e,
+});
+
+/** The well-light's colour with no calling bound: the Well's teal (`--soul`). */
+const WELL_LIGHT_DEFAULT_HUE = 0x7af4df;
+
+/** A bound calling's accent hue; null while no calling is bound (or for an id that is not a calling). */
+export function creatorAccentHue(callingId: string): number | null {
+  return (CALLING_ACCENT_HUES as Readonly<Record<string, number | undefined>>)[callingId] ?? null;
+}
+
+function cssHex(hex: number): string {
+  return `#${hex.toString(16).padStart(6, "0")}`;
+}
+
+/** Motes double for this long on any bind (design §2.4). */
+const CREATOR_BIND_MOTE_PULSE_MS = 600;
+
+/** The 32 px skill marks a calling's two starting skills carry on its row and the imprint. */
+function callingSkillIconPath(callingId: string, role: "signature" | "defense"): string {
+  return `/assets/generated/action-icons/${callingId}-${role}.png`;
 }
 
 /** Desktop stands the figure left of centre, clear of the folio; phones keep it centred. */
@@ -285,6 +336,11 @@ export class CharacterCreation {
   /** Follows the OS setting for the whole session, not only the first paint. */
   private reducedMotion = this.reducedMotionQuery?.matches ?? false;
   private backdrop: CreationStageBackdrop | null = null;
+  /** The compact Soul Weave under the rail's stepper: the draft's stats, live. */
+  private railWeave: SoulWeave | null = null;
+  /** The imprint's expanded weave and its counters; both die with the station's DOM. */
+  private imprintWeave: SoulWeave | null = null;
+  private stopStatCounters: () => void = () => undefined;
   private uiHidden = false;
   /** NpcListen waits for the camera to arrive on the first memory; a station change cancels it. */
   private listenTimer = 0;
@@ -304,6 +360,8 @@ export class CharacterCreation {
     this.reducedMotionQuery?.addEventListener("change", (event) => {
       this.reducedMotion = event.matches;
       this.appearancePreview?.setReducedMotion(event.matches);
+      this.railWeave?.setReducedMotion(event.matches);
+      this.imprintWeave?.setReducedMotion(event.matches);
     });
     window.history.replaceState(this.creationHistoryState(), "");
     this.mountStage();
@@ -321,6 +379,12 @@ export class CharacterCreation {
       });
     }
     this.mountPreview();
+    const weaveHost = document.createElement("div");
+    weaveHost.className = "soul-weave--rail";
+    weaveHost.title = "Soul weave";
+    weaveHost.setAttribute("aria-hidden", "true");
+    this.progress.insertAdjacentElement("afterend", weaveHost);
+    this.railWeave = new SoulWeave(weaveHost, { compact: true, reducedMotion: this.reducedMotion });
     requiredElement<HTMLInputElement>("appearance-auto-rotate").addEventListener("change", (event) => {
       this.appearanceAutoRotate = (event.currentTarget as HTMLInputElement).checked;
       this.appearancePreview?.setAutoRotate(this.appearanceAutoRotate);
@@ -431,9 +495,12 @@ export class CharacterCreation {
    */
   private applyStationPresentation(): boolean {
     const presentation = STATION_PRESENTATION[this.step];
+    this.root.dataset.station = this.step;
     this.stageViewport.dataset.station = this.step;
     this.stage.dataset.station = this.step;
-    const word = creatorStationWord(this.step, this.appearancePanel, this.memoryIndex, this.draft.name);
+    this.applyAccentHue();
+    this.railWeave?.setStats(previewStats(this.draft), false);
+    const word = creatorStationWord(this.step, this.appearancePanel, this.draft.name);
     this.stationWord.classList.toggle("station-word--name", this.step === "review");
     if (this.stationWord.textContent !== word) {
       this.stationWord.textContent = word;
@@ -465,6 +532,27 @@ export class CharacterCreation {
     const mode = document.getElementById("appearance-preview-mode");
     if (mode) mode.textContent = copy.mode;
     return cameraMoved;
+  }
+
+  /**
+   * The bound calling's hue on the rim, the underlight (the preview tweens them over 550 ms)
+   * and the well-light gradient behind the figure (`--accent-hue`, tweened by CSS).
+   */
+  private applyAccentHue(): void {
+    const hue = creatorAccentHue(this.draft.callingId);
+    this.appearancePreview?.setAccentHue(hue);
+    this.stageViewport.style.setProperty("--accent-hue", cssHex(hue ?? WELL_LIGHT_DEFAULT_HUE));
+  }
+
+  /**
+   * Every bind answers on the weave and the stage: the rail's polygon travels to the new
+   * stats, the spokes that moved flare, and the motes double for a beat.
+   */
+  private bindConsequence(before: Stats): void {
+    const after = previewStats(this.draft);
+    this.railWeave?.setStats(after, true);
+    this.railWeave?.pulse(changedStats(before, after));
+    this.appearancePreview?.pulseMotes(CREATOR_BIND_MOTE_PULSE_MS);
   }
 
   /**
@@ -555,6 +643,11 @@ export class CharacterCreation {
 
   private render(): void {
     this.error.textContent = "";
+    // The imprint's weave and counters keep timers; a station swap must not leave them running.
+    this.imprintWeave?.dispose();
+    this.imprintWeave = null;
+    this.stopStatCounters();
+    this.stopStatCounters = () => undefined;
     this.renderProgress();
 
     if (this.step === "name") this.renderName();
@@ -1007,35 +1100,75 @@ export class CharacterCreation {
     if (this.draft.callingId && raceCallingEligibility(this.draft.raceId, this.draft.callingId).status === "forbidden") {
       this.draft.callingId = "";
     }
+    const raceId = this.draft.raceId;
+    const selectedPortrait = this.draft.callingId ? characterPortraitPath(raceId, this.draft.callingId) : null;
     this.stage.innerHTML = `
       <div class="creation-heading">
         <p class="eyebrow">The soul's calling</p>
         <h2>How did you survive the broken worlds?</h2>
-        <p>Ancestry shapes the paths available to this returned body. Rare callings remain possible and carry cultural context.</p>
+        <p>The Well shows the calling; the body will earn it.</p>
       </div>
-      <div class="choice-grid choice-grid--callings">
+      <div class="calling-plate ${selectedPortrait ? "has-portrait" : ""}" aria-hidden="true">
+        <img class="calling-plate__portrait ${selectedPortrait ? "is-shown" : ""}" ${selectedPortrait ? `src="${selectedPortrait}"` : ""} alt="" />
+        <img class="calling-plate__portrait" alt="" />
+        <p class="calling-plate__prompt">Choose the calling that first answered the breach.</p>
+      </div>
+      <div class="calling-rows" role="group" aria-label="Callings">
         ${CALLINGS.map((calling) => {
-          const resonance = raceCallingBonus(this.draft.raceId, calling.id);
-          const eligibility = raceCallingEligibility(this.draft.raceId, calling.id);
+          const selected = this.draft.callingId === calling.id;
+          const resonance = raceCallingBonus(raceId, calling.id);
+          const eligibility = raceCallingEligibility(raceId, calling.id);
           const forbidden = eligibility.status === "forbidden";
           return `
-          <button class="choice-card choice-card--calling ${this.draft.callingId === calling.id ? "is-selected" : ""} ${resonance ? "has-ancestry-bonus" : ""} ${eligibility.status === "rare" ? "is-rare" : ""} ${forbidden ? "is-forbidden" : ""}" data-calling="${calling.id}" type="button" ${forbidden ? "disabled aria-disabled=\"true\"" : ""}>
-            <img class="choice-card__portrait" src="${characterPortraitPath(this.draft.raceId, calling.id)}" alt="" />
+          <button class="choice-card choice-card--calling ${selected ? "is-selected" : ""} ${resonance ? "has-ancestry-bonus" : ""} ${eligibility.status === "rare" ? "is-rare" : ""} ${forbidden ? "is-forbidden" : ""}" data-calling="${calling.id}" type="button" aria-pressed="${selected}" ${forbidden ? "disabled aria-disabled=\"true\"" : ""}>
+            <img class="choice-card__portrait" src="${characterPortraitPath(raceId, calling.id)}" alt="" />
             <span class="choice-card__glyph">${icon(CALLING_ICONS[calling.id], 18)}</span>
             <span class="choice-card__title">${calling.name}</span>
             <span class="choice-card__body">${calling.identity}</span>
-            <span class="choice-card__affinity">${calling.signatureSkill} · ${calling.defensiveSkill}</span>
-            <span class="choice-card__job">${calling.tacticalJob}</span>
             <span class="choice-card__difficulty">${calling.learningCurve} start · ${calling.lateGameCeiling} ceiling</span>
-            ${eligibility.status !== "allowed" ? `<span class="choice-card__eligibility choice-card__eligibility--${eligibility.status}"><strong>${icon(eligibility.status === "rare" ? "sparkles" : "lock", 12)}${eligibility.status}</strong>${this.escape(eligibility.reason ?? "")}</span>` : ""}
-            ${resonance ? `<span class="choice-card__resonance">Ancestry resonance · ${resonance.name}</span>` : ""}
+            <span class="choice-card__detail">
+              <span class="choice-card__skills">
+                <span><i class="choice-card__skill-mark" style="--mark:url(${callingSkillIconPath(calling.id, "signature")})"></i>${calling.signatureSkill}</span>
+                <span><i class="choice-card__skill-mark" style="--mark:url(${callingSkillIconPath(calling.id, "defense")})"></i>${calling.defensiveSkill}</span>
+              </span>
+              <span class="choice-card__job">${calling.tacticalJob}</span>
+              ${eligibility.status !== "allowed" ? `<span class="choice-card__eligibility choice-card__eligibility--${eligibility.status}"><strong>${icon(eligibility.status === "rare" ? "sparkles" : "lock", 12)}${eligibility.status}</strong>${this.escape(eligibility.reason ?? "")}</span>` : ""}
+              ${resonance ? `<span class="choice-card__resonance">Ancestry resonance · ${resonance.name}</span>` : ""}
+            </span>
           </button>`;
         }).join("")}
       </div>
       ${this.navigation("Return to appearance", "Enter the memories")}`;
+    // The plate shows the hovered calling and falls back to the bound one; two images
+    // crossfade so a portrait never pops in over an empty frame.
+    const plate = this.stage.querySelector<HTMLElement>(".calling-plate");
+    const portraits = Array.from(this.stage.querySelectorAll<HTMLImageElement>(".calling-plate__portrait"));
+    let front = 0;
+    const showPlate = (callingId: string): void => {
+      if (!plate || portraits.length < 2) return;
+      if (!callingId) {
+        plate.classList.remove("has-portrait");
+        portraits.forEach((portrait) => portrait.classList.remove("is-shown"));
+        return;
+      }
+      const src = characterPortraitPath(raceId, callingId);
+      const current = portraits[front]!;
+      plate.classList.add("has-portrait");
+      if (current.getAttribute("src") === src && current.classList.contains("is-shown")) return;
+      const next = portraits[1 - front]!;
+      next.src = src;
+      next.classList.add("is-shown");
+      current.classList.remove("is-shown");
+      front = 1 - front;
+    };
     this.bindGazeHover("button[data-calling]");
+    this.bindWeaveGhost("button[data-calling]", "calling", (id) => previewStats({ ...this.draft, callingId: id }), showPlate, () => showPlate(this.draft.callingId));
     this.bindChoices("button[data-calling]", "calling", (id) => {
+      const before = previewStats(this.draft);
       this.draft.callingId = id;
+      showPlate(id);
+      this.applyAccentHue();
+      this.bindConsequence(before);
       this.appearancePreview?.playCue("brace");
     });
     this.bindNavigation(() => this.navigateBack("appearance"), () => {
@@ -1053,24 +1186,30 @@ export class CharacterCreation {
     if (!question) throw new Error("Character memory index is out of bounds.");
     const selected = this.draft.answers[question.id] ?? "";
     this.stage.innerHTML = `
-      <div class="memory-number">Memory ${String(this.memoryIndex + 1).padStart(2, "0")}</div>
       <div class="creation-heading creation-heading--memory">
+        <div class="memory-number" aria-hidden="true"><span>Memory</span><span>${String(this.memoryIndex + 1).padStart(2, "0")}</span></div>
         <p class="eyebrow">Unstable recollection</p>
         <h2>${question.prompt}</h2>
         <p>${question.context}</p>
       </div>
       <div class="memory-answers">
         ${question.answers.map((answer, index) => `
-          <button class="memory-answer ${selected === answer.id ? "is-selected" : ""}" data-answer="${answer.id}" type="button">
-            <span>${String.fromCharCode(65 + index)}</span>
-            <strong>${answer.text}</strong>
-            <small>${icon("sparkles", 12)}Awakens ${answer.skill}</small>
+          <button class="memory-answer ${selected === answer.id ? "is-selected" : ""}" data-answer="${answer.id}" type="button" aria-pressed="${selected === answer.id}">
+            <span class="memory-answer__letter">${String.fromCharCode(65 + index)}</span>
+            <strong class="memory-answer__text">${answer.text}</strong>
+            <span class="memory-answer__meta">
+              <small class="memory-answer__skill">${icon("sparkles", 12)}Awakens ${answer.skill}</small>
+              <span class="memory-answer__ticks">${statDeltaTicks(answer.modifiers).map((tick) => `<b>${tick}</b>`).join("")}</span>
+            </span>
           </button>`).join("")}
       </div>
       ${this.navigation(this.memoryIndex === 0 ? "Return to calling" : "Previous memory", this.memoryIndex === MEMORY_QUESTIONS.length - 1 ? "Read the soul imprint" : "Accept this memory")}`;
     this.bindGazeHover("button[data-answer]");
+    this.bindWeaveGhost("button[data-answer]", "answer", (id) => previewStats({ ...this.draft, answers: { ...this.draft.answers, [question.id]: id } }));
     this.bindChoices("button[data-answer]", "answer", (id) => {
+      const before = previewStats(this.draft);
       this.draft.answers[question.id] = id;
+      this.bindConsequence(before);
       this.appearancePreview?.playCue("nod");
     });
     this.bindNavigation(() => {
@@ -1092,24 +1231,25 @@ export class CharacterCreation {
       return;
     }
     const calling = callingById(profile.callingId);
+    const base = blankWeaveStats();
+    const skillMark = (skill: string): string => {
+      if (skill === calling.signatureSkill) return `<img class="imprint-skills__mark" src="${callingSkillIconPath(calling.id, "signature")}" alt="" />`;
+      if (skill === calling.defensiveSkill) return `<img class="imprint-skills__mark" src="${callingSkillIconPath(calling.id, "defense")}" alt="" />`;
+      return "";
+    };
 
     this.stage.innerHTML = `
       <div class="creation-heading">
         <p class="eyebrow">Soul imprint resolved</p>
         <h2>${this.escape(profile.name)}</h2>
-        <p>${profile.raceName} · ${profile.callingName} · The Well recognizes this pattern.</p>
+        <p class="imprint-identity">${profile.raceName} · ${profile.callingName} · The Well recognizes this pattern.</p>
       </div>
       <div class="imprint-review">
-        <section class="imprint-seal">
-          <img src="${characterPortraitPath(profile.raceId, profile.callingId)}" alt="${this.escape(profile.raceName)} ${this.escape(profile.callingName)}" />
-          <span>${icon(raceIcon(profile.raceId), 22)}</span>
-          <strong>${profile.callingName}</strong>
-          <small>${profile.raceName} soul</small>
-        </section>
-        <section>
-          <h3>Derived attributes</h3>
+        <section class="imprint-weave">
+          <h3>Soul weave</h3>
+          <div class="soul-weave--imprint" id="imprint-weave"></div>
           <div class="stat-weave">
-            ${STAT_KEYS.map((key) => `<div>${icon(STAT_ICONS[key], 18)}<strong>${profile.stats[key]}</strong><span>${STAT_LABELS[key]}</span></div>`).join("")}
+            ${STAT_KEYS.map((key) => `<div>${icon(STAT_ICONS[key], 18)}<strong class="weave-counter" data-stat="${key}">${counterDigits(base[key])}</strong><span>${STAT_LABELS[key]}</span></div>`).join("")}
           </div>
           <div class="derived-vitals">
             <span>${icon("heart-pulse", 14)}Vitality <strong>${profile.maxHp}</strong></span>
@@ -1121,7 +1261,7 @@ export class CharacterCreation {
         </section>
         <section class="imprint-skills">
           <h3>Initial skills</h3>
-          <ul>${profile.skills.map((skill) => `<li>${skill}</li>`).join("")}</ul>
+          <ul>${profile.skills.map((skill) => `<li>${skillMark(skill)}<span>${skill}</span></li>`).join("")}</ul>
           ${profile.ancestryCallingBonus ? `<p class="resonance-note"><strong>${profile.ancestryCallingBonus.name}</strong>${profile.ancestryCallingBonus.description}</p>` : ""}
         </section>
         <section class="memory-consequences">
@@ -1133,6 +1273,13 @@ export class CharacterCreation {
         ${this.backButton("Reconsider memories")}
         <button class="ritual-button ritual-button--primary ritual-button--seal" id="creation-confirm" type="button">${this.buttonContent("Awaken at the Soul Well", "soul-seal", "trailing")}</button>
       </div>`;
+    // The weave resolves in front of the player: spokes travel from the blank hexagon to
+    // the derived values while the numerals count up beside them.
+    const weaveHost = requiredElement<HTMLElement>("imprint-weave");
+    this.imprintWeave = new SoulWeave(weaveHost, { reducedMotion: this.reducedMotion });
+    this.imprintWeave.setStats(base, false);
+    this.imprintWeave.setStats(profile.stats, true);
+    this.stopStatCounters = animateStatCounters(this.stage, base, profile.stats, this.reducedMotion);
     requiredElement<HTMLButtonElement>("creation-back").addEventListener("click", () => {
       this.navigateBack("memory", MEMORY_QUESTIONS.length - 1);
     });
@@ -1222,6 +1369,35 @@ export class CharacterCreation {
   private bindNavigation(back: () => void, next: () => void): void {
     requiredElement<HTMLButtonElement>("creation-back").addEventListener("click", back);
     requiredElement<HTMLButtonElement>("creation-next").addEventListener("click", next);
+  }
+
+  /**
+   * A hovered or focused choice shows what it would do to the weave as a dashed ghost
+   * (and, on the calling station, on the plate); leaving clears both.
+   */
+  private bindWeaveGhost(
+    selector: string,
+    dataKey: string,
+    statsFor: (id: string) => Stats,
+    onEnter?: (id: string) => void,
+    onLeave?: () => void,
+  ): void {
+    const enter = (button: HTMLButtonElement): void => {
+      const id = button.dataset[dataKey];
+      if (!id || button.disabled) return;
+      this.railWeave?.setGhost(statsFor(id));
+      onEnter?.(id);
+    };
+    const leave = (): void => {
+      this.railWeave?.setGhost(null);
+      onLeave?.();
+    };
+    this.stage.querySelectorAll<HTMLButtonElement>(selector).forEach((button) => {
+      button.addEventListener("pointerenter", () => enter(button));
+      button.addEventListener("focus", () => enter(button));
+      button.addEventListener("pointerleave", leave);
+      button.addEventListener("blur", leave);
+    });
   }
 
   /** A hovered card, row or swatch draws the figure's gaze; it lets go a beat after the pointer leaves. */

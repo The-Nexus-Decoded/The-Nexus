@@ -34,12 +34,19 @@
   font-family: "Soul Dialogue", Georgia, serif;
 }
 
+/* The calling rows and the imprint's weave need a wider folio (design §6.5, §6.7). */
+.creation-shell[data-station="calling"],
+.creation-shell[data-station="review"] { --folio-w: 520px; }
+
 @media (min-width: 1680px) {
   .creation-shell { --rail-w: 232px; }
 }
 
 @media (min-width: 1920px) {
   .creation-shell { --folio-w: 520px; }
+
+  .creation-shell[data-station="calling"],
+  .creation-shell[data-station="review"] { --folio-w: 600px; }
 }
 
 .creation-shell.is-dissolving { animation: soul-dissolve 520ms ease-in forwards; }
@@ -69,12 +76,23 @@
 
 /* ------------------------------------------------------------------ stage */
 
+/*
+ * The bound calling's hue. Registered as a colour so the well-light behind the figure
+ * travels to it over the same 550 ms as the rim and the underlight (design §2.2).
+ */
+@property --accent-hue {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #7af4df;
+}
+
 .stage-viewport {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  --accent-hue: 122, 244, 223;
+  --accent-hue: #7af4df;
+  transition: --accent-hue 550ms linear;
 }
 
 .stage-viewport > canvas,
@@ -107,7 +125,7 @@
 .stage-grain { pointer-events: none; }
 
 .stage-shade { background: linear-gradient(rgba(16, 23, 38, 0.65) 0%, rgba(16, 23, 38, 0) 48%); }
-.stage-well-light { background: radial-gradient(circle at 50% 78%, rgba(var(--accent-hue), 0.22), transparent 46%); }
+.stage-well-light { background: radial-gradient(circle at 50% 78%, color-mix(in srgb, var(--accent-hue) 22%, transparent), transparent 46%); }
 .stage-vignette { box-shadow: inset 0 0 180px 60px rgba(8, 12, 20, 0.75); }
 
 .stage-grain {
@@ -353,6 +371,31 @@
 
 .creation-rail__footer { display: none; }
 
+/* -------------------------------------------------------------- soul weave */
+
+/*
+ * The six stats as a hexagonal radar: three rings, six spokes, the bound polygon in the
+ * Well's teal and, while a choice is hovered, a dashed bronze ghost of what it would do.
+ */
+.soul-weave { display: block; }
+.soul-weave__svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.soul-weave__ring { fill: none; stroke: rgba(168, 117, 53, 0.28); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.soul-weave__spoke { stroke: rgba(168, 117, 53, 0.22); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.soul-weave__value { fill: rgba(122, 244, 223, 0.18); stroke: var(--soul); stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.soul-weave__ghost { fill: none; stroke: var(--bronze); stroke-width: 1.25; stroke-dasharray: 4 3; stroke-linejoin: round; opacity: 0; vector-effect: non-scaling-stroke; transition: opacity var(--t-hover) ease-out; }
+.soul-weave.has-ghost .soul-weave__ghost { opacity: 0.5; }
+.soul-weave__label { fill: var(--muted); font: 600 11px "Soul HUD", sans-serif; letter-spacing: 0.12em; transition: fill 220ms ease-out; }
+.soul-weave__label.is-pulsing { fill: var(--bronze); }
+.soul-weave.is-pulsing .soul-weave__value { animation: weave-pulse 480ms ease-out; }
+
+@keyframes weave-pulse {
+  0% { fill: rgba(122, 244, 223, 0.18); stroke-width: 1.5; }
+  30% { fill: rgba(122, 244, 223, 0.42); stroke-width: 2.5; }
+  100% { fill: rgba(122, 244, 223, 0.18); stroke-width: 1.5; }
+}
+
+.soul-weave--rail { width: 64px; height: 64px; margin: 28px auto 0; }
+
 @media (min-width: 1680px) {
   .creation-rail { align-items: stretch; padding-inline: 26px; }
   .creation-brand { flex-direction: row; }
@@ -371,6 +414,7 @@
   }
 
   .creation-progress__index { flex: 0 0 2.4em; }
+  .soul-weave--rail { width: 96px; height: 96px; }
 
   .creation-rail__footer {
     display: flex;
@@ -610,15 +654,6 @@
 .continue-character em { color: var(--bronze); font-style: normal; }
 .continue-character b { display: inline-flex; align-items: center; gap: 8px; color: var(--soul); font: 600 11px/1 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 
-/* ------------------------------------------------------------ choice cards */
-
-.choice-grid {
-  display: grid;
-  gap: 12px;
-}
-
-.choice-grid--callings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-
 /* ---------------------------------------------------------- ancestry station */
 
 /* The one returned body is a card; the peoples the Well has not shaped are notes, never controls. */
@@ -727,6 +762,96 @@
 .choice-card.is-forbidden:hover { transform: none; box-shadow: none; }
 .choice-card__resonance { width: calc(100% + 28px); margin: 10px -14px -14px; padding: 7px 10px; color: #c8ede7; background: rgba(122, 244, 223, 0.1); font: 600 11px/1.3 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-align: center; text-transform: uppercase; }
 .choice-card.has-ancestry-bonus { box-shadow: inset 0 -2px rgba(122, 244, 223, 0.26); }
+
+/* ----------------------------------------------------------- calling station */
+
+/* The plate: the hovered-or-bound calling's portrait, two images crossfading, a prompt until one is bound. */
+.calling-plate {
+  position: relative;
+  height: 240px;
+  margin: 0 0 16px;
+  overflow: hidden;
+  border: 1px solid var(--rule-soft);
+  background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--accent-hue, #7af4df) 16%, transparent), transparent 70%), rgba(10, 16, 18, 0.45);
+}
+
+.calling-plate__portrait {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  opacity: 0;
+  filter: drop-shadow(0 16px 14px rgba(0, 0, 0, 0.64));
+  transition: opacity 240ms ease-out;
+}
+
+.calling-plate__portrait.is-shown { opacity: 1; }
+
+.calling-plate__prompt {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0 32px;
+  color: var(--muted);
+  font-size: 17px;
+  font-style: italic;
+  line-height: 1.55;
+  text-align: center;
+  transition: opacity 240ms ease-out;
+}
+
+.calling-plate.has-portrait .calling-plate__prompt { opacity: 0; }
+
+.calling-rows { display: grid; gap: 8px; }
+
+/*
+ * A calling is a 64 px row: thumb, mark, name over identity, the curve pair at the right.
+ * The bound row alone expands to show its two skills, its job and any ancestry banner.
+ */
+.choice-card--calling {
+  display: grid;
+  min-height: 64px;
+  grid-template-columns: 48px 18px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "portrait glyph title curve"
+    "portrait glyph body curve"
+    "detail detail detail detail";
+  align-items: center;
+  column-gap: 12px;
+  padding: 8px 12px 8px 8px;
+}
+
+.choice-card--calling .choice-card__portrait { grid-area: portrait; width: 48px; height: 48px; object-position: center top; object-fit: cover; }
+.choice-card--calling .choice-card__glyph { grid-area: glyph; }
+.choice-card--calling .choice-card__title { grid-area: title; margin: 0; align-self: end; }
+/* A collapsed row keeps its identity to one line; the bound row, expanded, lets it run. */
+.choice-card--calling .choice-card__body { grid-area: body; min-width: 0; margin: 2px 0 0; align-self: start; overflow: hidden; font-size: 15px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.choice-card--calling.is-selected .choice-card__body { overflow: visible; text-overflow: clip; white-space: normal; }
+.choice-card--calling .choice-card__difficulty { grid-area: curve; max-width: 104px; margin: 0; text-align: right; }
+
+.choice-card__detail {
+  display: grid;
+  grid-area: detail;
+  max-height: 0;
+  gap: 8px;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 260ms var(--ease-out), opacity 260ms var(--ease-out), padding-top 260ms var(--ease-out);
+}
+
+.choice-card--calling.is-selected .choice-card__detail { max-height: 220px; padding-top: 10px; opacity: 1; }
+.choice-card__skills { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--parchment); font-family: "Soul Cinzel", serif; font-size: 15px; font-weight: 500; letter-spacing: 0.02em; }
+.choice-card__skills span { display: inline-flex; align-items: center; gap: 8px; }
+/* The harness resolves `button[data-calling] img` to the one portrait, so the skill marks are backgrounds, not images. */
+.choice-card__skill-mark { display: inline-block; width: 32px; height: 32px; flex: none; border: 1px solid var(--rule-soft); background: var(--mark) center / cover no-repeat, rgba(0, 0, 0, 0.35); }
+.choice-card--calling .choice-card__job { margin: 0; }
+.choice-card--calling .choice-card__eligibility,
+.choice-card--calling .choice-card__resonance { width: calc(100% + 20px); margin: 0 -12px -8px -8px; }
+.choice-card--calling.is-selected::after { top: auto; right: 12px; bottom: 10px; }
 
 /* ------------------------------------------------------- appearance station */
 
@@ -850,24 +975,41 @@
 
 /* ---------------------------------------------------------- memory station */
 
+/*
+ * "MEMORY 01" as a watermark in the folio's top-right corner. Sized by the folio so the
+ * word never widens it; what runs past the left edge is clipped, never scrolled.
+ */
 .memory-number {
-  float: right;
-  margin: -8px 0 0 12px;
-  color: rgba(239, 184, 95, 0.1);
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  justify-items: end;
+  color: rgba(239, 184, 95, 0.08);
   font-family: "Soul Cinzel", serif;
-  font-size: 56px;
+  font-size: clamp(40px, 13cqi, 72px);
   font-weight: 900;
-  line-height: 0.85;
-  letter-spacing: 0.06em;
+  line-height: 0.9;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
 }
 
-.memory-answers { display: grid; gap: 10px; clear: both; }
+.creation-heading--memory { position: relative; }
+.creation-heading--memory > .eyebrow,
+.creation-heading--memory > h2,
+.creation-heading--memory > p:last-child { position: relative; }
+.memory-answers { display: grid; gap: 10px; }
 
+/* A full-width row: the letter box, the answer, and at the right what it awakens and what it adds. */
 .memory-answer {
+  position: relative;
   display: grid;
   min-height: 72px;
-  grid-template-columns: 40px 1fr;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-areas: "letter text meta";
   align-items: center;
   gap: 14px;
   padding: 12px 16px;
@@ -881,36 +1023,64 @@
 
 .memory-answer:hover { border-color: var(--bronze); }
 .memory-answer.is-selected { border-color: var(--soul); box-shadow: inset 3px 0 var(--soul); }
-.memory-answer > span { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid var(--bronze-dim); color: var(--bronze); font: 600 20px/1 "Soul Cinzel", serif; }
-.memory-answer.is-selected > span { background: var(--leaf-rubric); border-color: var(--leaf-rubric); color: var(--leaf); }
-.memory-answer strong { font-size: 18px; font-weight: 400; line-height: 1.4; }
-.memory-answer small { display: inline-flex; grid-column: 2; align-items: center; gap: 6px; color: var(--bronze); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.memory-answer__letter { display: grid; grid-area: letter; width: 40px; height: 40px; place-items: center; border: 1px solid var(--bronze-dim); color: var(--bronze); font: 600 16px/1 "Soul HUD", sans-serif; letter-spacing: 0.08em; }
+.memory-answer.is-selected .memory-answer__letter { background: var(--leaf-rubric); border-color: var(--leaf-rubric); color: var(--leaf); }
+.memory-answer__text { grid-area: text; font-size: 18px; font-weight: 400; line-height: 1.4; }
+.memory-answer__meta { display: grid; grid-area: meta; justify-items: end; gap: 6px; }
+.memory-answer__skill { display: inline-flex; align-items: center; gap: 6px; color: var(--bronze); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; white-space: nowrap; }
+.memory-answer__ticks { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.memory-answer__ticks b { padding: 2px 6px; border: 1px solid var(--rule-soft); color: var(--bronze); font: 600 11px/1.2 "Soul HUD", sans-serif; letter-spacing: 0.12em; white-space: nowrap; }
+
+/* A folio under 500 px (the 440 px desktop folio, every phone) has no room for a third column: "Awakens" and the ticks wrap under the answer. */
+@container (max-width: 500px) {
+  .memory-answer { grid-template-columns: 40px minmax(0, 1fr); grid-template-areas: "letter text" "letter meta"; row-gap: 8px; }
+  .memory-answer__meta { justify-items: start; }
+  .memory-answer__ticks { justify-content: flex-start; }
+}
+
+/* The bound answer carries the micro-stamp in its corner. */
+.memory-answer.is-selected::after {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  content: "BOUND";
+  color: var(--stamp);
+  font: 600 9px/1 "Soul HUD", sans-serif;
+  letter-spacing: 0.24em;
+  transform: rotate(8deg);
+  animation: stamp-in 260ms var(--ease-snap) both;
+}
 
 /* ------------------------------------------------------------ imprint station */
+
+/* The identity line under the returned name: race, calling, the Well's verdict. */
+.creation-heading > .imprint-identity { color: var(--bronze); font: 600 12px/1.5 "Soul HUD", sans-serif; font-style: normal; letter-spacing: 0.18em; text-transform: uppercase; }
 
 /* The folio column is fixed; nothing in the imprint may widen it (a 375 px phone has 96 px stat tiles). */
 .imprint-review { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .imprint-review > section { min-width: 0; padding: 16px; border: 1px solid var(--rule-soft); background: rgba(10, 16, 18, 0.45); }
-.imprint-seal { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; }
-.imprint-seal img { width: 100%; height: 200px; object-fit: contain; filter: drop-shadow(0 16px 14px rgba(0, 0, 0, 0.64)); }
-.imprint-seal > span { display: inline-flex; color: var(--soul); }
-.imprint-seal strong { margin-top: 5px; font-family: "Soul Cinzel", serif; font-size: 19px; font-weight: 500; letter-spacing: 0.02em; }
-.imprint-seal small { margin-top: 4px; color: var(--bronze); font: 600 11px/1 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+
+/* The expanded weave, 260 px, over the six counting tiles. */
+.soul-weave--imprint { width: 260px; max-width: 100%; margin: 0 auto 16px; aspect-ratio: 1; }
+.soul-weave--imprint .soul-weave__value { stroke-width: 2; }
 
 /* A stat tile stacks: the mark and the numeral share the first row, the label sits beneath, so
    the widest label (RESONANCE, 71 px tracked) fits the 76 px inner width of a 96 px phone tile. */
 .stat-weave { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .stat-weave div { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "icon value" "label label"; align-items: center; gap: 4px 8px; padding: 8px 10px; border-left: 1px solid var(--bronze-dim); background: rgba(255, 255, 255, 0.025); }
 .stat-weave .icon { grid-area: icon; color: var(--bronze); }
-.stat-weave strong { grid-area: value; color: var(--soul); font: 600 28px/1 "Soul HUD", sans-serif; }
-.stat-weave span { grid-area: label; min-width: 0; color: var(--muted); font: 600 11px/1.2 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.stat-weave strong { grid-area: value; color: var(--soul); font: 600 28px/1 "Soul HUD", sans-serif; font-variant-numeric: tabular-nums; }
+/* Each digit in its own cell so a counting numeral never nudges its neighbours. */
+.weave-digit { display: inline-block; width: 1ch; text-align: center; }
+.stat-weave div > span { grid-area: label; min-width: 0; color: var(--muted); font: 600 11px/1.2 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
 .derived-vitals { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; color: var(--muted); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
 .derived-vitals span { display: inline-flex; align-items: center; gap: 6px; }
 .derived-vitals .icon { color: var(--bronze); }
 .derived-vitals strong { color: var(--parchment); font-size: 13px; }
 .imprint-skills ul,
 .memory-consequences ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
-.imprint-skills li { padding: 8px 10px; border-left: 2px solid var(--soul); background: rgba(122, 244, 223, 0.05); color: #c9d9d1; font-size: 15px; }
+.imprint-skills li { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 10px; border-left: 2px solid var(--soul); background: rgba(122, 244, 223, 0.05); color: #c9d9d1; font-size: 15px; }
+.imprint-skills__mark { width: 32px; height: 32px; flex: none; border: 1px solid var(--rule-soft); background: rgba(0, 0, 0, 0.35); }
 .memory-consequences li { padding-left: 14px; border-left: 4px solid rgba(122, 244, 223, 0.6); color: var(--muted); font-size: 15px; line-height: 1.45; }
 
 .curve-note,
@@ -1029,6 +1199,7 @@
   .creation-progress li { min-height: 0; padding: 0; }
   .creation-progress__mark { width: 28px; height: 28px; flex-basis: 28px; }
   .creation-progress__mark .icon { width: 16px; height: 16px; }
+  .soul-weave--rail { width: 40px; height: 40px; margin: 0; }
 
   .creation-main {
     height: auto;
@@ -1048,7 +1219,10 @@
   .choice-card__body { font-size: 16px; }
   .creation-actions { margin: 24px -20px 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); }
   .creation-error-strip { padding: 6px 20px 12px; }
-  .choice-grid--callings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .calling-plate { height: 160px; }
+  .choice-card--calling .choice-card__difficulty { display: none; }
+  .memory-number { right: 0; font-size: clamp(36px, 13cqi, 56px); }
+  .soul-weave--imprint { width: 220px; }
   .origin-card__portrait { height: 160px; }
   /* One row of three: thumb over name, so HALFLING fits a 100 px chip; the sentence once beneath. */
   .origin-chips { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -1074,7 +1248,14 @@
 @media (prefers-reduced-motion: reduce) {
   .station-word.is-revealing,
   .choice-card.is-selected::after,
+  .memory-answer.is-selected::after,
   .appearance-option.is-selected .appearance-swatch .icon,
   .icon--loader-circle,
+  .soul-weave.is-pulsing .soul-weave__value,
   .creation-error-strip:has(#creation-error:not(:empty)) { animation: none; }
+
+  .stage-viewport,
+  .calling-plate__portrait,
+  .calling-plate__prompt,
+  .choice-card__detail { transition: none; }
 }
