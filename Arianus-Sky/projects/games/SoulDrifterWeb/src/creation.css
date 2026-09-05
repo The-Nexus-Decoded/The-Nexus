@@ -1,0 +1,880 @@
+/*
+ * The Weaving - character creation.
+ *
+ * Three zones on desktop: an icon rail on the left, the persistent lit stage behind
+ * everything, and one dark-glass folio docked right that hosts every station. One
+ * Cinzel word announces each station; everything else is Alegreya (the Well's voice)
+ * and Rajdhani caps for labels. Imported after styles.css so the shared tokens and the
+ * in-game HUD rules stay where they are.
+ */
+
+.creation-shell {
+  --rail-w: 88px;
+  --folio-w: 440px;
+  --glass: rgba(16, 23, 38, 0.72);
+  --glass-solid: rgba(16, 23, 38, 0.92);
+  --rule: rgba(168, 117, 53, 0.42);
+  --rule-soft: rgba(168, 117, 53, 0.22);
+  --stamp: var(--soul);
+  --leaf: #efe1bf;
+  --leaf-ink: #2a1d12;
+  --leaf-rubric: #8a2f22;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-hover: 140ms;
+  --t-swap: 260ms;
+  --t-camera: 720ms;
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--folio-w);
+  overflow: hidden;
+  color: var(--parchment);
+  background: #0b1019;
+  font-family: "Soul Dialogue", Georgia, serif;
+}
+
+@media (min-width: 1680px) {
+  .creation-shell { --rail-w: 232px; }
+}
+
+@media (min-width: 1920px) {
+  .creation-shell { --folio-w: 520px; }
+}
+
+.creation-shell.is-dissolving { animation: soul-dissolve 520ms ease-in forwards; }
+
+@keyframes soul-dissolve {
+  to { opacity: 0; filter: blur(8px) brightness(1.5); transform: scale(1.015); }
+}
+
+/* ------------------------------------------------------------------ stage */
+
+.stage-viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  --accent-hue: 122, 244, 223;
+}
+
+.stage-viewport > canvas,
+.stage-viewport > .stage-shade,
+.stage-viewport > .stage-well-light,
+.stage-viewport > .stage-vignette,
+.stage-viewport > .stage-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.stage-backdrop { opacity: 0; }
+
+#appearance-preview-canvas {
+  display: block;
+  cursor: grab;
+  outline: none;
+  touch-action: pan-y;
+}
+
+#appearance-preview-canvas:active { cursor: grabbing; }
+#appearance-preview-canvas[hidden] { display: none; }
+#appearance-preview-canvas:focus-visible { box-shadow: inset 0 0 0 2px var(--soul); }
+
+.stage-shade,
+.stage-well-light,
+.stage-vignette,
+.stage-grain { pointer-events: none; }
+
+.stage-shade { background: linear-gradient(rgba(16, 23, 38, 0.65) 0%, rgba(16, 23, 38, 0) 48%); }
+.stage-well-light { background: radial-gradient(circle at 50% 78%, rgba(var(--accent-hue), 0.22), transparent 46%); }
+.stage-vignette { box-shadow: inset 0 0 180px 60px rgba(8, 12, 20, 0.75); }
+
+.stage-grain {
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.stage-fallback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(42vh, 360px);
+  transform: translate(-50%, -50%);
+  opacity: 0.9;
+}
+
+.stage-fallback[hidden] { display: none; }
+
+.stage-status {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--rail-w) + 28px);
+  margin: 0;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-family: "Soul HUD", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.stage-status.is-failed { color: var(--danger); }
+.stage-status[hidden] { display: none; }
+
+.stage-pill {
+  position: absolute;
+  bottom: 28px;
+  left: calc(var(--rail-w) + 28px);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 16px;
+  border: 1px solid var(--rule);
+  background: var(--glass-solid);
+  font-family: "Soul HUD", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.stage-pill[hidden] { display: none; }
+
+.appearance-rotation-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font: 600 11px/1 "Soul HUD", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.appearance-rotation-toggle input { width: 14px; height: 14px; margin: 0; accent-color: var(--soul); }
+
+.stage-pill button {
+  padding: 7px 12px;
+  border: 1px solid var(--rule);
+  color: var(--bronze);
+  background: transparent;
+  font: 600 11px/1 "Soul HUD", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color var(--t-hover) ease-out, color var(--t-hover) ease-out;
+}
+
+.stage-pill button:hover { border-color: var(--soul); color: var(--soul); }
+
+.stage-pill__readout { display: grid; gap: 3px; text-transform: uppercase; }
+.stage-pill__readout span { color: #75867f; font-size: 11px; font-weight: 400; letter-spacing: 0.12em; }
+.stage-pill__readout strong { color: var(--parchment); font-size: 13px; letter-spacing: 0.08em; }
+.stage-pill__readout strong.is-failed { color: var(--danger); }
+
+.stage-hide-ui {
+  position: absolute;
+  top: 24px;
+  left: calc(var(--rail-w) + 28px);
+  z-index: 3;
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+  background: var(--glass-solid);
+  color: var(--muted);
+  font: 600 11px/1 "Soul HUD", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color var(--t-hover) ease-out, color var(--t-hover) ease-out;
+}
+
+.stage-hide-ui:hover { border-color: var(--soul); color: var(--parchment); }
+
+.creation-rail,
+.creation-main,
+.stage-pill { transition: opacity 300ms ease-in-out; }
+
+.creation-shell.is-ui-hidden .creation-rail,
+.creation-shell.is-ui-hidden .creation-main,
+.creation-shell.is-ui-hidden .stage-pill {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.creation-shell.is-ui-hidden .stage-hide-ui { left: 24px; }
+
+/* ------------------------------------------------------------------- rail */
+
+.creation-rail {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 0 24px;
+  border-right: 1px solid var(--rule-soft);
+  background: var(--glass-solid);
+}
+
+.creation-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.creation-brand__seal {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--bronze);
+  color: var(--soul);
+  font-size: 18px;
+  transform: rotate(45deg);
+  box-shadow: inset 0 0 20px rgba(122, 244, 223, 0.14);
+}
+
+.creation-brand__seal + div { display: none; }
+.creation-brand strong { font-size: 19px; font-weight: 500; letter-spacing: 0.08em; }
+.creation-brand .eyebrow { margin-bottom: 2px; font-size: 11px; letter-spacing: 0.18em; }
+
+.creation-rail blockquote { display: none; }
+
+.creation-progress {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  margin: 44px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.creation-progress li {
+  position: relative;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 12px;
+  color: #59635f;
+  font-family: "Soul HUD", sans-serif;
+  font-size: 0;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.creation-progress li span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border: 1px solid #39423f;
+  color: #69736e;
+  background: rgba(10, 14, 15, 0.8);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: border-color 220ms ease-out, color 220ms ease-out, box-shadow 220ms ease-out;
+}
+
+.creation-progress li.is-current { color: var(--parchment); }
+.creation-progress li.is-current span { border-color: var(--soul); color: var(--soul); box-shadow: 0 0 16px rgba(122, 244, 223, 0.22); }
+.creation-progress li.is-complete { color: #9b8a6e; }
+.creation-progress li.is-complete span { border-color: var(--bronze-dim); color: var(--bronze); }
+
+.creation-rail__footer { display: none; }
+
+@media (min-width: 1680px) {
+  .creation-rail { align-items: stretch; padding-inline: 26px; }
+  .creation-brand { flex-direction: row; }
+  .creation-brand__seal + div { display: block; }
+  .creation-progress li { justify-content: flex-start; font-size: 12px; font-weight: 600; }
+
+  .creation-rail__footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule-soft);
+    font: 600 11px/1.2 "Soul HUD", sans-serif;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .creation-rail__footer span { color: var(--muted); }
+  .creation-rail__footer strong { color: var(--soul); }
+}
+
+/* ------------------------------------------------------------------ folio */
+
+.creation-main {
+  position: relative;
+  z-index: 2;
+  grid-column: 3;
+  display: grid;
+  height: 100vh;
+  min-width: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border-left: 1px solid var(--rule);
+  background: var(--glass-solid);
+  box-shadow: -24px 0 80px rgba(0, 0, 0, 0.45);
+}
+
+.creation-main::before,
+.creation-main::after {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  content: "";
+  pointer-events: none;
+  border: 1px solid var(--bronze);
+}
+
+.creation-main::before { top: 10px; left: 10px; border-width: 1px 0 0 1px; }
+.creation-main::after { right: 10px; bottom: 10px; border-width: 0 1px 1px 0; }
+
+.station-word {
+  margin: 0;
+  padding: 34px 36px 8px;
+  color: var(--parchment);
+  font-family: "Soul Cinzel", serif;
+  font-size: clamp(40px, 4.6vw, 64px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  overflow-wrap: normal;
+}
+
+/* The imprint shows the returned name: tighter, heavier, allowed to wrap by word. */
+.station-word--name {
+  font-size: clamp(32px, 4vw, 56px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.station-word.is-revealing { animation: station-word-reveal 520ms var(--ease-out) both; }
+
+@keyframes station-word-reveal {
+  from { opacity: 0; letter-spacing: 0.32em; }
+  to { opacity: 1; letter-spacing: 0.18em; }
+}
+
+.creation-stage {
+  min-height: 0;
+  overflow: auto;
+  padding: 0 36px 0;
+  scrollbar-color: var(--bronze-dim) transparent;
+  scrollbar-width: thin;
+}
+
+.creation-stage h2,
+.creation-stage h3 { font-family: "Soul Dialogue", Georgia, serif; }
+
+.creation-heading { margin-bottom: 24px; }
+
+.creation-heading .eyebrow {
+  margin: 0 0 8px;
+  color: var(--bronze);
+  font: 600 12px/1.2 "Soul HUD", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.creation-heading h2 {
+  margin: 0 0 8px;
+  color: var(--parchment);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.creation-heading > p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 17px;
+  font-style: italic;
+  line-height: 1.55;
+}
+
+#creation-stage[data-station="review"] .creation-heading > h2 { display: none; }
+
+.creation-stage section h3 {
+  margin: 0 0 10px;
+  color: var(--bronze);
+  font: 600 12px/1.2 "Soul HUD", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------ name station */
+
+.name-field {
+  display: grid;
+  gap: 10px;
+  margin: 28px 0 32px;
+}
+
+.name-field span {
+  color: var(--bronze);
+  font: 600 12px/1.2 "Soul HUD", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.name-field input {
+  width: 100%;
+  padding: 6px 0 10px;
+  border: solid var(--bronze-dim);
+  border-width: 0 0 1px;
+  outline: 0;
+  color: var(--parchment);
+  background: transparent;
+  caret-color: var(--soul);
+  font-family: "Soul Cinzel", serif;
+  font-size: clamp(34px, 3vw, 52px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  transition: border-color 180ms ease-out;
+}
+
+.name-field input::placeholder {
+  color: var(--muted);
+  font-family: "Soul Dialogue", Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0;
+  opacity: 0.55;
+}
+
+.name-field input:not(:placeholder-shown),
+.name-field input:focus { border-color: var(--soul); }
+
+.continue-character {
+  display: grid;
+  width: 100%;
+  min-height: 92px;
+  grid-template-columns: 88px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 28px;
+  padding: 8px 18px 8px 8px;
+  border: 1px solid var(--rule);
+  color: var(--parchment);
+  text-align: left;
+  background: rgba(31, 42, 54, 0.6);
+  cursor: pointer;
+  transition: border-color var(--t-hover) ease-out, transform var(--t-hover) ease-out;
+}
+
+.continue-character:hover { border-color: var(--soul); transform: translateY(-2px); }
+.continue-character img { width: 88px; height: 88px; object-fit: contain; filter: drop-shadow(0 8px 8px #000); }
+.continue-character span { display: grid; gap: 3px; }
+.continue-character small,
+.continue-character em { color: var(--muted); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.continue-character strong { font-family: "Soul Cinzel", serif; font-size: 19px; font-weight: 500; letter-spacing: 0.02em; }
+.continue-character em { color: var(--bronze); font-style: normal; }
+.continue-character b { color: var(--soul); font: 600 11px/1 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+
+/* ------------------------------------------------------------ choice cards */
+
+.choice-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.choice-grid--races { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.choice-grid--callings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.choice-card {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid var(--rule-soft);
+  color: var(--parchment);
+  text-align: left;
+  background: rgba(10, 16, 18, 0.55);
+  cursor: pointer;
+  transition: border-color var(--t-hover) ease-out, transform var(--t-hover) ease-out, box-shadow var(--t-hover) ease-out;
+}
+
+.choice-card:not(:disabled):hover,
+.choice-card.is-selected {
+  z-index: 1;
+  border-color: var(--bronze);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+}
+
+.choice-card.is-selected { border-color: var(--soul); box-shadow: inset 3px 0 var(--soul), 0 18px 40px rgba(0, 0, 0, 0.4); }
+
+.choice-card.is-selected::after {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  content: "BOUND";
+  color: var(--stamp);
+  font: 600 11px/1 "Soul HUD", sans-serif;
+  letter-spacing: 0.24em;
+  transform: rotate(8deg);
+  animation: stamp-in 260ms var(--ease-snap) both;
+}
+
+@keyframes stamp-in {
+  from { opacity: 0; transform: rotate(8deg) scale(1.25); }
+  to { opacity: 1; transform: rotate(8deg) scale(1); }
+}
+
+.choice-card__portrait {
+  width: 100%;
+  height: 120px;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 13px 12px rgba(0, 0, 0, 0.55)) brightness(0.9);
+  transition: transform 180ms ease-out, filter 180ms ease-out;
+}
+
+.choice-card:not(:disabled):hover .choice-card__portrait,
+.choice-card.is-selected .choice-card__portrait { transform: scale(1.04); filter: drop-shadow(0 16px 15px rgba(0, 0, 0, 0.68)) brightness(1); }
+
+.choice-card__glyph { color: var(--soul); font-size: 18px; }
+.choice-card__title { margin-top: 4px; color: var(--parchment); font-family: "Soul Cinzel", serif; font-size: 19px; font-weight: 500; letter-spacing: 0.02em; }
+.choice-card__body { margin-top: 6px; color: var(--muted); font-size: 15px; line-height: 1.45; }
+.choice-card__affinity { margin-top: auto; padding-top: 12px; color: var(--bronze); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.choice-card__job { margin-top: 5px; color: #5f6c67; font: 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+.choice-card__difficulty { margin-top: 4px; color: #77847e; font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+.choice-card__eligibility { display: grid; gap: 3px; width: calc(100% + 28px); margin: 10px -14px -14px; padding: 8px 10px; font: 11px/1.4 "Soul HUD", sans-serif; text-align: center; }
+.choice-card__eligibility strong { letter-spacing: 0.18em; text-transform: uppercase; }
+.choice-card__eligibility--rare { color: #f0d6a4; background: rgba(197, 141, 71, 0.13); }
+.choice-card__eligibility--forbidden { color: #d6aaa0; background: rgba(142, 55, 45, 0.18); }
+.choice-card.is-rare { border-color: rgba(197, 141, 71, 0.52); }
+.choice-card.is-forbidden { cursor: not-allowed; opacity: 0.5; filter: saturate(0.45); }
+.choice-card.is-forbidden:hover { transform: none; box-shadow: none; }
+.choice-card__resonance { width: calc(100% + 28px); margin: 10px -14px -14px; padding: 7px 10px; color: #c8ede7; background: rgba(122, 244, 223, 0.1); font: 600 11px/1.3 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-align: center; text-transform: uppercase; }
+.choice-card.has-ancestry-bonus { box-shadow: inset 0 -2px rgba(122, 244, 223, 0.26); }
+
+/* ------------------------------------------------------- appearance station */
+
+.appearance-workflow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 24px;
+}
+
+.appearance-workflow__tab {
+  display: grid;
+  min-height: 60px;
+  grid-template-columns: 32px 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule-soft);
+  color: var(--muted);
+  text-align: left;
+  background: rgba(10, 16, 18, 0.55);
+  cursor: pointer;
+  transition: border-color var(--t-hover) ease-out, box-shadow var(--t-hover) ease-out;
+}
+
+.appearance-workflow__tab > span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  grid-row: 1 / 3;
+  place-items: center;
+  border: 1px solid currentColor;
+  color: var(--bronze);
+  font: 600 11px/1 "Soul HUD", sans-serif;
+}
+
+.appearance-workflow__tab strong { color: var(--parchment); font-family: "Soul Cinzel", serif; font-size: 17px; font-weight: 500; letter-spacing: 0.02em; }
+.appearance-workflow__tab small { color: #68756f; font: 600 11px/1.2 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+.appearance-workflow__tab:hover,
+.appearance-workflow__tab.is-selected { border-color: var(--soul); }
+.appearance-workflow__tab.is-selected { box-shadow: inset 0 -2px var(--bronze); }
+.appearance-workflow__tab.is-selected > span,
+.appearance-workflow__tab.is-selected small { color: var(--soul); }
+.appearance-workflow__path { color: var(--rule); font: 600 16px/1 "Soul HUD", sans-serif; }
+
+.appearance-builder { display: grid; gap: 22px; }
+.appearance-builder__options { display: grid; gap: 22px; }
+.appearance-builder__options > section { position: relative; padding-top: 14px; border-top: 1px solid var(--rule-soft); }
+
+.appearance-builder__options > section::before {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 54px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--bronze), transparent);
+  content: "";
+}
+
+.appearance-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+
+.appearance-option {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  border: 0;
+  color: var(--parchment);
+  background: transparent;
+  cursor: pointer;
+}
+
+.appearance-option strong { font: 600 11px/1.2 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+
+.appearance-swatch {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: border-color 180ms ease-out, transform 180ms ease-out;
+}
+
+.appearance-option:hover .appearance-swatch { transform: translateY(-2px); }
+.appearance-option.is-selected .appearance-swatch { border-color: var(--bronze); }
+
+.appearance-option.is-selected .appearance-swatch::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--soul);
+  content: "";
+  transform: translate(-50%, -50%);
+  animation: dot-in 180ms var(--ease-snap) both;
+}
+
+@keyframes dot-in {
+  from { transform: translate(-50%, -50%) scale(0); }
+  to { transform: translate(-50%, -50%) scale(1); }
+}
+
+.appearance-note { margin: 0; color: var(--muted); font-size: 17px; font-style: italic; line-height: 1.55; }
+
+/* ---------------------------------------------------------- memory station */
+
+.memory-number {
+  float: right;
+  margin: -8px 0 0 12px;
+  color: rgba(239, 184, 95, 0.1);
+  font-family: "Soul Cinzel", serif;
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 0.85;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.memory-answers { display: grid; gap: 10px; clear: both; }
+
+.memory-answer {
+  display: grid;
+  min-height: 72px;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--rule-soft);
+  color: var(--parchment);
+  background: rgba(10, 16, 18, 0.55);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--t-hover) ease-out, box-shadow var(--t-hover) ease-out;
+}
+
+.memory-answer:hover { border-color: var(--bronze); }
+.memory-answer.is-selected { border-color: var(--soul); box-shadow: inset 3px 0 var(--soul); }
+.memory-answer > span { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid var(--bronze-dim); color: var(--bronze); font: 600 20px/1 "Soul Cinzel", serif; }
+.memory-answer.is-selected > span { background: var(--leaf-rubric); border-color: var(--leaf-rubric); color: var(--leaf); }
+.memory-answer strong { font-size: 18px; font-weight: 400; line-height: 1.4; }
+.memory-answer small { grid-column: 2; color: var(--bronze); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+
+/* ------------------------------------------------------------ imprint station */
+
+.imprint-review { display: grid; gap: 14px; }
+.imprint-review > section { padding: 16px; border: 1px solid var(--rule-soft); background: rgba(10, 16, 18, 0.45); }
+.imprint-seal { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; }
+.imprint-seal img { width: 100%; height: 200px; object-fit: contain; filter: drop-shadow(0 16px 14px rgba(0, 0, 0, 0.64)); }
+.imprint-seal > span { color: var(--soul); font-size: 22px; }
+.imprint-seal strong { margin-top: 5px; font-family: "Soul Cinzel", serif; font-size: 19px; font-weight: 500; letter-spacing: 0.02em; }
+.imprint-seal small { margin-top: 4px; color: var(--bronze); font: 600 11px/1 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+
+.stat-weave { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat-weave div { display: flex; min-height: 56px; align-items: center; justify-content: space-between; padding: 8px 10px; border-left: 1px solid var(--bronze-dim); background: rgba(255, 255, 255, 0.025); }
+.stat-weave span { color: var(--muted); font: 600 11px/1.2 "Soul HUD", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.stat-weave strong { color: var(--soul); font: 600 28px/1 "Soul HUD", sans-serif; }
+.derived-vitals { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; color: var(--muted); font: 600 11px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+.derived-vitals strong { color: var(--parchment); font-size: 13px; }
+.imprint-skills ul,
+.memory-consequences ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.imprint-skills li { padding: 8px 10px; border-left: 2px solid var(--soul); background: rgba(122, 244, 223, 0.05); color: #c9d9d1; font-size: 15px; }
+.memory-consequences li { padding-left: 14px; border-left: 4px solid rgba(122, 244, 223, 0.6); color: var(--muted); font-size: 15px; line-height: 1.45; }
+
+.curve-note,
+.resonance-note { display: grid; gap: 4px; margin: 12px 0 0; padding: 9px 10px; border-left: 2px solid var(--bronze); color: var(--muted); background: rgba(0, 0, 0, 0.18); font: 11px/1.45 "Soul HUD", sans-serif; letter-spacing: 0.06em; }
+.curve-note strong,
+.resonance-note strong { color: var(--bronze); letter-spacing: 0.18em; text-transform: uppercase; }
+.resonance-note { border-left-color: var(--soul); }
+
+/* --------------------------------------------------------- actions + error */
+
+.creation-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 28px -36px 0;
+  padding: 16px 36px;
+  border-top: 1px solid var(--rule-soft);
+  background: var(--glass-solid);
+}
+
+.creation-actions--end { justify-content: flex-end; }
+
+.ritual-button {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  background: transparent;
+  font: 600 12px/1.2 "Soul HUD", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color var(--t-hover) ease-out, color var(--t-hover) ease-out, box-shadow var(--t-hover) ease-out;
+}
+
+.ritual-button:hover { border-color: var(--bronze); color: var(--parchment); }
+.ritual-button--primary { border-color: var(--bronze); color: var(--parchment); background: linear-gradient(135deg, rgba(71, 51, 31, 0.9), rgba(23, 24, 23, 0.9)); }
+.ritual-button--primary:hover { border-color: var(--soul); box-shadow: 0 0 28px rgba(122, 244, 223, 0.12); }
+.ritual-button span { margin-left: 12px; color: var(--soul); }
+.ritual-button:focus-visible,
+.choice-card:focus-visible,
+.memory-answer:focus-visible,
+.appearance-option:focus-visible,
+.appearance-workflow__tab:focus-visible { outline: 2px solid var(--soul); outline-offset: 3px; }
+
+.creation-error {
+  min-height: 18px;
+  margin: 0;
+  padding: 6px 36px 12px;
+  color: var(--danger);
+  font: 600 12px/1.4 "Soul HUD", sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.creation-error:not(:empty) { animation: error-shake 360ms ease-out both; }
+
+@keyframes error-shake {
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+/* --------------------------------------------------------------- narrow */
+
+@media (max-width: 1079px) {
+  .creation-shell { --folio-w: minmax(360px, 46%); }
+}
+
+@media (max-width: 820px) {
+  .creation-shell {
+    display: block;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .stage-viewport { position: fixed; height: 100dvh; }
+  .stage-status { left: 16px; }
+  .stage-hide-ui { top: 64px; left: auto; right: 16px; }
+  .creation-shell.is-ui-hidden .stage-hide-ui { left: auto; }
+
+  .creation-rail {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    min-height: 0;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .creation-brand { flex-direction: row; gap: 10px; }
+  .creation-brand__seal { width: 30px; height: 30px; font-size: 13px; }
+  .creation-brand__seal + div { display: none; }
+  .creation-progress { display: flex; width: auto; gap: 6px; margin: 0; }
+  .creation-progress li { min-height: 0; padding: 0; }
+  .creation-progress li span { width: 26px; height: 26px; flex-basis: 26px; font-size: 10px; }
+
+  .creation-main {
+    height: auto;
+    min-height: 46dvh;
+    margin-top: 54dvh;
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -24px 60px rgba(0, 0, 0, 0.45);
+  }
+
+  .station-word { padding: 26px 20px 6px; font-size: clamp(30px, 8vw, 40px); }
+  .creation-stage { overflow: visible; padding: 0 20px; }
+  .creation-heading h2 { font-size: 19px; }
+  .creation-heading > p:last-child,
+  .appearance-note,
+  .choice-card__body { font-size: 16px; }
+  .creation-actions { margin: 24px -20px 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); }
+  .creation-error { padding: 6px 20px 12px; }
+  .choice-grid--races,
+  .choice-grid--callings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .appearance-options { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .appearance-swatch { width: 44px; height: 44px; }
+
+  .stage-pill {
+    top: calc(54dvh - 60px);
+    right: 12px;
+    bottom: auto;
+    left: 12px;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 8px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-word.is-revealing,
+  .choice-card.is-selected::after,
+  .appearance-option.is-selected .appearance-swatch::after,
+  .creation-error:not(:empty) { animation: none; }
+}

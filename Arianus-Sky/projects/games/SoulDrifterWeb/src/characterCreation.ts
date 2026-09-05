@@ -54,6 +54,20 @@ export const STATION_PRESENTATION: Readonly<Record<CreationStep, CreationStation
   review: { view: "hero", yaw: -0.18, light: { key: 1, fill: 0.6, rim: 1.2, under: 1.1 } },
 });
 
+const ROMAN = ["I", "II", "III", "IV", "V", "VI"] as const;
+
+/** The one Cinzel word that announces a station; the imprint shows the returned name. */
+export function creatorStationWord(step: CreationStep, panel: "body" | "face", memoryIndex: number, name: string): string {
+  switch (step) {
+    case "name": return "Name";
+    case "race": return "Ancestry";
+    case "appearance": return panel === "face" ? "Face" : "Body";
+    case "calling": return "Calling";
+    case "memory": return `Memory ${ROMAN[memoryIndex] ?? String(memoryIndex + 1)}`;
+    default: return name.trim() || "Imprint";
+  }
+}
+
 /** The key light rises as the name is typed: the first control on screen changes pixels. */
 export function creatorNameLight(nameLength: number): Pick<CreationLightState, "key" | "fill"> {
   const progress = Math.min(1, Math.max(0, nameLength) / 6);
@@ -166,6 +180,7 @@ export class CharacterCreation {
   private appearancePanel: "body" | "face" = "body";
   private appearanceAutoRotate = false;
   private readonly stageViewport = requiredElement<HTMLElement>("creation-stage-viewport");
+  private readonly stationWord = requiredElement<HTMLElement>("creation-station-word");
   private readonly stageStatus = requiredElement<HTMLElement>("creation-stage-status");
   private readonly stageFallback = requiredElement<HTMLImageElement>("creation-stage-fallback");
   private readonly previewControls = requiredElement<HTMLElement>("appearance-preview-controls");
@@ -284,6 +299,15 @@ export class CharacterCreation {
   private applyStationPresentation(): void {
     const presentation = STATION_PRESENTATION[this.step];
     this.stageViewport.dataset.station = this.step;
+    this.stage.dataset.station = this.step;
+    const word = creatorStationWord(this.step, this.appearancePanel, this.memoryIndex, this.draft.name);
+    this.stationWord.classList.toggle("station-word--name", this.step === "review");
+    if (this.stationWord.textContent !== word) {
+      this.stationWord.textContent = word;
+      this.stationWord.classList.remove("is-revealing");
+      void this.stationWord.offsetWidth;
+      this.stationWord.classList.add("is-revealing");
+    }
     this.backdrop?.setStation(this.step);
     const preview = this.appearancePreview;
     if (preview) {

@@ -237,15 +237,18 @@ async function desktopLegacyFlow() {
   watch(page, "desktop-legacy");
   await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
   await page.evaluate(async () => {
+    // A legacy non-human save that the ancestry/calling contract (#443) still allows:
+    // dwarf + shadowknight became forbidden there, so a save with that pair is
+    // legitimately refused at boot and cannot be the resume scenario.
     const profile = {
       name: "Legacy Dwarf",
       raceId: "dwarf",
       raceName: "Dwarf",
       raceGlyph: "D",
-      callingId: "shadowknight",
-      callingName: "Shadowknight",
+      callingId: "warrior",
+      callingName: "Warrior",
       stats: { might: 10, finesse: 7, insight: 6, will: 9, vitality: 11, resonance: 8 },
-      skills: ["Weapon Strike", "Siphon Cleave", "Cinder Guard"],
+      skills: ["Weapon Strike", "Cleaving Strike", "Anchor Guard"],
       memoryConsequences: [],
       maxHp: 46,
       maxStability: 94,
@@ -254,9 +257,9 @@ async function desktopLegacyFlow() {
       starterImprint: {
         allocations: { might: 1, will: 1, vitality: 1 },
         raceBoonId: "dwarf-forgeheart",
-        callingPerkId: "shadowknight-graveiron",
+        callingPerkId: "warrior-vanguard",
         raceBoonName: "Forgeheart",
-        callingPerkName: "Grave-Iron Discipline"
+        callingPerkName: "Vanguard Drill"
       }
     };
     await new Promise((resolve, reject) => {
@@ -279,13 +282,20 @@ async function desktopLegacyFlow() {
       request.onerror = () => reject(request.error);
     });
   });
+  // The persistent stage starts loading the foundation body at boot; reloading
+  // mid-load aborts its texture blobs and logs a GLTFLoader error that is the
+  // harness's doing, not the runtime's. Wait for the stage the way a player would.
+  await page.waitForFunction(() => {
+    const preview = window.__souldrifterCreationPreview;
+    return Boolean(preview && preview.model && preview.framing);
+  }, null, { timeout: 90_000 });
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForSelector("#continue-character");
   const fallback = await page.locator("#continue-character img").getAttribute("src");
-  if (fallback !== "/assets/generated/characters/dwarf-shadowknight-highlevel.png") throw new Error(`Legacy fallback portrait is wrong: ${fallback}`);
+  if (fallback !== "/assets/generated/characters/dwarf-warrior.png") throw new Error(`Legacy fallback portrait is wrong: ${fallback}`);
   await page.locator("#continue-character").click();
   await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_DEBUG__), null, { timeout: 120_000 });
-  if (await page.locator(".fatal-error").count()) throw new Error("Legacy Dwarf Shadowknight crashed on resume.");
+  if (await page.locator(".fatal-error").count()) throw new Error("Legacy Dwarf Warrior crashed on resume.");
   const state = await page.evaluate(() => window.__SOULDRIFTER_DEBUG__.snapshot());
   await page.screenshot({ path: join(outputDir, "05-desktop-legacy-dwarf-resume.jpg"), type: "jpeg", quality: 86 });
   await context.close();

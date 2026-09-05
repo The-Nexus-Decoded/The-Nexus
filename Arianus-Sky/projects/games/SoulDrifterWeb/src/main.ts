@@ -1,4 +1,5 @@
 import "./styles.css";
+import "./creation.css";
 import { CharacterCreation } from "./characterCreation";
 import { normalizeLegacyCharacterProfile, setActiveCharacter, type CharacterProfile } from "./game/character";
 import { createRunSeed, parseDebugRunSeed } from "./game/dungeon";

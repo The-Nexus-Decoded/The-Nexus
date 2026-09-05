@@ -10,6 +10,10 @@
       content="SoulDrifter — an original browser-native isometric realm RPG."
     />
     <title>SoulDrifter — The First Breach</title>
+    <link rel="preload" href="/assets/fonts/Cinzel-Variable.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/assets/fonts/Alegreya-Variable.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/assets/fonts/Alegreya-Italic-Variable.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/assets/fonts/Rajdhani-SemiBold.ttf" as="font" type="font/ttf" crossorigin />
   </head>
   <body>
     <section id="character-creation" class="creation-shell" aria-label="SoulDrifter character creation">
@@ -52,6 +56,7 @@
         </div>
       </aside>
       <main class="creation-main">
+        <h2 id="creation-station-word" class="station-word" aria-live="polite"></h2>
         <div id="creation-stage" class="creation-stage"></div>
         <p id="creation-error" class="creation-error" role="alert"></p>
       </main>
