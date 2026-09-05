@@ -10,6 +10,9 @@ import { buildStaffFightingClips } from "./staff-moves.js";
 import { locomotionActions, buildCarryLocomotionClips } from "./weapon-locomotion.js";
 import { applyAdditiveHumanHandGrip, solveGreatswordSupportGrip } from "../../game/humanWeaponCalibration.ts";
 import { assertReactionClipsBind } from "./reaction-pack-loader.ts";
+import {
+  torsoFrame, buildFrontTorsoProfile, frontTorsoRadius,
+} from "../../rig/uniform/torsoSurface.ts";
 import { reactionPackClipLabel } from "./reaction-contract.ts";
 import {
   URLS, BOW_TRIPLE_SHOT_NAME, BOW_AIM_RUN_NAME, BOW_QUIVER_DRAW_NAME, BOW_RELEASE_NAME,
@@ -432,6 +435,10 @@ export function createHumanReviewActorFactory({
         quiverHarness: null,
         handArrowExtras: [],
         projectile: null,
+        // Measured from this actor's own mesh the first time worn gear needs it.
+        // Girth is a property of the body, so it is measured once and re-expressed
+        // for whatever axis length the body has at the time of use.
+        frontTorsoProfile: null,
       };
     }
 
@@ -775,6 +782,71 @@ export function createHumanReviewActorFactory({
       mesh.geometry.computeBoundingSphere();
     }
 
+    /**
+     * The torso frame for the pose the actor is in right now.
+     */
+    function currentTorsoFrame(actor) {
+      return torsoFrame(
+        findBone(actor.bones, "Hips"),
+        findBone(actor.bones, "Neck"),
+        findBone(actor.bones, "LeftShoulder"),
+        findBone(actor.bones, "RightShoulder"),
+      );
+    }
+
+    /**
+     * The measured front profile, built on demand and re-used.
+     *
+     * The axis check is not defensive noise -- it is the check whose absence cost
+     * two failed attempts. A profile built in one pose and read in another was
+     * reporting a 511 mm axis against a frame measuring 502 mm, and every radius it
+     * returned was wrong by more than the fix was worth. If the body it was measured
+     * on is not the body being asked about, measure again.
+     */
+    function frontTorsoProfileFor(actor, frame) {
+      const cached = actor.frontTorsoProfile;
+      if (cached && Math.abs(cached.axisLength - frame.axisLength) / frame.axisLength < 0.01) return cached;
+      actor.frontTorsoProfile = buildFrontTorsoProfile(actor.model, frame);
+      return actor.frontTorsoProfile;
+    }
+
+    /**
+     * The proxy the harness gate judges against. Coarser than the skin, and in the
+     * upper chest FATTER than it -- so a waypoint seated on the surface can sit
+     * inside the proxy and read as an intrusion. The router and the gate now share
+     * one definition instead of each carrying its own copy.
+     */
+    const HARNESS_BODY_PROXIES = [
+      ["Spine1", 0.09],
+      ["Spine2", 0.095],
+      ["Neck", 0.06],
+      ["LeftShoulder", 0.065],
+      ["RightShoulder", 0.065],
+    ];
+
+    /**
+     * Push a seated waypoint out of any proxy sphere it landed inside.
+     *
+     * The strap has two masters: it must lie near the SKIN, which is what the eye
+     * judges, and stay outside the PROXY, which is what the gate judges. Where they
+     * disagree the proxy wins, because a negative clearance is a hard failure --
+     * measured, seating purely on skin drove BowReleaseFromNock 24.5 mm through it.
+     * Taking the outer of the two costs a few millimetres of realism at the collar
+     * and keeps the gate honest everywhere else.
+     */
+    function clearHarnessProxies(actor, point, marginMeters = 0.004) {
+      if (!point) return point;
+      for (const { bone, radius } of bodyProxySpheres(actor, HARNESS_BODY_PROXIES)) {
+        const centre = bone.getWorldPosition(new THREE.Vector3());
+        const offset = point.clone().sub(centre);
+        const distance = offset.length();
+        const minimum = radius + marginMeters;
+        if (distance >= minimum || distance < 1e-6) continue;
+        point.copy(centre).addScaledVector(offset.divideScalar(distance), minimum);
+      }
+      return point;
+    }
+
     function updateQuiverHarness(actor) {
       const state = actor.quiverHarness;
       const harness = state?.harness;
@@ -820,19 +892,71 @@ export function createHumanReviewActorFactory({
       const shoulderOutboardMeters = 0.075;
       const topRight = rightShoulder.clone().addScaledVector(bodyUp, 0.012).addScaledVector(bodyRight, shoulderOutboardMeters);
       const lowerLeft = chestCenter.clone().addScaledVector(bodyRight, -0.17).addScaledVector(bodyUp, -0.2);
-      const frontTorsoDepth = 0.185;
-      const lowerTorsoDepth = 0.16;
+      /**
+       * How far in front of the spine the chest and belly are ON THIS BODY.
+       *
+       * 0.185 and 0.16 were the previous answer: fitted by eye on one body, and
+       * ~60 mm past the surface of this one, which is the daylight that was
+       * visible on every clip. The measurement replaces them, and they remain the
+       * fallback for a body whose mesh cannot be profiled.
+       *
+       * 0.62 and 0.34 are fractions of the torso axis -- "chest" and "waist" on a
+       * tall body, a short one, a heavy one and a lean one alike.
+       */
+      const surfaceFrame = currentTorsoFrame(actor);
+      const profile = surfaceFrame ? frontTorsoProfileFor(actor, surfaceFrame) : null;
+      const STRAP_STANDOFF_METERS = 0.012;
+      const WAIST_SEAT_BLEND = 0.6;
+      const measuredFront = (height, fallback) => {
+        const radius = surfaceFrame ? frontTorsoRadius(profile, height, surfaceFrame.axisLength) : null;
+        return radius === null ? fallback : radius + STRAP_STANDOFF_METERS;
+      };
+      const frontTorsoDepth = measuredFront(0.62, 0.185);
+      const lowerTorsoDepth = measuredFront(0.34, 0.16);
+      /**
+       * A measured radius is measured FROM THE SPINE AXIS, so it has to be spent
+       * from the axis. Spending it from chestCenter -- which is a Spine1/Spine2
+       * lerp sitting off that axis -- lands the waypoint the axis offset further
+       * out than it was measured to be, and quietly reintroduces the gap the
+       * measurement just removed.
+       */
+      const axisPointAt = (height) => (surfaceFrame
+        ? surfaceFrame.origin.clone().addScaledVector(surfaceFrame.axis, height * surfaceFrame.axisLength)
+        : chestCenter.clone());
+      const seatFront = (height, lateral, fallback) => {
+        const depth = measuredFront(height, null);
+        if (depth === null) return fallback;
+        return clearHarnessProxies(actor, axisPointAt(height).addScaledVector(bodyRight, lateral).addScaledVector(forward, depth));
+      };
+      /**
+       * Seat a point at a BEARING around the torso, not just the front. The waist
+       * return run crosses the back-left quarter, and leaving it as an offset left
+       * exactly those samples standing 95 mm off the body -- measured, they were the
+       * farthest points on the whole strap once the front was seated.
+       */
+      const seatAtBearing = (height, bearing, fallback) => {
+        if (!surfaceFrame) return fallback;
+        const radius = frontTorsoRadius(profile, height, surfaceFrame.axisLength, bearing);
+        if (radius === null) return fallback;
+        const direction = surfaceFrame.right.clone().multiplyScalar(Math.cos(bearing))
+          .addScaledVector(surfaceFrame.forward, Math.sin(bearing));
+        const seated = clearHarnessProxies(actor, axisPointAt(height).addScaledVector(direction, radius + STRAP_STANDOFF_METERS));
+        // Blend toward the measured seat rather than snapping to it. The strap is
+        // one spline through all its waypoints, so yanking the waist run onto the
+        // body swings the curve elsewhere -- at full strength it bulged the ribbon
+        // 24.5 mm through the torso near the collar on BowReleaseFromNock, which
+        // the shipped gate rejects. The blend keeps most of the closure and leaves
+        // the curve enough slack to stay outside the proxy.
+        return fallback ? fallback.clone().lerp(seated, WAIST_SEAT_BLEND) : seated;
+      };
+      const DEG = Math.PI / 180;
       const shoulderFront = topRight.clone()
         .addScaledVector(bodyForward, 0.145)
         .addScaledVector(bodyRight, 0.025);
-      const diagonalUpper = chestCenter.clone()
-        .addScaledVector(bodyRight, 0.045)
-        .addScaledVector(bodyUp, 0.055)
-        .addScaledVector(bodyForward, frontTorsoDepth);
-      const diagonalLower = chestCenter.clone()
-        .addScaledVector(bodyRight, -0.07)
-        .addScaledVector(bodyUp, -0.075)
-        .addScaledVector(bodyForward, frontTorsoDepth);
+      const diagonalUpper = seatFront(0.70, 0.045, chestCenter.clone()
+        .addScaledVector(bodyRight, 0.045).addScaledVector(bodyUp, 0.055).addScaledVector(forward, frontTorsoDepth));
+      const diagonalLower = seatFront(0.50, -0.07, chestCenter.clone()
+        .addScaledVector(bodyRight, -0.07).addScaledVector(bodyUp, -0.075).addScaledVector(forward, frontTorsoDepth));
       const quiverUpper = quiver.socket.localToWorld(new THREE.Vector3(0, 0.15, 0));
       const quiverLower = quiver.socket.localToWorld(new THREE.Vector3(0, -0.15, 0));
       const routes = [
@@ -845,9 +969,9 @@ export function createHumanReviewActorFactory({
           shoulderFront,
           diagonalUpper,
           diagonalLower,
-          lowerLeft.clone().addScaledVector(bodyForward, lowerTorsoDepth),
-          lowerLeft.clone().addScaledVector(bodyRight, -0.055),
-          lowerLeft.clone().addScaledVector(bodyBack, lowerTorsoDepth),
+          seatAtBearing(0.34, 120 * DEG, lowerLeft.clone().addScaledVector(forward, lowerTorsoDepth)),
+          seatAtBearing(0.30, 165 * DEG, lowerLeft.clone().addScaledVector(bodyRight, -0.055)),
+          seatAtBearing(0.28, -140 * DEG, lowerLeft.clone().addScaledVector(back, lowerTorsoDepth)),
           quiverLower,
         ],
       ];
@@ -863,6 +987,12 @@ export function createHumanReviewActorFactory({
         torsoUpAlignment: up.dot(torsoUp),
         shoulderToWaistDropMeters: shoulderFront.clone().sub(lowerLeft).dot(torsoUp),
         frontSurfaceWaypointCount: 4,
+        surfaceMeasured: Boolean(profile),
+        measuredBands: profile?.measuredBands ?? 0,
+        profileAxisLengthMeters: profile?.axisLength ?? null,
+        frameAxisLengthMeters: surfaceFrame?.axisLength ?? null,
+        chestFrontDepthMeters: frontTorsoDepth,
+        waistFrontDepthMeters: lowerTorsoDepth,
       };
       actor.quiverHarness.sampledPoints = collectPoints(harness.visual, 900);
     }
@@ -1350,13 +1480,7 @@ export function createHumanReviewActorFactory({
     function harnessBodyClearanceMetrics(actor) {
       const points = actor.quiverHarness?.sampledPoints ?? [];
       if (!points.length) return null;
-      const bodyProxies = bodyProxySpheres(actor, [
-        ["Spine1", 0.09],
-        ["Spine2", 0.095],
-        ["Neck", 0.06],
-        ["LeftShoulder", 0.065],
-        ["RightShoulder", 0.065],
-      ]);
+      const bodyProxies = bodyProxySpheres(actor, HARNESS_BODY_PROXIES);
       let minimum = { clearance: Infinity, pointIndex: -1, boneName: null, pointWorld: null, boneWorld: null };
       points.forEach((point, pointIndex) => {
         bodyProxies.forEach(({ bone, radius }) => {
