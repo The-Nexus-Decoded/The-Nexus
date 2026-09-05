@@ -8,6 +8,8 @@ import {
   raceCallingBonus,
   raceCallingEligibility,
   resolveCharacterAppearance,
+  FACE_TYPES,
+  FACIAL_HAIR_STYLES,
   HAIR_COLORS,
   HAIR_STYLES,
   HAIR_TEXTURES,
@@ -48,7 +50,8 @@ export function characterPortraitPath(raceId: string, callingId: string): string
   return `/assets/generated/characters/${raceId}-${callingId}.png`;
 }
 
-type CreationStep = "name" | "race" | "appearance" | "calling" | "memory" | "review";
+export type CreationStep = "name" | "race" | "appearance" | "calling" | "memory" | "review";
+export type CreationAppearancePanel = "body" | "face";
 
 interface CreationStationPresentation {
   view: CreationPreviewView;
@@ -100,6 +103,67 @@ export function creatorNameLight(nameLength: number): Pick<CreationLightState, "
 export function creatorViewOffset(viewportWidth: number, folioWidth: number, uiHidden: boolean): number {
   if (uiHidden || viewportWidth <= 820 || folioWidth <= 0 || viewportWidth <= 0) return 0;
   return Math.min(0.3, folioWidth / viewportWidth / 2);
+}
+
+function listWords(words: readonly string[]): string {
+  if (words.length <= 1) return words[0] ?? "";
+  return `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}`;
+}
+
+/**
+ * The Withheld paragraph on the face station, in the Well's voice, naming exactly the
+ * features the loaded pack cannot shape: a control appears the moment its validated
+ * module lands, and the paragraph stops naming it. Before the head has loaded there is
+ * nothing honest to list yet.
+ */
+export function creatorWithheldNote(availability: CreationPreviewAvailability): string {
+  if (availability === EMPTY_CREATION_PREVIEW_AVAILABILITY) return "What the Well can shape appears once it has returned the head.";
+  const withheld: string[] = [];
+  if (FACE_TYPES.filter((face) => availability.faceTypes.includes(face.id)).length < 2) withheld.push("a face family");
+  if (FACIAL_HAIR_STYLES.filter((style) => availability.facialHair.includes(style.id)).length < 2) withheld.push("facial hair");
+  if (!availability.ageMorphsAvailable) withheld.push("age");
+  const morphless = !availability.ageMorphsAvailable && !availability.dialogueMorphsAvailable;
+  const sentences: string[] = [];
+  if (withheld.length > 0) sentences.push(`The Well withholds ${listWords(withheld)} until their canonical assets pass review.`);
+  sentences.push(morphless
+    ? `Eye colour and expression wait ${withheld.length > 0 ? "with them" : "too"}: the returned head carries no morph targets, so the Well cannot yet blink for you.`
+    : "Eye colour and expression are not yet the Well's to give.");
+  return sentences.join(" ");
+}
+
+const APPEARANCE_PANELS: readonly CreationAppearancePanel[] = ["body", "face"];
+
+/** The tab a tablist key moves to from the current panel (Left/Right wrap, Home/End pin), or null for any other key. */
+export function creatorTabForKey(key: string, panel: CreationAppearancePanel): CreationAppearancePanel | null {
+  const index = APPEARANCE_PANELS.indexOf(panel);
+  switch (key) {
+    case "ArrowLeft":
+    case "ArrowUp":
+      return APPEARANCE_PANELS[(index + APPEARANCE_PANELS.length - 1) % APPEARANCE_PANELS.length] ?? null;
+    case "ArrowRight":
+    case "ArrowDown":
+      return APPEARANCE_PANELS[(index + 1) % APPEARANCE_PANELS.length] ?? null;
+    case "Home":
+      return APPEARANCE_PANELS[0] ?? null;
+    case "End":
+      return APPEARANCE_PANELS[APPEARANCE_PANELS.length - 1] ?? null;
+    default:
+      return null;
+  }
+}
+
+export interface CreatorRailEntry {
+  step: CreationStep;
+  panel?: CreationAppearancePanel;
+}
+
+/** Where a completed rail item returns the player: memories from their first question, body and face to their own stop. */
+export function creatorRailTarget(entry: CreatorRailEntry): { step: CreationStep; panel: CreationAppearancePanel | null; memoryIndex: number | null } {
+  return {
+    step: entry.step,
+    panel: entry.step === "appearance" ? entry.panel ?? "body" : null,
+    memoryIndex: entry.step === "memory" ? 0 : null,
+  };
 }
 
 interface CreationHistoryState {
@@ -502,14 +566,29 @@ export class CharacterCreation {
 
     this.choreographStation(this.applyStationPresentation());
     resetCreationStageScroll(this.stage);
+    this.focusStationHeading();
+  }
+
+  /**
+   * A new station announces itself to keyboard and reader users from its question: focus
+   * lands on the h2 (the name station focuses its input instead, and the imprint's h2 is
+   * the hidden twin of the station word).
+   */
+  private focusStationHeading(): void {
+    if (this.step === "name") return;
+    const heading = this.stage.querySelector<HTMLElement>(".creation-heading h2");
+    if (!heading) return;
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
   }
 
   /**
    * The seven stations as the rail shows them: body and face are two stops of the one
-   * appearance step. A completed station carries the seal instead of its own mark.
+   * appearance step. A completed station carries the seal instead of its own mark and
+   * becomes a button that returns to it; the draft is kept, so nothing is lost by looking back.
    */
   private renderProgress(): void {
-    const entries: Array<{ step: CreationStep; panel?: "body" | "face"; label: string; icon: IconName }> = [
+    const entries: Array<CreatorRailEntry & { label: string; icon: IconName }> = [
       { step: "name", label: "Name", icon: "feather" },
       { step: "race", label: "Ancestry", icon: "users" },
       { step: "appearance", panel: "body", label: "Body", icon: "user" },
@@ -526,11 +605,30 @@ export class CharacterCreation {
       item.className = index === currentIndex ? "is-current" : complete ? "is-complete" : "";
       item.title = entry.label;
       if (index === currentIndex) item.setAttribute("aria-current", "step");
-      item.innerHTML = `<span class="creation-progress__mark">${icon(complete ? "badge-check" : entry.icon, 20)}</span>`
+      const markup = `<span class="creation-progress__mark">${icon(complete ? "badge-check" : entry.icon, 20)}</span>`
         + `<span class="creation-progress__index">${String(index + 1).padStart(2, "0")}</span>`
         + `<span class="creation-progress__label">${entry.label}</span>`;
+      // An appearance edit owns only its own station; the rail is a map there, not a road.
+      if (complete && !this.appearanceEditProfile) {
+        const jump = document.createElement("button");
+        jump.type = "button";
+        jump.className = "creation-progress__jump";
+        jump.setAttribute("aria-label", `Return to ${entry.label}`);
+        jump.innerHTML = markup;
+        jump.addEventListener("click", () => this.jumpToStation(entry));
+        item.append(jump);
+      } else {
+        item.innerHTML = markup;
+      }
       this.progress.append(item);
     });
+  }
+
+  private jumpToStation(entry: CreatorRailEntry): void {
+    if (this.completing) return;
+    const target = creatorRailTarget(entry);
+    if (target.panel) this.appearancePanel = target.panel;
+    this.navigate(target.step, target.memoryIndex ?? this.memoryIndex);
   }
 
   private renderName(): void {
@@ -538,9 +636,9 @@ export class CharacterCreation {
       <div class="creation-heading">
         <p class="eyebrow">The Well asks first</p>
         <h2>What name returned with you?</h2>
-        <p>Not the name carved on a grave. The name this soul will answer to now.</p>
+        <p>Not the name carved on a grave. The name this soul will answer to now. <q>The Well does not decide who you were. It reveals what your answers have made.</q></p>
       </div>
-      <label class="name-field">
+      <label class="name-field ${this.draft.name.trim().length >= 2 ? "is-valid" : ""}">
         <span>Returned name</span>
         <span class="name-field__row">
           ${icon("feather", 20)}
@@ -558,8 +656,12 @@ export class CharacterCreation {
       </div>`;
 
     const input = requiredElement<HTMLInputElement>("character-name-input");
+    const field = input.closest<HTMLElement>(".name-field");
     input.addEventListener("input", () => {
-      this.appearancePreview?.setLightState(creatorNameLight(input.value.trim().length));
+      const length = input.value.trim().length;
+      // The underline turns soul-teal at the same length Bind accepts; the key light climbs with every character.
+      field?.classList.toggle("is-valid", length >= 2);
+      this.appearancePreview?.setLightState(creatorNameLight(length));
     });
     const advance = (): void => {
       this.draft.name = input.value.trim();
@@ -586,20 +688,27 @@ export class CharacterCreation {
         <h2>Which people shaped your first memory?</h2>
         <p>Ancestry grants an affinity, never a class or morality.</p>
       </div>
-      <div class="choice-grid choice-grid--races">
-        ${RACES.map((race) => {
-          const available = race.id === "human";
-          return `
-          <button class="choice-card ${this.draft.raceId === race.id ? "is-selected" : ""} ${available ? "" : "is-forbidden"}" data-race="${race.id}" type="button" ${available ? "" : "disabled aria-disabled=\"true\""}>
-            <img class="choice-card__portrait" src="/assets/generated/characters/${race.id}-warrior.png" alt="" />
-            <span class="choice-card__glyph">${icon(raceIcon(race.id), 18)}</span>
-            <span class="choice-card__title">${race.name}</span>
-            <span class="choice-card__body">${race.identity}</span>
-            <span class="choice-card__affinity">${race.talent}</span>
-            ${available ? "" : "<span class=\"choice-card__eligibility choice-card__eligibility--forbidden\"><strong>Foundation pending</strong>Existing saves remain preserved.</span>"}
-          </button>`;
-        }).join("")}
-      </div>
+      ${RACES.filter((race) => race.id === "human").map((race) => `
+      <button class="choice-card origin-card ${this.draft.raceId === race.id ? "is-selected" : ""}" data-race="${race.id}" type="button" aria-pressed="${this.draft.raceId === race.id}">
+        <img class="choice-card__portrait origin-card__portrait" src="/assets/generated/characters/${race.id}-warrior.png" alt="" />
+        <span class="choice-card__glyph">${icon(raceIcon(race.id), 18)}</span>
+        <span class="choice-card__title">${race.name}</span>
+        <span class="choice-card__body">${race.identity}</span>
+        <span class="choice-card__affinity">${race.talent}</span>
+      </button>`).join("")}
+      <section class="origin-withheld">
+        <h3>Not yet returned by the Well</h3>
+        <div class="origin-chips">
+          ${RACES.filter((race) => race.id !== "human").map((race) => `
+          <div class="origin-chip" role="note">
+            <img class="origin-chip__portrait" src="/assets/generated/characters/${race.id}-warrior.png" alt="" />
+            <span class="origin-chip__glyph">${icon(raceIcon(race.id), 16)}</span>
+            <strong>${race.name}</strong>
+            <em>The Well has not yet shaped this body.</em>
+          </div>`).join("")}
+        </div>
+        <p class="origin-withheld__note">The Well has not yet shaped these bodies.</p>
+      </section>
       ${this.navigation("Return to name", "Choose ancestry")}`;
     this.bindGazeHover("button[data-race]");
     this.bindChoices("button[data-race]", "race", (id) => {
@@ -631,19 +740,18 @@ export class CharacterCreation {
         <p id="appearance-lede">${copy.lede}</p>
       </div>
       <div class="appearance-workflow" role="tablist" aria-label="Appearance setup">
-        <button class="appearance-workflow__tab ${facePanel ? "" : "is-selected"}" data-appearance-panel="body" type="button" role="tab" aria-selected="${!facePanel}">
-          <span>${icon("user", 16)}</span><strong>Body</strong><small>I · Full-body view</small>
+        <button class="appearance-workflow__tab ${facePanel ? "" : "is-selected"}" data-appearance-panel="body" type="button" role="tab" aria-selected="${!facePanel}" tabindex="${facePanel ? "-1" : "0"}">
+          ${icon("user", 16)}<small>I</small><strong>Body</strong>
         </button>
-        <span class="appearance-workflow__path" aria-hidden="true">${icon("arrow-right", 16)}</span>
-        <button class="appearance-workflow__tab ${facePanel ? "is-selected" : ""}" data-appearance-panel="face" type="button" role="tab" aria-selected="${facePanel}">
-          <span>${icon("scan-face", 16)}</span><strong>Face &amp; features</strong><small>II · Conversation close-up</small>
+        <button class="appearance-workflow__tab ${facePanel ? "is-selected" : ""}" data-appearance-panel="face" type="button" role="tab" aria-selected="${facePanel}" tabindex="${facePanel ? "0" : "-1"}">
+          ${icon("scan-face", 16)}<small>II</small><strong>Face &amp; features</strong>
         </button>
       </div>
       <div class="appearance-builder appearance-builder--${this.appearancePanel}">
         <div class="appearance-builder__options">
         <section data-appearance-section="body" ${facePanel ? "hidden" : ""}>
           <h3>Body</h3>
-          <p class="appearance-note">The Human foundation, athletic build. Other builds arrive with their own canonical bodies; none is offered here before it exists.</p>
+          <p class="appearance-note">The Well returned one body: the Athletic foundation. What the crown and the face carry is chosen at the face. The Well tender in the first camp can change what it later learns to return.</p>
         </section>
         <section data-appearance-section="face" ${facePanel ? "" : "hidden"}>
           <h3>Skin tone</h3>
@@ -681,9 +789,37 @@ export class CharacterCreation {
           </div>`}
           <p class="appearance-note">${this.withheldHairNote()}</p>
         </section>
+        ${this.availableFaceTypes().length > 1 ? `
+        <section data-appearance-section="face" ${facePanel ? "" : "hidden"}>
+          <h3>Face family</h3>
+          <div class="appearance-options appearance-options--face">
+            ${this.availableFaceTypes().map((face) => `
+              <button class="appearance-option ${appearance.faceType === face.id ? "is-selected" : ""}" data-face-type="${face.id}" type="button" aria-pressed="${appearance.faceType === face.id}" title="${face.description}">
+                <strong>${face.name}</strong>
+              </button>`).join("")}
+          </div>
+        </section>` : ""}
+        ${this.availableFacialHair().length > 1 ? `
+        <section data-appearance-section="face" ${facePanel ? "" : "hidden"}>
+          <h3>Facial hair</h3>
+          <div class="appearance-options appearance-options--facial-hair">
+            ${this.availableFacialHair().map((style) => `
+              <button class="appearance-option ${appearance.facialHair === style.id ? "is-selected" : ""}" data-facial-hair="${style.id}" type="button" aria-pressed="${appearance.facialHair === style.id}" title="${style.description}">
+                <strong>${style.name}</strong>
+              </button>`).join("")}
+          </div>
+        </section>` : ""}
+        ${this.appearanceAvailability.ageMorphsAvailable ? `
+        <section data-appearance-section="face" ${facePanel ? "" : "hidden"}>
+          <h3>Age</h3>
+          <label class="appearance-range">
+            <span id="appearance-age-stage">${appearanceAgeStage(appearance.age)}</span>
+            <input id="appearance-age" type="range" min="0" max="100" step="1" value="${appearanceControlPercent(appearance.age)}" aria-label="Age" />
+          </label>
+        </section>` : ""}
         <section data-appearance-section="face" ${facePanel ? "" : "hidden"}>
           <h3>Withheld</h3>
-          <p class="appearance-note">Face shape, facial hair, complexion detail and age are withheld until their canonical assets pass review. The creator never offers a control that cannot change what you see.</p>
+          <p class="appearance-note">${this.escape(creatorWithheldNote(this.appearanceAvailability))}</p>
         </section>
         </div>
       </div>
@@ -701,8 +837,33 @@ export class CharacterCreation {
       button.addEventListener("click", () => {
         const panel = button.dataset.appearancePanel;
         if (panel !== "body" && panel !== "face") return;
-        this.switchAppearancePanel(panel);
+        this.switchAppearancePanel(panel, false);
       });
+    });
+    // Arrow keys walk the tablist and activate as they go; focus stays on the tab so the walk continues.
+    this.stage.querySelector<HTMLElement>(".appearance-workflow")?.addEventListener("keydown", (event) => {
+      const panel = creatorTabForKey(event.key, this.appearancePanel);
+      if (!panel) return;
+      event.preventDefault();
+      this.switchAppearancePanel(panel, false);
+      this.stage.querySelector<HTMLButtonElement>(`button[data-appearance-panel="${panel}"]`)?.focus();
+    });
+    this.bindGazeHover("button[data-face-type]");
+    this.bindChoices("button[data-face-type]", "faceType", (id) => {
+      this.draft.appearance.faceType = id as CharacterDraft["appearance"]["faceType"];
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+    });
+    this.bindGazeHover("button[data-facial-hair]");
+    this.bindChoices("button[data-facial-hair]", "facialHair", (id) => {
+      this.draft.appearance.facialHair = id as CharacterDraft["appearance"]["facialHair"];
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+    });
+    const ageInput = this.stage.querySelector<HTMLInputElement>("#appearance-age");
+    ageInput?.addEventListener("input", () => {
+      this.draft.appearance.age = Number(ageInput.value) / 100;
+      const stage = this.stage.querySelector<HTMLElement>("#appearance-age-stage");
+      if (stage) stage.textContent = appearanceAgeStage(this.draft.appearance.age);
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
     });
     this.bindGazeHover("button[data-hair-texture]");
     this.bindChoices("button[data-hair-texture]", "hairTexture", (id) => {
@@ -768,12 +929,12 @@ export class CharacterCreation {
     // labels in place without re-binding (and stacking) listeners.
     this.bindNavigation(
       () => {
-        if (this.appearancePanel === "face" && !this.appearanceEditProfile) this.switchAppearancePanel("body");
+        if (this.appearancePanel === "face" && !this.appearanceEditProfile) this.switchAppearancePanel("body", true);
         else leaveAppearance();
       },
       () => {
         if (this.appearancePanel === "face") acceptAppearance();
-        else this.switchAppearancePanel("face");
+        else this.switchAppearancePanel("face", true);
       },
     );
   }
@@ -784,9 +945,10 @@ export class CharacterCreation {
    * re-fetched the idle pack, and painted the bind pose until it rebound - the
    * pose snap the owner saw. The preview instance, its context and its
    * animation survive; only the copy, the section visibility and the camera
-   * station change.
+   * station change. The dock's Back/Next treat the switch as a station change and
+   * move focus to the question; the tabs keep focus on themselves.
    */
-  private switchAppearancePanel(panel: "body" | "face"): void {
+  private switchAppearancePanel(panel: CreationAppearancePanel, focusHeading: boolean): void {
     if (this.appearancePanel === panel) return;
     this.appearancePanel = panel;
     const copy = APPEARANCE_PANEL_COPY[panel];
@@ -796,6 +958,7 @@ export class CharacterCreation {
       const selected = button.dataset.appearancePanel === panel;
       button.classList.toggle("is-selected", selected);
       button.setAttribute("aria-selected", String(selected));
+      button.tabIndex = selected ? 0 : -1;
     });
     const builder = this.stage.querySelector<HTMLElement>(".appearance-builder");
     if (builder) {
@@ -828,6 +991,7 @@ export class CharacterCreation {
     this.applyStationPresentation();
     this.updateAppearanceReadout();
     resetCreationStageScroll(this.stage);
+    if (focusHeading) this.focusStationHeading();
   }
 
   private showAppearanceLoadFailure(reason: string): void {
@@ -1084,6 +1248,16 @@ export class CharacterCreation {
     });
   }
 
+  /** Face families the loaded pack carries a morph for; the foundation face alone is no choice. */
+  private availableFaceTypes(): ReadonlyArray<(typeof FACE_TYPES)[number]> {
+    return FACE_TYPES.filter((face) => this.appearanceAvailability.faceTypes.includes(face.id));
+  }
+
+  /** Facial hair the loaded pack can attach; clean-shaven alone is no choice. */
+  private availableFacialHair(): ReadonlyArray<(typeof FACIAL_HAIR_STYLES)[number]> {
+    return FACIAL_HAIR_STYLES.filter((style) => this.appearanceAvailability.facialHair.includes(style.id));
+  }
+
   /** Textures the loaded, locally validated appearance pack has at least one style for. */
   private availableHairTextures(): ReadonlyArray<(typeof HAIR_TEXTURES)[number]> {
     return HAIR_TEXTURES.filter((texture) => this.appearanceAvailability.hairTextures.includes(texture.id));
@@ -1122,8 +1296,9 @@ export class CharacterCreation {
     this.appearanceAvailability = availability;
     if (availability !== EMPTY_CREATION_PREVIEW_AVAILABILITY) this.stageStatus.hidden = true;
     this.updateAppearanceReadout();
-    // the hair controls are drawn from availability, so a late load redraws the face panel
-    if (changed && this.step === "appearance" && this.appearancePanel === "face") this.render();
+    // every face control is drawn from availability, so a late load redraws the station
+    // (the body panel too: a tab switch reveals the face sections without a render)
+    if (changed && this.step === "appearance") this.render();
   }
 
   private updateAppearanceReadout(): void {

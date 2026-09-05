@@ -53,6 +53,8 @@ async function assertAppearancePanel(page, expectedPanel) {
         .map((button) => button.dataset.hairStyle),
       hairColours: [...document.querySelectorAll("button[data-hair-color]")].filter((button) => !button.closest("section")?.hidden).length,
       nextLabel: normalizeText("#creation-next"),
+      // the dock's Back/Next reach this panel as a station change, so focus must land on its question
+      headingFocused: document.activeElement === document.querySelector(".creation-heading h2"),
     };
   }, expectedPanel);
   const facePanel = expectedPanel === "face";
@@ -73,12 +75,33 @@ async function assertAppearancePanel(page, expectedPanel) {
 
 async function completeHumanShadowknight(page) {
   await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  // The name underline is bronze at one character and soul-teal from the two Bind accepts: a
+  // 160 ms flip, polled generously because the fresh page is still parsing the body GLB and
+  // the transition cannot start until the main thread is free.
+  const underlineColour = () => page.evaluate(() => getComputedStyle(document.querySelector(".name-field__row"), "::after").backgroundColor);
+  await page.locator("#character-name-input").fill("M");
+  const underlineOneChar = await underlineColour();
+  await page.locator("#character-name-input").fill("Ma");
+  await page.waitForFunction(
+    () => getComputedStyle(document.querySelector(".name-field__row"), "::after").backgroundColor === "rgb(122, 244, 223)",
+    null,
+    { timeout: 30_000 },
+  ).catch(() => {});
+  const underlineTwoChars = await underlineColour();
   await page.locator("#character-name-input").fill("Marvell Mobile");
   await page.locator("#creation-next").click();
   await page.locator("#creation-back").click();
   await page.waitForSelector("#character-name-input");
   if (await page.locator("#character-name-input").inputValue() !== "Marvell Mobile") throw new Error("Creation Back lost the entered name.");
   await page.locator("#creation-next").click();
+  await page.waitForSelector('button[data-race="human"]');
+  // Ancestry: the one returned body is the only control; the unshaped peoples are notes, never disabled buttons.
+  const ancestry = await page.evaluate(() => ({
+    raceButtons: document.querySelectorAll("button[data-race]").length,
+    notes: document.querySelectorAll('#creation-stage [role="note"]').length,
+    disabled: document.querySelectorAll('#creation-stage [disabled], #creation-stage [aria-disabled="true"]').length,
+    headingFocused: document.activeElement === document.querySelector(".creation-heading h2"),
+  }));
   await page.locator('button[data-race="human"]').click();
   await page.locator("#creation-next").click();
   const bodyPanel = await assertAppearancePanel(page, "body");
@@ -109,7 +132,7 @@ async function completeHumanShadowknight(page) {
   }
   await page.locator("#creation-confirm").click();
   await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_DEBUG__), null, { timeout: 120_000 });
-  return { bodyPanel, facePanel, selectedSkin };
+  return { bodyPanel, facePanel, selectedSkin, ancestry, nameUnderline: { oneChar: underlineOneChar, twoChars: underlineTwoChars } };
 }
 
 async function completeIlyraAndImprint(page) {
@@ -303,6 +326,28 @@ async function desktopLegacyFlow() {
     const preview = window.__souldrifterCreationPreview;
     return Boolean(preview && preview.model && preview.framing);
   }, null, { timeout: 90_000 });
+  // The key light rises with the name: the chest crop (the design's 200 px square over the
+  // shoulders at the name stop) must move by a mean >= 6/255 per channel and get brighter
+  // between an empty field and six characters, after the 700 ms light lerp has settled.
+  // The crop exists once the idle has bound the cue joints; the arrival dolly (2.4 s from
+  // the figure's first paint) is allowed to end so the camera is not part of the difference.
+  await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_CREATOR_DEBUG__?.cueRegion("shoulders")), null, { timeout: 90_000 });
+  await page.waitForTimeout(2_600);
+  const keyLight = await page.evaluate(async () => {
+    const debug = window.__SOULDRIFTER_CREATOR_DEBUG__;
+    const region = debug?.cueRegion("shoulders");
+    if (!region) return null;
+    const luma = (sample) => 0.2126 * sample.r + 0.7152 * sample.g + 0.0722 * sample.b;
+    const before = debug.sampleRegion(region);
+    const input = document.querySelector("#character-name-input");
+    input.value = "Marvel";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+    const after = debug.sampleRegion(region);
+    input.value = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    return { region, before: { ...before, luma: luma(before) }, after: { ...after, luma: luma(after) } };
+  });
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForSelector("#continue-character");
   const fallback = await page.locator("#continue-character img").getAttribute("src");
@@ -313,7 +358,7 @@ async function desktopLegacyFlow() {
   const state = await page.evaluate(() => window.__SOULDRIFTER_DEBUG__.snapshot());
   await page.screenshot({ path: join(outputDir, "05-desktop-legacy-dwarf-resume.jpg"), type: "jpeg", quality: 86 });
   await context.close();
-  return { fallback, animation: state.playerAnimation, bounds: state.playerBounds };
+  return { fallback, animation: state.playerAnimation, bounds: state.playerBounds, keyLight };
 }
 
 try {
@@ -333,6 +378,12 @@ try {
       appearanceAutoRotateDefaultsOff: !mobile.appearance.bodyPanel.autoRotateChecked && !mobile.appearance.facePanel.autoRotateChecked,
       appearanceNoDeadControls: !mobile.appearance.bodyPanel.deadControlsPresent && !mobile.appearance.facePanel.deadControlsPresent,
       appearanceReadySelections: Boolean(mobile.appearance.selectedSkin),
+      nameUnderlineFlipsAtTwoChars: mobile.appearance.nameUnderline.oneChar === "rgb(239, 184, 95)" && mobile.appearance.nameUnderline.twoChars === "rgb(122, 244, 223)",
+      nameKeyLightRises: Boolean(desktopLegacy.keyLight?.after.diff)
+        && (desktopLegacy.keyLight.after.diff.r + desktopLegacy.keyLight.after.diff.g + desktopLegacy.keyLight.after.diff.b) / 3 >= 6
+        && desktopLegacy.keyLight.after.luma > desktopLegacy.keyLight.before.luma,
+      ancestryOneBodyThreeNotes: mobile.appearance.ancestry.raceButtons === 1 && mobile.appearance.ancestry.notes === 3 && mobile.appearance.ancestry.disabled === 0,
+      stationHeadingFocused: mobile.appearance.ancestry.headingFocused && mobile.appearance.bodyPanel.headingFocused && mobile.appearance.facePanel.headingFocused,
       appearanceHairOffered: mobile.appearance.facePanel.hairStyles.includes("parted") && mobile.appearance.facePanel.hairStyles.includes("shaved-buzzed")
         && mobile.appearance.facePanel.hairTextures.includes("straight") && mobile.appearance.facePanel.hairTextures.includes("curly"),
       mobileImprintUnblocked: mobile.imprint.modalState.hudVisibility === "hidden",

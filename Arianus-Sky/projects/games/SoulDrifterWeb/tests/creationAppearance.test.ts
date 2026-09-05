@@ -2,7 +2,10 @@ import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import {
   appearanceAgeStage,
+  creatorRailTarget,
+  creatorTabForKey,
   creatorViewOffset,
+  creatorWithheldNote,
   appearanceControlPercent,
   appearanceDependentControls,
   isCreatorAppearanceSelectionAvailable,
@@ -801,6 +804,47 @@ describe("creator wheel zoom", () => {
     expect(creationZoomedStop(station, face, -2).position.distanceTo(station.position)).toBeCloseTo(0, 6);
     // the inputs are not mutated
     expect(station.position.z).toBe(2);
+  });
+});
+
+describe("creator face station honesty and keyboard", () => {
+  it("names exactly the features the loaded pack cannot shape, and nothing before the head has loaded", () => {
+    expect(creatorWithheldNote(EMPTY_CREATION_PREVIEW_AVAILABILITY)).toBe("What the Well can shape appears once it has returned the head.");
+    const foundationOnly = { ...EMPTY_CREATION_PREVIEW_AVAILABILITY, hairStyles: ["shaved-buzzed", "parted"] as const };
+    expect(creatorWithheldNote(foundationOnly)).toBe(
+      "The Well withholds a face family, facial hair and age until their canonical assets pass review. "
+      + "Eye colour and expression wait with them: the returned head carries no morph targets, so the Well cannot yet blink for you.",
+    );
+    // a validated beard module drops facial hair from the list; the rest stays withheld
+    expect(creatorWithheldNote({ ...foundationOnly, facialHair: ["none", "stubble"] })).toMatch(/^The Well withholds a face family and age until/);
+    // age morphs in the pack: age leaves the list and the head is no longer morphless
+    const withMorphs = { ...foundationOnly, ageMorphsAvailable: true, dialogueMorphsAvailable: true };
+    expect(creatorWithheldNote(withMorphs)).toBe(
+      "The Well withholds a face family and facial hair until their canonical assets pass review. Eye colour and expression are not yet the Well's to give.",
+    );
+    // FACE_TYPES carries only the foundation face today, so availability listing more faces still offers no choice
+    expect(creatorWithheldNote({ ...withMorphs, faceTypes: ["foundation", "soft-round"], facialHair: ["none", "stubble"] })).toBe(
+      "The Well withholds a face family until their canonical assets pass review. Eye colour and expression are not yet the Well's to give.",
+    );
+  });
+
+  it("walks the body/face tablist with the arrow keys, wrapping, and pins Home and End", () => {
+    expect(creatorTabForKey("ArrowRight", "body")).toBe("face");
+    expect(creatorTabForKey("ArrowRight", "face")).toBe("body");
+    expect(creatorTabForKey("ArrowLeft", "body")).toBe("face");
+    expect(creatorTabForKey("ArrowDown", "body")).toBe("face");
+    expect(creatorTabForKey("ArrowUp", "face")).toBe("body");
+    expect(creatorTabForKey("Home", "face")).toBe("body");
+    expect(creatorTabForKey("End", "body")).toBe("face");
+    expect(creatorTabForKey("Enter", "body")).toBeNull();
+    expect(creatorTabForKey("Tab", "face")).toBeNull();
+  });
+
+  it("returns a completed rail item to its own stop: memories from the first question, body and face to their panel", () => {
+    expect(creatorRailTarget({ step: "memory" })).toEqual({ step: "memory", panel: null, memoryIndex: 0 });
+    expect(creatorRailTarget({ step: "appearance", panel: "face" })).toEqual({ step: "appearance", panel: "face", memoryIndex: null });
+    expect(creatorRailTarget({ step: "appearance" })).toEqual({ step: "appearance", panel: "body", memoryIndex: null });
+    expect(creatorRailTarget({ step: "race" })).toEqual({ step: "race", panel: null, memoryIndex: null });
   });
 });
 
