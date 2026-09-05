@@ -302,6 +302,20 @@ export const REACTION_CONTRACT_CLIPS: readonly string[] = Object.freeze(
   REACTION_SET_IDS.flatMap((id) => REACTION_PHASE_ROLES.map((role) => REACTION_SETS[id].clips[role])));
 
 /**
+ * How an installed pack clip is named in a review action list. Every archetype's
+ * actor reads it from here, so a Warden's PoisonLoop and a human's are labelled by
+ * the same contract rather than by whichever list the body's own clips came from.
+ */
+export function reactionPackClipLabel(name: string): string {
+  for (const set of Object.values(REACTION_SETS)) {
+    for (const role of REACTION_PHASE_ROLES) {
+      if (set.clips[role] === name) return `${set.label} · ${role} · authored reaction pack`;
+    }
+  }
+  return `Authored reaction pack · ${name}`;
+}
+
+/**
  * One pass over the table at module load, so an ambiguous table cannot ship.
  *
  * Two sets claiming the same damage type would make selection depend on key order;

@@ -4,9 +4,13 @@ import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   APPROVED_GREATSWORD_CALIBRATION,
+  CALIBRATION_HEIGHT_METERS,
   applyAdditiveHumanHandGrip,
+  handSocketBodyUnits,
   solveGreatswordSupportGrip,
 } from "../src/game/humanWeaponCalibration";
+// @ts-expect-error Existing shared catalog is the loadout authority.
+import { CALIBRATION_HEIGHT_METERS as REVIEW_CALIBRATION_HEIGHT_METERS } from "../src/review/weapon-lab/human-review-catalog.js";
 import {
   BREACH_V2_HUMAN_FOUNDATION_ACTIONS,
   BREACH_V2_HUMAN_FOUNDATION_ANIMATIONS_URL,
@@ -33,8 +37,13 @@ describe("shared owner-approved human weapon calibration", () => {
       applyAdditiveHumanHandGrip(bones, side, calibration.curls, calibration.thumb, overlay);
       const mirror = side === "Left" ? -1 : 1;
       bones.forEach((bone, index) => {
-        const angles = bone.name.endsWith("Thumb1") ? [0.045, -0.1 * mirror, 0.03 * mirror]
-          : bone.name.endsWith("Thumb2") ? [0.065, 0, -0.025 * mirror] : [0.5, 0, 0];
+        // The equations, driven by the calibration itself rather than by a copy of
+        // its numbers, so tuning the approved curl cannot silently rewrite them.
+        const thumb = calibration.thumb;
+        const finger = bone.name.match(/(Index|Middle|Ring|Pinky)\d$/)?.[1] as keyof typeof calibration.curls | undefined;
+        const curl = finger ? calibration.curls[finger] : 0;
+        const angles = bone.name.endsWith("Thumb1") ? [thumb * 0.45, -thumb * mirror, thumb * 0.3 * mirror]
+          : bone.name.endsWith("Thumb2") ? [thumb * 0.65, 0, -thumb * 0.25 * mirror] : [curl, 0, 0];
         const expected = originals[index]!.clone().multiply(new THREE.Quaternion()
           .setFromEuler(new THREE.Euler(angles[0], angles[1], angles[2], "XYZ")));
         bone.quaternion.toArray().forEach((value, axis) => expect(value).toBeCloseTo(expected.toArray()[axis]!, 14));
@@ -211,3 +220,65 @@ it("applies the accepted grip to the real 65-bone body without mutating 400 sour
   referenceMixer.uncacheRoot(reference);
   actor.dispose();
 }, 30_000);
+
+/**
+ * The socket seat is anatomy, the weapon is not.
+ *
+ * Building the same actor at 2.06 and 1.8 m must move the fist seat by exactly the
+ * body ratio while leaving the longsword the length it was modelled at. Before the
+ * fix the socket position spent a plain 1 / modelScale, which held the seat at a
+ * fixed number of world millimetres from the wrist and so slid the haft off the
+ * fist centre at every height except the calibration one.
+ */
+describe("hand socket seats by body height, weapon stays the length it was modelled", () => {
+  it("moves the fist seat with the body and leaves the blade absolute", async () => {
+    const [body, library, sword] = await Promise.all([
+      loadRig(BREACH_V2_HUMAN_FOUNDATION_MODEL_URL),
+      loadRig(BREACH_V2_HUMAN_FOUNDATION_ANIMATIONS_URL),
+      loadRig(BREACH_V2_HUMAN_FOUNDATION_STARTER_LONGSWORD_URL),
+    ]);
+    const measure = (heightMeters: number) => {
+      const actor = createBreachV2HumanFoundationActor(
+        body.scene, library.animations, `seat-${heightMeters}`, heightMeters, sword.scene,
+      );
+      actor.pose(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.greatswordCombatIdle, 0.25);
+      actor.model.updateMatrixWorld(true);
+      const socket = actor.model.getObjectByName("weapon-socket-hand-r")!;
+      let wrist: THREE.Bone | undefined;
+      actor.model.traverse((node) => {
+        if (node instanceof THREE.Bone && /RightHand$/.test(node.name)) wrist = node;
+      });
+      socket.visible = true;
+      const bounds = new THREE.Box3().setFromObject(socket, true);
+      const seatMeters = socket.getWorldPosition(new THREE.Vector3())
+        .distanceTo(wrist!.getWorldPosition(new THREE.Vector3()));
+      const bladeMeters = bounds.getSize(new THREE.Vector3()).length();
+      const bodyScale = actor.model.scale.x;
+      actor.dispose();
+      return { seatMeters, bladeMeters, bodyScale };
+    };
+
+    const calibration = measure(CALIBRATION_HEIGHT_METERS);
+    const shorter = measure(1.8);
+    const ratio = 1.8 / CALIBRATION_HEIGHT_METERS;
+
+    // The body really did change height, so this is not a no-op comparison. The
+    // whole-model bounds cannot say so: the socket holds the blade at its modelled
+    // length, so it stops shrinking with the body it hangs off.
+    expect(shorter.bodyScale / calibration.bodyScale).toBeCloseTo(ratio, 12);
+    // Anatomy: wrist to fist centre shrinks with the body, to the millimetre.
+    expect(shorter.seatMeters).toBeCloseTo(calibration.seatMeters * ratio, 6);
+    // The regression this guards: absolute seats hold ~4-7 mm of haft offset.
+    expect(Math.abs(shorter.seatMeters - calibration.seatMeters) * 1000).toBeGreaterThan(1);
+    // The weapon is modelled to scale and does not shrink with its wielder.
+    expect(shorter.bladeMeters).toBeCloseTo(calibration.bladeMeters, 6);
+  }, 30_000);
+
+  it("keeps one reference height across the game and review lanes", () => {
+    expect(CALIBRATION_HEIGHT_METERS).toBe(REVIEW_CALIBRATION_HEIGHT_METERS);
+    // At the calibration height the conversion is identity, which is why every
+    // approved number in this file stayed put when the ratio was introduced.
+    expect(handSocketBodyUnits(CALIBRATION_HEIGHT_METERS, 1)).toBe(1);
+    expect(handSocketBodyUnits(1.8, 2)).toBeCloseTo(1.8 / (CALIBRATION_HEIGHT_METERS * 2), 12);
+  });
+});

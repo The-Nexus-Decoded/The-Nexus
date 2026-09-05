@@ -1,10 +1,48 @@
 import * as THREE from "three";
 import { isStaffCarryClip } from "./weapon-locomotion.js";
+import { TARGET_HEIGHT_METERS, CALIBRATION_HEIGHT_METERS } from "./human-review-catalog.js";
+
+// The palm depth these fits aim at is BODY anatomy, so it is spent as a
+// fraction of body height, exactly as human-review-actor.js spends the socket
+// seats. Measured on the 2.06 -> 1.8 m change: left absolute, the staff
+// two-hand support palm sat 19.0 mm from the shaft axis (2.5 mm OUTSIDE a
+// 16.5 mm shaft) on all ten two-hand clips against 12.0 mm at 2.06 m, and the
+// mace two-hand block support palm 24.9 mm against 21.3 mm. Spending the ratio
+// returns them to 10.5 mm and 18.6 mm -- 0.874x their approved values, the same
+// grip on a smaller hand. Distances measured on the WEAPON stay absolute: the
+// 0.24 m mace block point below the head is one of them.
+const bodyUnits = (actorScale) => TARGET_HEIGHT_METERS / (CALIBRATION_HEIGHT_METERS * actorScale);
+const BODY_RATIO = TARGET_HEIGHT_METERS / CALIBRATION_HEIGHT_METERS;
+
+/**
+ * `palmLocal` in fitStaffToSourceHands is deliberately NOT converted to body units.
+ *
+ * Everywhere else, an offset from a wrist bone to a palm centre is hand anatomy and
+ * shrinks with the body. Here it is doing a different job: it is the point the palm
+ * CONTACTS THE SHAFT, and the shaft is a fixed-size object (ASSET_SPECS.staff
+ * targetLength is 1.75 m at any body height). Scaling it moves the contact point off
+ * the wood. Measured, over the 2111 frames scripts/verify-weapon-lab-staff.mjs
+ * samples: absolute gives a worst support-hand radial error of 2.54e-7 m, and body
+ * units give 8.69e-3 m against that proof's 3 mm bound - a defect on every two-hand
+ * staff clip. fitMaceBlockSupport's own offset is a hand-to-haft measure in the same
+ * sense but is fitted against a target derived from the socket, so it does convert.
+ */
 
 // The socket stays in the primary palm. Slide only the staff mesh so its
-// lengthwise midpoint lies between the two palms (or in the carrying palm).
-// Always derive this from the prepared bounds: accumulating offsets drifts
-// during playback, grip transitions, and weapon-scale changes.
+// lengthwise MIDPOINT lies between the two palms (or in the carrying palm).
+// Always derive that from the prepared bounds: accumulating offsets drifts during
+// playback, grip transitions, and weapon-scale changes.
+//
+// The midpoint is the contract, not an accident. scripts/verify-weapon-lab-staff.mjs
+// measures the shaft's own vertices in socket space on every sampled frame and
+// asserts the overhang below the hands equals the overhang above to within 1e-6,
+// over more than 1900 samples. A quarterstaff held off-centre is simply wrong.
+//
+// This is why ASSET_SPECS.staff declares no gripEnd/gripFraction: prepareAsset's
+// anchor does NOT sit at the prepared visual's origin for this mesh -- measured,
+// it is 35 mm off, so seating the anchor directly instead of the bounds midpoint
+// unbalances the staff by 70 mm and fails that proof. The staff is centred on its
+// own geometry, the same way the canonical assets author their own anchor.
 export function centerStaffVisual(actor, primaryAlongShaft = 0, supportAlongShaft = primaryAlongShaft) {
   const record = actor.primary;
   if (record?.asset !== "staff" || !record.visual || !record.prepared) return;
@@ -81,7 +119,8 @@ export function fitMaceBlockSupport(actor, findBone) {
   // The axe proxy's open hand intersects the mace head. Put only that supporting
   // hand on the wooden shaft below the metal; keep the primary block trajectory.
   const gripWorld = socket.localToWorld(new THREE.Vector3(0, 0.24, 0));
-  const target = gripWorld.clone().sub(new THREE.Vector3(0, 0.062, 0.018).applyQuaternion(desiredHand));
+  const target = gripWorld.clone().sub(new THREE.Vector3(0, 0.062, 0.018)
+    .multiplyScalar(BODY_RATIO).applyQuaternion(desiredHand));
   for (const bone of [...links, hand]) {
     if (!actor.ikBase.has(bone)) actor.ikBase.set(bone, bone.quaternion.clone());
   }
@@ -100,7 +139,7 @@ export function fitStaffToSourceHands(actor, findBone, style = { spread: 0, roll
   const sourceWorld = hands.map((hand) => hand.getWorldQuaternion(new THREE.Quaternion()).normalize());
   const sourcePosition = hands.map((hand) => hand.getWorldPosition(new THREE.Vector3()));
   const palmLocal = new THREE.Vector3(0, 0.062, 0.03);
-  const centers = hands.map((hand) => hand.localToWorld(palmLocal.clone().divideScalar(actor.model.scale.x)));
+  const centers = hands.map((hand) => hand.localToWorld(palmLocal.clone().multiplyScalar(1 / actor.model.scale.x)));
   const direction = centers[1].clone().sub(centers[0]);
   if (direction.lengthSq() < 0.01) return null;
   direction.normalize();
@@ -120,7 +159,7 @@ export function fitStaffToSourceHands(actor, findBone, style = { spread: 0, roll
     });
     actor.model.updateMatrixWorld(true);
     hands.forEach((hand, index) => {
-      centers[index].copy(hand.localToWorld(palmLocal.clone().divideScalar(actor.model.scale.x)));
+      centers[index].copy(hand.localToWorld(palmLocal.clone().multiplyScalar(1 / actor.model.scale.x)));
     });
   }
   const socket = actor.primary.socket;
@@ -145,7 +184,7 @@ export function fitStaffToSourceHands(actor, findBone, style = { spread: 0, roll
     solveSupportArm(actor, left, arm, forearm, target);
     left.quaternion.copy(left.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(desiredHand)).normalize();
     actor.model.updateMatrixWorld(true);
-    centers[1].copy(left.localToWorld(palmLocal.clone().divideScalar(actor.model.scale.x)));
+    centers[1].copy(left.localToWorld(palmLocal.clone().multiplyScalar(1 / actor.model.scale.x)));
   }
   const leftLocal = socket.worldToLocal(centers[1].clone());
   const rightLocal = socket.worldToLocal(centers[0].clone());

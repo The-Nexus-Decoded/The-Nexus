@@ -10,19 +10,79 @@ import { buildStaffFightingClips } from "./staff-moves.js";
 import { locomotionActions, buildCarryLocomotionClips } from "./weapon-locomotion.js";
 import { applyAdditiveHumanHandGrip, solveGreatswordSupportGrip } from "../../game/humanWeaponCalibration.ts";
 import { assertReactionClipsBind } from "./reaction-pack-loader.ts";
-import { REACTION_PHASE_ROLES, REACTION_SETS } from "./reaction-contract.ts";
+import { reactionPackClipLabel } from "./reaction-contract.ts";
 import {
   URLS, BOW_TRIPLE_SHOT_NAME, BOW_AIM_RUN_NAME, BOW_QUIVER_DRAW_NAME, BOW_RELEASE_NAME,
   BOW_STRIKE_NAME, BOW_PROJECTILE_MOTION, GREATSWORD_TWO_HAND_SHEATHE_NAME, ACTIONS, GREATSWORD_BACK_TRANSITIONS,
-  ACTION_PRESETS, ASSET_SPECS, LOADOUTS, OPEN_GRIP, FITTED_HAND_GRIP, FITTED_GRIP_LOADOUTS,
+  ACTION_PRESETS, ASSET_SPECS, LOADOUTS, OPEN_GRIP, STAFF_HAND_GRIP, MACE_SUPPORT_HAND_GRIP, FITTED_GRIP_LOADOUTS,
   LOADOUT_GRIP_PRESETS, PREVIEW_TEXTURE_URLS, REQUIRED_PREVIEW_TEXTURE_ASSETS,
   RUN_DIVE_GAP_NAME, AUTHORED_GAP_LABELS, CATALOG_LOADOUT, TARGET_HEIGHT_METERS,
+  CALIBRATION_HEIGHT_METERS,
   sourcePrefix, clipActionName, isAttackClip, isDefenseClip, isLocomotionClip,
   isMagicClip, isReactionClip, isDeathClip, isIdleClip, sourceResponseActions,
 } from "./human-review-catalog.js";
 
 function normalizeBoneName(name) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * The body-height ratio every BODY-relative measurement in this file is spent
+ * through: seat offsets, palm depths, thumb targets and the collision proxy radii.
+ * All of them were measured in metres on the CALIBRATION_HEIGHT_METERS body and
+ * are re-expressed for whatever TARGET_HEIGHT_METERS is in force, so the coming
+ * selectable 1.5-2.0 m range needs no per-height table.
+ */
+const BODY_RATIO = TARGET_HEIGHT_METERS / CALIBRATION_HEIGHT_METERS;
+
+/**
+ * Bone-local units for an offset measured on the body.
+ *
+ * A socket is a child of a bone inside the scaled model, so `1 / actorScale` --
+ * what every one of these sites used to spend -- lands the offset the same number
+ * of world millimetres from its bone at any body height. That is right for the
+ * WEAPON (socket.scale keeps spending it, because a 1.05 m greatsword is 1.05 m
+ * long whoever is holding it) and wrong for the SEAT: wrist to fist centre, and
+ * shoulder blade to quiver, are anatomy and shrink with the body.
+ *
+ * Measured over the ten review loadouts, the 2.06 -> 1.8 m change slid the haft
+ * 4.1-7.4 mm off the fist centre on shortsword, staff, knife and both dagger
+ * loadouts, floated their ring and little fingers 9-10 mm clear of handles the
+ * curls had been fitted to, and lifted the staff's two-hand support palm from
+ * 12.0 mm inside the shaft to 19.0 mm -- 2.5 mm OUTSIDE a 16.5 mm shaft, i.e. off
+ * the wood. Spending the ratio instead holds the whole fit at exactly
+ * TARGET / CALIBRATION of its approved shape: 4000 of the 4160 gripping-hand
+ * fingertip samples -- every armed loadout, every frame, every clip except the two
+ * that carry the bow to and from the back -- land within 0.0022 mm of that. It is
+ * why no socket offset, curl or gripFraction in the catalog had to move for the
+ * height change: the numbers are the approved ones, re-expressed as a fraction of
+ * body height rather than re-fitted per height.
+ *
+ * Every socket spends it, mounted as well as held. That half only works because
+ * the proxies those mounts are fitted against -- BODY_CLEARANCE_CAPSULES and the
+ * sphere proxies below -- are re-expressed through the same BODY_RATIO, so the
+ * sling and the torso it closes onto shrink together. Converting the mounts alone
+ * pulls the quiver harness INTO the un-shrunk torso spheres: swept at 41 samples
+ * a clip, -1.1 to -2.8 mm of intrusion on all five drawn bow clips, worst on
+ * ProLongbow__StandingAimOverdraw. With both halves it is +7.8 to +12.2 mm clear,
+ * against +6.2 to +17.6 mm before either.
+ */
+function bodyUnits(actorScale) {
+  return BODY_RATIO / actorScale;
+}
+
+/**
+ * Sphere proxies for a body part, from radii measured on the calibration body.
+ * Every caller states its radii in calibration metres and gets them back
+ * re-expressed for the body in force, so a new proxy cannot forget the ratio.
+ */
+function bodyProxySpheres(actor, calibrationProxies) {
+  return calibrationProxies
+    .map(([name, calibrationRadius]) => ({
+      bone: findBone(actor.bones, name),
+      radius: calibrationRadius * BODY_RATIO,
+    }))
+    .filter(({ bone }) => bone);
 }
 
 export function findBone(bones, suffix) {
@@ -576,7 +636,7 @@ export function createHumanReviewActorFactory({
       const socket = new THREE.Group();
       socket.name = "inventory-socket-arrow-bundle";
       socket.scale.setScalar(1 / actor.model.scale.x);
-      socket.position.fromArray(config.position).multiplyScalar(1 / actor.model.scale.x);
+      socket.position.fromArray(config.position).multiplyScalar(bodyUnits(actor.model.scale.x));
       socket.rotation.fromArray(config.rotation);
       bone.add(socket);
       preparedArrow.visual.updateMatrixWorld(true);
@@ -736,7 +796,13 @@ export function createHumanReviewActorFactory({
       if (up.dot(torsoUp) < 0) up.negate();
       const back = forward.clone().negate();
       const chestCenter = spine1.clone().lerp(spine2, 0.35);
-      const topRight = rightShoulder.clone().addScaledVector(up, 0.012);
+      // The Mixamo "shoulder" bone is the clavicle root, next to the neck, not the
+      // acromion. Routing the sling over topRight = rightShoulder + up only put the
+      // strap 39.6 mm from that bone once the right arm drew back, which the shipped
+      // harness gate (a 65 mm proxy sphere) reads as -25.4 mm of body intrusion on
+      // every drawn clip. 35 mm outboard carries the crossing over the deltoid.
+      const shoulderOutboardMeters = 0.075;
+      const topRight = rightShoulder.clone().addScaledVector(up, 0.012).addScaledVector(right, shoulderOutboardMeters);
       const lowerLeft = chestCenter.clone().addScaledVector(right, -0.17).addScaledVector(up, -0.2);
       const frontTorsoDepth = 0.185;
       const lowerTorsoDepth = 0.16;
@@ -1027,7 +1093,16 @@ export function createHumanReviewActorFactory({
       };
     }
 
-    const BODY_CLEARANCE_CAPSULES = [
+    /**
+     * The body collision proxy, radii in metres ON THE CALIBRATION BODY.
+     *
+     * Kept as a plain data literal, and kept separate from the scaled table below,
+     * because the issue-458 weapon audit harness lifts exactly this literal out of
+     * this source and evaluates it, rather than keeping a second hand-typed copy
+     * that could drift (tools/weapon-audit-build.mjs). It spends BODY_RATIO the
+     * same way this file does.
+     */
+    const CALIBRATION_BODY_CLEARANCE_CAPSULES = [
       { name: "lower-torso", start: "Hips", end: "Spine1", radius: 0.145 },
       { name: "upper-torso", start: "Spine1", end: "Neck", radius: 0.155 },
       { name: "shoulders", start: "LeftShoulder", end: "RightShoulder", radius: 0.09 },
@@ -1041,6 +1116,15 @@ export function createHumanReviewActorFactory({
       { name: "right-thigh", start: "RightUpLeg", end: "RightLeg", radius: 0.1 },
       { name: "right-shin", start: "RightLeg", end: "RightFoot", radius: 0.075 },
     ];
+
+    /**
+     * The same proxy re-expressed for the body height in force. The bone positions
+     * it is built from already scale with the body, so leaving the radii at their
+     * calibration metres made the proxy 14.5% fatter than the body it stands for at
+     * 1.8 m -- an artifact was pushed off a torso that was no longer that wide.
+     */
+    const BODY_CLEARANCE_CAPSULES = CALIBRATION_BODY_CLEARANCE_CAPSULES
+      .map((capsule) => ({ ...capsule, radius: capsule.radius * BODY_RATIO }));
 
     const ARTIFACT_CLEARANCE_POLICIES = {
       back: {
@@ -1215,12 +1299,12 @@ export function createHumanReviewActorFactory({
 
     function minimumQuiverBodyClearance(actor) {
       if (!actor.arrowBundle) return null;
-      const bodyProxies = [
+      const bodyProxies = bodyProxySpheres(actor, [
         ["Head", 0.105],
         ["Neck", 0.075],
         ["LeftShoulder", 0.105],
         ["RightShoulder", 0.105],
-      ].map(([name, radius]) => ({ bone: findBone(actor.bones, name), radius })).filter(({ bone }) => bone);
+      ]);
       let clearance = Infinity;
       const visibleCount = Math.min(actor.arrowBundle.displayedInQuiver ?? 0, actor.arrowBundle.placements.length);
       for (const placement of actor.arrowBundle.placements.slice(0, visibleCount)) {
@@ -1245,13 +1329,13 @@ export function createHumanReviewActorFactory({
     function harnessBodyClearanceMetrics(actor) {
       const points = actor.quiverHarness?.sampledPoints ?? [];
       if (!points.length) return null;
-      const bodyProxies = [
+      const bodyProxies = bodyProxySpheres(actor, [
         ["Spine1", 0.09],
         ["Spine2", 0.095],
         ["Neck", 0.06],
         ["LeftShoulder", 0.065],
         ["RightShoulder", 0.065],
-      ].map(([name, radius]) => ({ bone: findBone(actor.bones, name), radius })).filter(({ bone }) => bone);
+      ]);
       let minimum = { clearance: Infinity, pointIndex: -1, boneName: null, pointWorld: null, boneWorld: null };
       points.forEach((point, pointIndex) => {
         bodyProxies.forEach(({ bone, radius }) => {
@@ -1276,14 +1360,14 @@ export function createHumanReviewActorFactory({
     }
 
     function minimumGreatswordBodyClearance(actor, hiltWorld, bladeTipWorld) {
-      const bodyProxies = [
+      const bodyProxies = bodyProxySpheres(actor, [
         ["Spine1", 0.15],
         ["Spine2", 0.15],
         ["Neck", 0.075],
         ["Head", 0.105],
         ["LeftShoulder", 0.1],
         ["RightShoulder", 0.1],
-      ].map(([name, radius]) => ({ bone: findBone(actor.bones, name), radius })).filter(({ bone }) => bone);
+      ]);
       return Math.min(...bodyProxies.map(({ bone, radius }) => (
         pointToSegmentDistance(bone.getWorldPosition(new THREE.Vector3()), hiltWorld, bladeTipWorld) - radius
       )));
@@ -1298,14 +1382,14 @@ export function createHumanReviewActorFactory({
           ? attachmentBodyClearanceMetrics(actor, quiver, policy.correctionExcludedCapsules)?.clearanceMeters ?? null
           : null;
       }
-      const bodyProxies = [
+      const bodyProxies = bodyProxySpheres(actor, [
         ["Spine", 0.14],
         ["Spine1", 0.15],
         ["Spine2", 0.14],
         ["Neck", 0.075],
         ["Head", 0.105],
         ["RightShoulder", 0.105],
-      ].map(([name, radius]) => ({ bone: findBone(actor.bones, name), radius })).filter(({ bone }) => bone);
+      ]);
       const tip = handArrow.socket.localToWorld(new THREE.Vector3(0, handArrow.prepared.normalizedBounds.max.y, 0));
       const nock = handArrow.socket.localToWorld(new THREE.Vector3(0, handArrow.prepared.normalizedBounds.min.y, 0));
       return Math.min(...bodyProxies.map(({ bone, radius }) => (
@@ -1409,7 +1493,7 @@ export function createHumanReviewActorFactory({
       if (record.socket.parent !== bone) bone.add(record.socket);
       const actorScale = actor.model.scale.x;
       record.socket.scale.setScalar(1 / actorScale);
-      record.socket.position.fromArray(pose.position ?? [0, 0, 0]).multiplyScalar(1 / actorScale);
+      record.socket.position.fromArray(pose.position ?? [0, 0, 0]).multiplyScalar(bodyUnits(actorScale));
       record.socket.rotation.fromArray(pose.rotation ?? [0, 0, 0]);
       record.activeBone = pose.bone;
       record.activePose = poseName;
@@ -1423,7 +1507,7 @@ export function createHumanReviewActorFactory({
       bone.updateWorldMatrix(true, false);
       const actorScale = actor.model.scale.x;
       const localMatrix = new THREE.Matrix4().compose(
-        new THREE.Vector3().fromArray(pose.position ?? [0, 0, 0]).multiplyScalar(1 / actorScale),
+        new THREE.Vector3().fromArray(pose.position ?? [0, 0, 0]).multiplyScalar(bodyUnits(actorScale)),
         new THREE.Quaternion().setFromEuler(new THREE.Euler().fromArray(pose.rotation ?? [0, 0, 0])),
         new THREE.Vector3().setScalar(1 / actorScale),
       );
@@ -1894,7 +1978,7 @@ export function createHumanReviewActorFactory({
       socket.name = `weapon-socket-${attachment.role}-${attachment.asset}`;
       const actorScale = actor.model.scale.x;
       socket.scale.setScalar(1 / actorScale);
-      socket.position.fromArray(attachment.position ?? [0, 0, 0]).multiplyScalar(1 / actorScale);
+      socket.position.fromArray(attachment.position ?? [0, 0, 0]).multiplyScalar(bodyUnits(actorScale));
       socket.rotation.fromArray(attachment.rotation ?? [0, 0, 0]);
       const visual = prepared.visual.clone(true);
       visual.visible = attachment.visible !== false;
@@ -1978,7 +2062,7 @@ export function createHumanReviewActorFactory({
           // Thin wands need thumb opposition from the palm, not the large open
           // C-shaped thumb arc used to wrap a sword/staff handle.
           const origin = thumb1.getWorldPosition(new THREE.Vector3());
-          const thumbRootTarget = hand.localToWorld(new THREE.Vector3(0.035 * mirror, 0.035, 0.02).multiplyScalar(1 / actor.model.scale.x));
+          const thumbRootTarget = hand.localToWorld(new THREE.Vector3(0.035 * mirror, 0.035, 0.02).multiplyScalar(bodyUnits(actor.model.scale.x)));
           const delta = new THREE.Quaternion().setFromUnitVectors(
             thumb2.getWorldPosition(new THREE.Vector3()).sub(origin).normalize(), thumbRootTarget.sub(origin).normalize(),
           );
@@ -1986,7 +2070,7 @@ export function createHumanReviewActorFactory({
           thumb1.quaternion.copy(thumb1.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(desired)).normalize();
         }
         const thumbTarget = wandGrip ? [0.01 * mirror, 0.064, 0.038] : [0.025 * mirror, 0.062, 0.05];
-        const target = hand.localToWorld(new THREE.Vector3().fromArray(thumbTarget).multiplyScalar(1 / actor.model.scale.x));
+        const target = hand.localToWorld(new THREE.Vector3().fromArray(thumbTarget).multiplyScalar(bodyUnits(actor.model.scale.x)));
         for (let iteration = 0; tip && iteration < 8; iteration += 1) {
           for (const bone of wandGrip ? links.slice(0, 2) : links) {
             hand.updateWorldMatrix(true, true);
@@ -2178,7 +2262,7 @@ export function createHumanReviewActorFactory({
         if (!backPose || !backBone) return;
         side = "Left";
         targetWorld = backBone.localToWorld(
-          new THREE.Vector3().fromArray(backPose.position).multiplyScalar(1 / actor.model.scale.x),
+          new THREE.Vector3().fromArray(backPose.position).multiplyScalar(bodyUnits(actor.model.scale.x)),
         );
         reachWeight = isEquip
           ? THREE.MathUtils.smoothstep(normalizedTime, 0.16, 0.28) * (1 - THREE.MathUtils.smoothstep(normalizedTime, 0.34, 0.46))
@@ -2256,11 +2340,11 @@ export function createHumanReviewActorFactory({
 
     function updateSocketFromControls() {
       if (!actor?.primary) return;
-      const actorScale = actor.model.scale.x;
+      const units = bodyUnits(actor.model.scale.x);
       actor.primary.socket.position.set(
-        Number(settings.calibration.socket.x) / actorScale,
-        Number(settings.calibration.socket.y) / actorScale,
-        Number(settings.calibration.socket.z) / actorScale,
+        Number(settings.calibration.socket.x) * units,
+        Number(settings.calibration.socket.y) * units,
+        Number(settings.calibration.socket.z) * units,
       );
       actor.primary.socket.rotation.set(
         Number(settings.calibration.socket.rx),
@@ -2281,7 +2365,7 @@ export function createHumanReviewActorFactory({
       if (!record) return false;
       const actorScale = actor.model.scale.x;
       if (Array.isArray(transform.position)) {
-        record.socket.position.fromArray(transform.position).multiplyScalar(1 / actorScale);
+        record.socket.position.fromArray(transform.position).multiplyScalar(bodyUnits(actorScale));
       }
       if (Array.isArray(transform.rotation)) record.socket.rotation.fromArray(transform.rotation);
       if (Array.isArray(transform.scale)) record.visual.scale.fromArray(transform.scale);
@@ -2296,7 +2380,7 @@ export function createHumanReviewActorFactory({
       assertAlive();
       if (!actor.arrowBundle) return false;
       const socket = actor.arrowBundle.socket;
-      if (position) socket.position.fromArray(position).multiplyScalar(1 / actor.model.scale.x);
+      if (position) socket.position.fromArray(position).multiplyScalar(bodyUnits(actor.model.scale.x));
       if (rotation) socket.rotation.fromArray(rotation);
       rememberEquipmentTransform(socket);
       socket.updateMatrixWorld(true);
@@ -2322,8 +2406,13 @@ export function createHumanReviewActorFactory({
       const rotation = attachment?.rotation ?? [0, 0, 0];
       return {
         grip: { ...(actionPreset?.grip ?? loadoutPreset?.right ?? OPEN_GRIP) },
+        // The support hand is fitted to the shaft rather than followed from the
+        // source clip. The mace is held further down a thinner shaft than the
+        // staff, so each carries its own curl (MACE_SUPPORT_HAND_GRIP / STAFF_HAND_GRIP).
         leftGrip: { ...(["staff", "mace"].includes(settings.loadoutId)
-          ? (twoHandIKAllowed(clipName) ? FITTED_HAND_GRIP : OPEN_GRIP)
+          ? (twoHandIKAllowed(clipName)
+            ? (settings.loadoutId === "mace" ? MACE_SUPPORT_HAND_GRIP : STAFF_HAND_GRIP)
+            : OPEN_GRIP)
           : (actionPreset?.leftGrip ?? loadoutPreset?.left ?? OPEN_GRIP)) },
         socket: actor.primary ? (actionPreset?.socket ?? {
           x: position[0], y: position[1], z: position[2],
@@ -2518,22 +2607,13 @@ export function createHumanReviewActorFactory({
       if (isMagicClip(name)) return "cast";
       return "interaction";
     }
-    /** @returns {readonly import("./combat-review-types").ReviewAction[]} */
-    function reactionPackLabel(name) {
-      for (const set of Object.values(REACTION_SETS)) {
-        for (const role of REACTION_PHASE_ROLES) {
-          if (set.clips[role] === name) return `${set.label} · ${role} · authored reaction pack`;
-        }
-      }
-      return `Authored reaction pack · ${name}`;
-    }
     /** The pack is bound to every loadout: a special attack lands on the body, not on the weapon. */
     function reactionPackActions() {
-      return [...reactionClipNames].map((name) => [reactionPackLabel(name), name]);
+      return [...reactionClipNames].map((name) => [reactionPackClipLabel(name), name]);
     }
     function actions() {
       const rows = settings.mode === "catalog"
-        ? [...actor.clips.keys()].map((name) => [reactionClipNames.has(name) ? reactionPackLabel(name)
+        ? [...actor.clips.keys()].map((name) => [reactionClipNames.has(name) ? reactionPackClipLabel(name)
           : AUTHORED_GAP_LABELS.get(name) ?? `${sourcePrefix(name)} — ${clipActionName(name)}`, name])
         : [...ACTIONS[LOADOUTS[settings.loadoutId].actionFamily], ...locomotionActions(settings.loadoutId, actor.clips),
           ...(includeSourceResponses ? sourceResponseActions(settings.loadoutId, actor.clips) : []),

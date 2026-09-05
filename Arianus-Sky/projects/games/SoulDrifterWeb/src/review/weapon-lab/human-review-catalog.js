@@ -171,18 +171,29 @@ export const GREATSWORD_BACK_TRANSITIONS = new Set([
   "GreatSword__DrawAGreatSword2",
 ]);
 
+const GREATSWORD_SOCKET = { x: 0, y: 0.04, z: 0, rx: 0, ry: 0, rz: -Math.PI / 2, scale: 1 };
+// The one greatsword curl, declared before ACTION_PRESETS uses it and re-exported
+// below as TWO_HAND_GRIP. Both presets used to repeat it as literals, which let the
+// action and loadout values drift apart silently.
+//
+// thumb 1.4 rad is the smallest curl that brings the thumb tip joint onto the haft.
+// Measured on the shipped rig against a 35.6 mm-diameter haft, hole-filled radius
+// profile: the tip stood 40.6 mm clear of the wood at the old 0.1 in 14 of 19
+// clips, and 10.2 mm at 1.4 -- one finger flesh radius, i.e. pad on the wood.
+// Higher values over-close (1.6 buries the tip to 0.9 mm on GreatSwordBlocking).
+const GREATSWORD_GRIP = { Index: 0.5, Middle: 0.5, Ring: 0.5, Pinky: 0.5, thumb: 1.4 };
 export const ACTION_PRESETS = {
   GreatSword__GreatSwordIdle: {
-    name: "greatsword-two-hand-idle-v1",
-    grip: { Index: 0.5, Middle: 0.5, Ring: 0.5, Pinky: 0.5, thumb: 0.1 },
-    leftGrip: { Index: 0.5, Middle: 0.5, Ring: 0.5, Pinky: 0.5, thumb: 0.1 },
-    socket: { x: 0, y: 0.04, z: 0, rx: 0, ry: 0, rz: -Math.PI / 2, scale: 1 },
+    name: "greatsword-two-hand-idle-v2",
+    grip: GREATSWORD_GRIP,
+    leftGrip: GREATSWORD_GRIP,
+    socket: GREATSWORD_SOCKET,
   },
   GreatSword__GreatSwordAttack: {
-    name: "greatsword-pommel-butt-smash-v1",
-    grip: { Index: 0.5, Middle: 0.5, Ring: 0.5, Pinky: 0.5, thumb: 0.1 },
-    leftGrip: { Index: 0.5, Middle: 0.5, Ring: 0.5, Pinky: 0.5, thumb: 0.1 },
-    socket: { x: 0, y: 0.04, z: 0, rx: 0, ry: 0, rz: -Math.PI / 2, scale: 1 },
+    name: "greatsword-pommel-butt-smash-v2",
+    grip: GREATSWORD_GRIP,
+    leftGrip: GREATSWORD_GRIP,
+    socket: GREATSWORD_SOCKET,
   },
   [BOW_QUIVER_DRAW_NAME]: {
     name: "bow-feather-retrieval-grip-v2",
@@ -197,9 +208,25 @@ export const ACTION_PRESETS = {
 };
 
 export const ASSET_SPECS = {
-  longsword: { canonical: true, targetLength: 1.05, gripEnd: "min", gripFraction: 0.1 },
-  shortsword: { targetLength: 0.75, gripEnd: "hilt", gripFraction: 0.10 },
+  // canonical: prepareAsset() returns the mesh untouched, so gripEnd/gripFraction
+  // are never applied to it -- they were declared here and silently ignored. The
+  // mesh authors its own anchor: measured 156.584 mm from the butt of a 1049.99 mm
+  // blade, an effective grip fraction of 0.149, not the 0.1 once declared.
+  // targetLength stays: prepareAsset and weapon-lab.js both read it.
+  longsword: { canonical: true, targetLength: 1.05 },
+  // 0.10 seated the fist astride the 40 mm pommel knob -- measured, the pinky tip
+  // sat 8.7 mm inside it and its flesh 37 mm inside. 0.15 clears the knob onto the
+  // 26-30 mm handle proper: the anchor moves 75.0 -> 112.5 mm from the butt.
+  shortsword: { targetLength: 0.75, gripEnd: "hilt", gripFraction: 0.15 },
   shield: { targetLength: 0.68, planar: true, gripEnd: "center", gripFraction: 0.5 },
+  // gripEnd/gripFraction ARE consumed by prepareAsset here (removing them yields a
+  // NaN prepared bounds), but they do NOT decide where the staff ends up: staff-grip.js
+  // centerStaffVisual re-seats the mesh on its own prepared bounds midpoint afterwards,
+  // which cancels the 0.52 bias. That was audited and deliberately left alone. Seating
+  // the prepared anchor directly instead was tried: the anchor sits 35 mm off this
+  // mesh's midpoint, so it unbalances the staff by 70 mm and fails the 1e-6, 1900-sample
+  // balance proof in scripts/verify-weapon-lab-staff.mjs. A quarterstaff held off centre
+  // is wrong, so the proof wins and the bias stays cancelled.
   staff: { targetLength: 1.75, radialScale: 0.5, gripEnd: "center", gripFraction: 0.52 },
   mace: { targetLength: 0.68, gripEnd: "small", gripFraction: 0.13 },
   // Preserve the approved 1.18 m span while restoring the slimmer original
@@ -208,8 +235,18 @@ export const ASSET_SPECS = {
   arrow: { canonical: true, targetLength: 0.94, gripEnd: "small", gripFraction: 0.1 },
   quiver: { canonical: true, targetLength: 0.64, gripEnd: "center", gripFraction: 0.5 },
   harness: { canonical: true, targetLength: 0.479746, gripEnd: "center", gripFraction: 0.5 },
-  rod: { canonical: true, targetLength: 0.38, gripEnd: "min", gripFraction: 0.145 },
-  knife: { targetLength: 0.34, gripEnd: "hilt", gripFraction: 0.16 },
+  // canonical, so gripEnd/gripFraction were never applied and are dropped here for
+  // the same reason as longsword's: measured, a +0.20 gripFraction bias moved this
+  // weapon's anchor by -0.001 mm while it moved the shortsword's by +150.0 mm.
+  // The mesh authors its own anchor, 55.019 mm from the butt of a 380.02 mm wand.
+  // targetLength stays: prepareAsset and weapon-lab.js both read it.
+  rod: { canonical: true, targetLength: 0.38 },
+  // 0.16 seated the fist 32 mm below the guard, leaving bare handle above it.
+  // Measured on ProMagic__StandingIdle against the knife's own radius profile:
+  // 0.16 -> 0.20 takes the worst finger-joint deviation 13.601 -> 12.960 mm and
+  // the mean over the 16 finger joints 6.121 -> 5.791 mm, with the same curls.
+  // 0.24 reverses it (13.417 mm) as the index knuckle reaches the crossguard.
+  knife: { targetLength: 0.34, gripEnd: "hilt", gripFraction: 0.20 },
   dagger: { targetLength: 0.38, gripEnd: "hilt", gripFraction: 0.16 },
 };
 
@@ -238,7 +275,14 @@ export const LOADOUTS = {
     label: "Wooden mace — one-hand proxy",
     actionFamily: "oneHandMeleeProxy",
     match: "proxy: one-hand axe-authored motions; no mace-specific clips in the V2 library",
-    attachments: [{ asset: "mace", bone: "RightHand", role: "primary", position: [0, 0.062, 0.018], rotation: [0, 0, R] }],
+    // The mace head is asymmetric, so prepareAsset's x/z bounding-box centring puts
+    // the socket 11.5 mm off the shaft's own centreline and the mace hung to one
+    // side of the fist. The socket offset takes that up instead: measured, the fist
+    // centre sat 10.101 mm off the shaft axis at [0, 0.062, 0.018] and 0.041 mm off
+    // it here. Hand-local Y and Z are both perpendicular to the shaft (the weapon
+    // lies along hand-local X), so this is a pure translation in the radial plane
+    // and the two probe points that solved it are exactly linear.
+    attachments: [{ asset: "mace", bone: "RightHand", role: "primary", position: [0, 0.0543, 0.0114], rotation: [0, 0, R] }],
   },
   bow: {
     label: "Shortbow + approved Tripo arrows, quiver, and harness — matched",
@@ -329,22 +373,85 @@ export const LOADOUTS = {
 };
 
 export const OPEN_GRIP = { Index: 0, Middle: 0, Ring: 0, Pinky: 0, thumb: 0 };
-export const TWO_HAND_GRIP = { Index: 0.5, Middle: 0.5, Ring: 0.5, Pinky: 0.5, thumb: 0.1 };
+export const TWO_HAND_GRIP = GREATSWORD_GRIP;
 export const BOW_HAND_GRIP = { Index: -0.5, Middle: -0.45, Ring: -0.4, Pinky: -0.35, thumb: 0 };
 export const FITTED_HAND_GRIP = { Index: 1.2, Middle: 1.2, Ring: 1.2, Pinky: 1.2, thumb: 0.55 };
 export const NARROW_HAND_GRIP = { Index: 1.2, Middle: 1.2, Ring: 1.2, Pinky: 1.2, thumb: 0.55 };
+// The blade grips' own curls, split out of NARROW_HAND_GRIP so a `rod` change can
+// never move them. NARROW_HAND_GRIP was byte-identical to FITTED_HAND_GRIP, so a
+// single angle drove four fingers of different length onto four different chords
+// of the same ~48 mm handle: the short fingers reached the wood first and kept
+// going. Measured per finger against each weapon's own radius profile (the tip
+// gap is taken against the LARGEST radius within +/-7.5 mm axially, so it is a
+// bound, not an estimate), the shipped 1.2 buried the pinky's middle phalanx
+// 24.0 mm (dagger) / 13.3 mm (knife) inside the handle. The corrected gradient
+// follows finger length, which is what a shared angle cannot express.
+//
+// Index stays at 1.2 in both: applyHandOverlay spends `angle` x [1.2, 1.4, 1.2]
+// across the three phalanges, so 1.2 is already 261 deg of total flexion and 1.4
+// -- which measures better still (dagger index 13.283 -> 10.789 mm) -- is 305 deg
+// and wraps the finger through itself.
+export const DAGGER_HAND_GRIP = { Index: 1.2, Middle: 1.0, Ring: 1.0, Pinky: 0.6, thumb: 0.55 };
+export const KNIFE_HAND_GRIP = { Index: 1.2, Middle: 1.0, Ring: 1.0, Pinky: 0.9, thumb: 0.55 };
+// Index/Middle reach past Ring/Pinky, so one shared curl cannot close four fingers
+// of different lengths on a 26-30 mm handle: measured on ProMeleeAxe__StandingIdle
+// against the fitted shaft centreline, the shipped 1.2 left the index and middle
+// TIPS 15.9 and 16.9 mm clear while ring and pinky sat 3.4-3.9 mm off the wood.
+// 1.8 / 2.0 close them: four-finger tip spread 23.7 mm -> 2.8 mm.
+export const SHORTSWORD_HAND_GRIP = { Index: 1.8, Middle: 2.0, Ring: 1.2, Pinky: 1.2, thumb: 0.55 };
+// Same problem on a thinner shaft, and in the other direction for the short
+// fingers: once the shaft is centred in the fist, 1.2 drove ring and pinky 11.2
+// and 9.0 mm THROUGH it while index and middle were still 7.6 and 3.5 mm clear.
+// Measured tip spread 17.9 mm -> 2.8 mm.
+export const MACE_HAND_GRIP = { Index: 1.6, Middle: 1.2, Ring: 0.9, Pinky: 0.9, thumb: 0.55 };
+// The two-hand block seats the support hand higher up the mace, where the shaft is
+// only ~23 mm in radius, so the staff-sized curl left all four of its fingertips
+// 17.9-28.2 mm in the air while the palm was 3.2 mm inside the wood. Measured
+// off-hand tip spread 10.3 mm -> 0.8 mm.
+export const MACE_SUPPORT_HAND_GRIP = { Index: 1.75, Middle: 1.85, Ring: 1.83, Pinky: 1.78, thumb: 0.55 };
+// The wand is a 13.8 mm shaft -- thinner than the fist tunnel -- so a fingertip
+// given more curl orbits it instead of closing on it, and only Index and Ring
+// respond monotonically (measured: Middle's skin standoff is at its minimum at
+// 1.2 and rises at 1.0 and at 1.3 alike). Index closes the 6.2 mm standoff that
+// left it touching the wand nowhere; Ring backs off the curl that buried its
+// flesh 4.8 mm in the shaft. Middle and Pinky are already at their own measured
+// optimum and are left at 1.2.
+export const WAND_HAND_GRIP = { Index: 1.51, Middle: 1.2, Ring: 1.12, Pinky: 1.2, thumb: 0.55 };
+// The staff's own curl, split out of FITTED_HAND_GRIP so a shortsword or mace
+// change can never move it. The values are deliberately the shipped ones.
+//
+// The audit reported the staff's index and middle FINGERTIPS standing ~29 mm clear
+// of the 33 mm-diameter shaft. That is not a curl error and raising the curl does
+// not fix it: applyHandOverlay rotates the three phalanges by [1.2, 1.2, 1.0] x
+// this angle from the bind pose, so 1.2 already spends 82/82/69 deg -- a closed
+// fist -- and ~1.35 (263 deg total) is the anatomical ceiling. Measured on
+// ProMagic__StandingIdle the index tip moves only 29.663 -> 29.496 -> 29.217 mm
+// across curls 1.2 / 1.3 / 1.35, while the fist centre leaves the shaft
+// (-5.0 -> -0.4 -> +1.8 mm). Reaching the tip to the wood needs 1.9 rad = 370 deg
+// of total flexion, which wraps the finger a full turn: the tip then reads 7.1 mm
+// only because it has come back round, and the middle joint bulges 29 mm clear
+// (radial 45.7 mm against a 16.5 mm shaft). At 1.2 the shaft is held the way a
+// hand actually holds a thin rod -- by the middle phalanges, with the fist centre
+// 5.0-21.6 mm inside the wood.
+export const STAFF_HAND_GRIP = { Index: 1.2, Middle: 1.2, Ring: 1.2, Pinky: 1.2, thumb: 0.55 };
 export const FITTED_GRIP_LOADOUTS = new Set(["staff", "mace", "shortswordOnly", "knife", "daggerSingle", "daggers", "rod"]);
 export const LOADOUT_GRIP_PRESETS = {
   longswordTwoHand: { right: TWO_HAND_GRIP, left: TWO_HAND_GRIP },
-  shortswordOnly: { right: FITTED_HAND_GRIP, left: OPEN_GRIP },
-  staff: { right: FITTED_HAND_GRIP, left: FITTED_HAND_GRIP },
-  mace: { right: FITTED_HAND_GRIP, left: OPEN_GRIP },
+  shortswordOnly: { right: SHORTSWORD_HAND_GRIP, left: OPEN_GRIP },
+  // `left` covers the ten free-hand clips; on the ten two-hand clips the actor
+  // fits the support hand with STAFF_HAND_GRIP as well.
+  staff: { right: STAFF_HAND_GRIP, left: STAFF_HAND_GRIP },
+  // `left` covers the eight one-hand clips; on the two-hand block the actor fits
+  // the support hand with MACE_SUPPORT_HAND_GRIP instead.
+  mace: { right: MACE_HAND_GRIP, left: OPEN_GRIP },
   bow: { right: BOW_HAND_GRIP, left: BOW_HAND_GRIP },
-  rod: { right: NARROW_HAND_GRIP, left: OPEN_GRIP },
+  rod: { right: WAND_HAND_GRIP, left: OPEN_GRIP },
   unarmedMagic: { right: OPEN_GRIP, left: OPEN_GRIP },
-  knife: { right: NARROW_HAND_GRIP, left: OPEN_GRIP },
-  daggerSingle: { right: NARROW_HAND_GRIP, left: OPEN_GRIP },
-  daggers: { right: NARROW_HAND_GRIP, left: NARROW_HAND_GRIP },
+  knife: { right: KNIFE_HAND_GRIP, left: OPEN_GRIP },
+  daggerSingle: { right: DAGGER_HAND_GRIP, left: OPEN_GRIP },
+  // Both hands take the fitted path for `daggers`, and the measured per-finger
+  // optimum is the same on each: left Index 1.2 / Middle 1.0 / Ring 1.0 / Pinky 0.6.
+  daggers: { right: DAGGER_HAND_GRIP, left: DAGGER_HAND_GRIP },
 };
 
 export const PREVIEW_TEXTURE_URLS = {
@@ -427,7 +534,42 @@ export const CATALOG_LOADOUT = {
   attachments: [],
 };
 
-export const TARGET_HEIGHT_METERS = 2.06;
+/**
+ * The height the review body is scaled to, and it must agree with the game.
+ *
+ * 1.8 m, matching BREACHLING_SPIT_PLAYER_HEIGHT_METERS in
+ * src/game/dungeons/breach-v2-breachling-mouths.ts. It was 2.06 m, which nothing in
+ * the game agreed with: the spit aimed at BREACHLING_SPIT_TARGET_HEIGHT_METERS
+ * (1.15 m) while this body's chest measured 1.5516 m, so acid was thrown 40 cm low
+ * at hip height, and the top 26 cm of the character projected out of the 1.8 m hit
+ * capsule entirely. The body measures 7.9 heads tall - a correctly proportioned
+ * adult male, not a giant - so there was no artistic intent requiring 2.06.
+ *
+ * Changing it re-scales every weapon grip and moves every pinned contact row, which
+ * is why it is one constant with this much comment on it. Owner decision, 2026-09-04.
+ */
+export const TARGET_HEIGHT_METERS = 1.8;
+
+/**
+ * The body height every BODY-relative measurement in this lane was taken on:
+ * socket seats, palm depths, thumb targets, and the review stride bounds. Those
+ * are all anatomy -- wrist to fist centre, palm depth, thumb opposition, leg
+ * length -- so they are stored as metres on this reference body and re-expressed
+ * for whatever TARGET_HEIGHT_METERS is in force. Ratio, not table: one constant
+ * covers the selectable 1.5-2.0 m range without a per-height column.
+ *
+ * Weapon-relative distances are deliberately NOT scaled by it: ASSET_SPECS
+ * targetLength, the greatsword support-hand target, and the mace two-hand grip at
+ * 0.24 m up the shaft are all measured on the weapon, and a sword does not shrink
+ * because the man holding it does. The weapons are modelled to scale already.
+ *
+ * The game lane owns the same reference in src/game/humanWeaponCalibration.ts,
+ * where its handSocketBodyUnits converts per-actor rather than against one target
+ * height. It is duplicated rather than imported because this file is pure JS that
+ * scripts/verify-weapon-lab-staff.mjs loads under plain node, which cannot parse a
+ * .ts import. tests/humanWeaponCalibration.test.ts pins the two values equal.
+ */
+export const CALIBRATION_HEIGHT_METERS = 2.06;
 export function sourcePrefix(clipName) {
   return clipName.includes("__") ? clipName.split("__", 1)[0] : "Ungrouped";
 }

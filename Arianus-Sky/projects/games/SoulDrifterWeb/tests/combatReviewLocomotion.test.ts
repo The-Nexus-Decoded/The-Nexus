@@ -7,7 +7,34 @@ import { MOB_CATALOG } from "../src/review/weapon-lab/mobs-stage";
 // @ts-expect-error Production JS actor factory; texture decoding alone is stubbed below.
 import { createHumanReviewActorFactory } from "../src/review/weapon-lab/human-review-actor.js";
 // @ts-expect-error Existing shared catalog is the loadout authority.
-import { LOADOUTS } from "../src/review/weapon-lab/human-review-catalog.js";
+import { LOADOUTS, TARGET_HEIGHT_METERS, CALIBRATION_HEIGHT_METERS } from "../src/review/weapon-lab/human-review-catalog.js";
+
+/**
+ * Stride bounds are BODY HEIGHTS, not metres.
+ *
+ * cycleDisplacement is the root travel of one authored walk cycle. The source clip
+ * is never touched and the review body is scaled uniformly to TARGET_HEIGHT_METERS,
+ * so the distance it carries is exactly proportional to that height. Measured over
+ * all ten carry walks at both heights, every one of them lands on the height ratio
+ * 1.8 / 2.06 = 0.873786 to four decimals: the shortest, bow, travels 1.5609 m on
+ * the 2.06 m body and 1.3639 m at 1.8 m; the longest, the three sharing the unarmed
+ * walk, 2.1265 -> 1.8581; longswordTwoHand 1.7034 -> 1.4884; the greatsword
+ * backward run -2.1745 -> -1.9000.
+ *
+ * So the approved 1.5 m and -2 m bounds are held here as the fractions of body
+ * height they were: 0.72816 and -0.97087 body heights, which is 1.3107 m and
+ * -1.7476 m at 1.8 m. Every margin is preserved exactly -- the tightest walk still
+ * clears by 0.0532 m, which is 0.873786 x the 0.0609 m it cleared by at 2.06 m.
+ *
+ * Re-measuring the bounds as new absolutes was the alternative. It would have to be
+ * redone for every height the body is set to, and a bound frozen at a short body
+ * silently passes a stride far too short for a tall one -- the failure this replaces
+ * was the same mistake in the other direction. Note that the loop stops at the first
+ * loadout, so the 1.5 m bound only ever reported longswordTwoHand at 1.4884; bow was
+ * 1.3639 and would have failed harder.
+ */
+const MIN_WALK_CYCLE_METERS = TARGET_HEIGHT_METERS * (1.5 / CALIBRATION_HEIGHT_METERS);
+const MAX_BACKWARD_RUN_CYCLE_METERS = TARGET_HEIGHT_METERS * (-2 / CALIBRATION_HEIGHT_METERS);
 
 const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
 const { readFileSync } = await importHost<{ readFileSync(path: URL): Uint8Array }>("node:fs");
@@ -149,14 +176,14 @@ describe("measured source locomotion capabilities", () => {
       actor.sample(ready.id, 0.2); const pose = [...actor.bones.values()].map((bone: THREE.Bone) => bone.matrixWorld.toArray());
       const before = reviewLocomotionSourceToken(actor, walk.id);
       const result = await measureReviewLocomotion(actor, walk.id, { restore: () => actor.sample(ready.id, 0.2) });
-      expect(result.status, loadoutId).toBe("authored-forward"); expect(result.cycleDisplacement[2], loadoutId).toBeGreaterThan(1.5);
+      expect(result.status, loadoutId).toBe("authored-forward"); expect(result.cycleDisplacement[2], loadoutId).toBeGreaterThan(MIN_WALK_CYCLE_METERS);
       expect(result.limbs).toHaveLength(2); expect(result.supportStatus).toBe("unmeasured");
       expect([...actor.bones.values()].map((bone: THREE.Bone) => bone.matrixWorld.toArray())).toEqual(pose);
       expect(reviewLocomotionSourceToken(actor, walk.id) === before, `${loadoutId}: source token preserved`).toBe(true);
       if (loadoutId === "longswordTwoHand") {
         const run = actions.find((entry) => entry.semantic === "run")!;
         const backward = await measureReviewLocomotion(actor, run.id, { restore: () => actor.sample(ready.id, 0.2) });
-        expect(backward.status).toBe("authored-backward"); expect(backward.cycleDisplacement[2]).toBeLessThan(-2);
+        expect(backward.status).toBe("authored-backward"); expect(backward.cycleDisplacement[2]).toBeLessThan(MAX_BACKWARD_RUN_CYCLE_METERS);
         expect(backward.canRepeatAuthoredTravel).toBe(false);
       }
       actor.dispose(); disposables.delete(actor);

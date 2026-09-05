@@ -10,6 +10,7 @@ import {
   createBreachV2HumanFoundationActor,
   createBreachV2HumanFoundationActorFactory,
 } from "../src/game/dungeons/breach-v2-human-foundation-actor";
+import { CALIBRATION_HEIGHT_METERS } from "../src/game/humanWeaponCalibration";
 
 function clip(name: string, hipY = 1): THREE.AnimationClip {
   return new THREE.AnimationClip(name, 1, [
@@ -124,14 +125,20 @@ describe("BREACH-V2 Human Foundation actor", () => {
     actor.dispose();
   });
 
-  it("keeps the approved socket and canonical weapon length independent of body scale", () => {
+  // Two invariants that pull opposite ways at any height but 2.06. The blade is
+  // modelled to scale and stays 1.05 m for every wielder; the seat is wrist to
+  // fist centre, which is anatomy and tracks the body. This previously asserted
+  // an absolute 0.04 m seat at all three heights -- the review lane measured that
+  // same absolute seat sliding the haft 4.1-7.4 mm off the fist centre.
+  it("scales the socket seat with the body and keeps the weapon its modelled length", () => {
     for (const height of [1.6, 2.06, 2.4]) {
       const actor = createBreachV2HumanFoundationActor(sourceModel(),
         Object.values(BREACH_V2_HUMAN_FOUNDATION_ACTIONS).map((name) => clip(name)),
         "scale", height, sourceWeapon());
       actor.pose(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.greatswordCombatIdle, 0.4);
       const socket = actor.model.getObjectByName("weapon-socket-hand-r")!;
-      expect(socket.position.y * actor.model.scale.x).toBeCloseTo(0.04, 10);
+      expect(socket.position.y * actor.model.scale.x, `${height} m seat`)
+        .toBeCloseTo(0.04 * height / CALIBRATION_HEIGHT_METERS, 10);
       expect(socket.rotation.z).toBeCloseTo(-Math.PI / 2, 10);
       expect(socket.getWorldScale(new THREE.Vector3()).toArray()).toEqual([1, 1, 1]);
       expect(socket.localToWorld(new THREE.Vector3(0, 1.05, 0))

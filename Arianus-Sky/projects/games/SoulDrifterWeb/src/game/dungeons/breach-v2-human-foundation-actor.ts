@@ -8,6 +8,7 @@ import {
 } from "../animationPacks";
 import {
   APPROVED_GREATSWORD_CALIBRATION,
+  handSocketBodyUnits,
   applyAdditiveHumanHandGrip,
   solveGreatswordSupportGrip,
 } from "../humanWeaponCalibration";
@@ -170,6 +171,7 @@ function findFoundationSocketBone(
 
 function createFoundationWeaponPresentation(
   model: THREE.Object3D,
+  heightMeters: number,
   sourceWeapon?: THREE.Object3D,
 ): FoundationWeaponPresentation | null {
   if (!sourceWeapon) return null;
@@ -177,11 +179,17 @@ function createFoundationWeaponPresentation(
   if (!handBone) {
     throw new Error("Human Foundation starter longsword requires a right-hand socket.");
   }
+  // The socket's SCALE undoes the body scale outright: the starter longsword is
+  // 1.05 m long whoever draws it. Its POSITION is wrist to fist centre, which is
+  // anatomy and shrinks with the body, so it spends the body ratio instead --
+  // the same split the review lane's socketUnits makes. Leaving the position
+  // absolute is what slid the haft off the fist centre there.
   const inverseModelScale = 1 / model.scale.x;
   const handSocket = new THREE.Group();
   handSocket.name = "weapon-socket-hand-r";
   handSocket.scale.setScalar(inverseModelScale);
-  handSocket.position.fromArray(APPROVED_GREATSWORD_CALIBRATION.socketPosition).multiplyScalar(inverseModelScale);
+  handSocket.position.fromArray(APPROVED_GREATSWORD_CALIBRATION.socketPosition)
+    .multiplyScalar(handSocketBodyUnits(heightMeters, model.scale.x));
   handSocket.rotation.set(...APPROVED_GREATSWORD_CALIBRATION.socketRotation);
   const handVisual = sourceWeapon.clone(true);
   handVisual.name = "weapon-sword-longsword-starter-v001-hand";
@@ -237,7 +245,7 @@ export function createBreachV2HumanFoundationActor(
   groundingPivot.name = `${root.name}-grounding-pivot`;
   groundingPivot.add(model);
   root.add(groundingPivot);
-  const weapon = createFoundationWeaponPresentation(model, sourceWeapon);
+  const weapon = createFoundationWeaponPresentation(model, heightMeters, sourceWeapon);
   setFoundationWeaponState(weapon, "unequipped");
   if (weapon) root.userData.weaponSource = BREACH_V2_HUMAN_FOUNDATION_STARTER_LONGSWORD_URL;
   root.userData.humanCalibration = "issue-435-approved-greatsword-v1";
