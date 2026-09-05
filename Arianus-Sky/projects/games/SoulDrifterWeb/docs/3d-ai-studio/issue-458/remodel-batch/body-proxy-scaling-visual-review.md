@@ -182,3 +182,50 @@ That closes the visual gap on:
   5.5 mm heavy, 46.2 mm dwarf. The sling is procedurally routed around hard-coded
   torso waypoints, which does not survive four builds x N races without a
   waypoint table per body. Wants a design phase.
+
+---
+
+# RETRACTED — the sign-off above was premature
+
+Owner looked again and saw daylight between the sling and the body. He is right
+and the section above is wrong. Measured properly this time, against POSED skin
+via `SkinnedMesh.applyBoneTransform` rather than the rest-pose vertices an
+earlier probe used and discarded:
+
+**Strap-to-skin gap, bow loadout, `ProLongbow__StandingIdle01` at mid-clip:**
+
+| percentile | gap |
+|---|---|
+| p10 | 22.8 mm |
+| p50 | 45.3 mm |
+| p90 | 86.2 mm |
+| max | 105.3 mm |
+
+Worst points across all 30+ bow clips: **138-168 mm**, on every clip including
+the idles. This is systemic, not pose-specific.
+
+## Where it floats, and why
+
+The far samples sit 170-193 mm BELOW chest centre at a radius of 194-200 mm from
+the spine axis. That is exactly the `lowerLeft` hip waypoint pair:
+`chestCenter + bodyRight x -0.17 + bodyUp x -0.2`, carried out by
+`lowerTorsoDepth` 0.16. After BODY_RATIO that lands ~204 mm from the spine while
+the actual waist surface is ~95-100 mm out. The hoop stands ~105 mm proud of the
+body.
+
+**BODY_RATIO was necessary but not sufficient.** These waypoints are fixed
+offsets from a BONE and were never projected onto the body SURFACE. Scaling them
+makes them proportional to HEIGHT — but girth is not a function of height, so no
+ratio can make a bone-offset waypoint land on skin. It only happened to look
+close on the body it was originally eyeballed against.
+
+## The actual fix
+
+Project each sling waypoint onto the skin: cast outward from the spine axis to
+the posed mesh and place the waypoint at the hit plus a small standoff. That is
+correct by construction for any girth, any height, any build, with no per-body
+table — which is also what the selectable 1.5-2.0 m range and multiple body
+types need. Until that lands, the sling is fitted to one body and only one.
+
+Status: the proxy-radius and socket-unit work stands and is still correct. The
+sling routing is NOT fixed. Reopening.
