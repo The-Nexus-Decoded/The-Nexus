@@ -637,11 +637,11 @@
         },
         "gateScript": {
           "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_silhouette_gate.py",
-          "sha256": "574438B8CB889AF59F79A3A7BD0C6A80F46DE90C48F5A32D9DD69742CA9239CD"
+          "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
         },
         "buildScript": {
           "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_card_build.py",
-          "sha256": "D6D79CC95DC6E0DF7252F55CFF428BDEC73F08539A76F65C82629D16ABB03175"
+          "sha256": "7D73C8F8A6D4EF120F2E177E1CBA80777FC3C49929B61360AEE3EF34DA459D5E"
         },
         "postScript": {
           "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_card_post.py",
@@ -670,70 +670,66 @@
             "material": "MAT_HumanHair_Tintable_Parted_Cards"
           },
           "SK_Hair_Parted_Mass": {
-            "vertices": 6799,
+            "vertices": 6802,
             "triangles": 12560,
             "material": "MAT_HumanHair_Tintable_Parted_Mass"
           }
         },
         "silhouetteVsDraft11": {
           "01-front": {
-            "iou": 0.9601,
-            "areaRatio": 0.9721,
+            "iou": 0.9606,
+            "areaRatio": 0.9739,
             "topOutlineMeanPx": 10.2,
             "topOutlineMaxPx": 46,
-            "onlyInCardsPx": 1234,
-            "onlyInDraftPx": 6875
+            "onlyInCardsPx": 1370,
+            "onlyInDraftPx": 6651
           },
           "02-front34-L": {
-            "iou": 0.9547,
-            "areaRatio": 0.9626,
+            "iou": 0.9566,
+            "areaRatio": 0.9644,
             "topOutlineMeanPx": 9.9,
-            "topOutlineMaxPx": 63,
+            "topOutlineMaxPx": 60,
             "onlyInCardsPx": 833,
-            "onlyInDraftPx": 8603
+            "onlyInDraftPx": 8218
           },
           "03-front34-R": {
-            "iou": 0.9588,
-            "areaRatio": 0.9664,
+            "iou": 0.9605,
+            "areaRatio": 0.9682,
             "topOutlineMeanPx": 8.9,
             "topOutlineMaxPx": 69,
-            "onlyInCardsPx": 807,
-            "onlyInDraftPx": 7782
+            "onlyInCardsPx": 812,
+            "onlyInDraftPx": 7423
           },
           "04-profile-L": {
-            "iou": 0.9562,
-            "areaRatio": 0.9674,
-            "topOutlineMeanPx": 7.8,
-            "topOutlineMaxPx": 29,
-            "onlyInCardsPx": 1145,
-            "onlyInDraftPx": 7706
+            "iou": 0.9587,
+            "areaRatio": 0.9714,
+            "topOutlineMeanPx": 7.7,
+            "topOutlineMaxPx": 28,
+            "onlyInCardsPx": 1299,
+            "onlyInDraftPx": 7057
           },
           "09-crown": {
-            "iou": 0.9462,
-            "areaRatio": 0.9598,
-            "topOutlineMeanPx": 10.6,
+            "iou": 0.947,
+            "areaRatio": 0.9608,
+            "topOutlineMeanPx": 10.5,
             "topOutlineMaxPx": 110,
-            "onlyInCardsPx": 1574,
-            "onlyInDraftPx": 10588
+            "onlyInCardsPx": 1582,
+            "onlyInDraftPx": 10378
           },
           "11-pitch+25": "reference mask empty (draft-11 render of this view is blank); skipped",
           "12-pitch-25": {
-            "iou": 0.9602,
-            "areaRatio": 0.9705,
+            "iou": 0.9608,
+            "areaRatio": 0.9722,
             "topOutlineMeanPx": 11.1,
             "topOutlineMaxPx": 63,
-            "onlyInCardsPx": 1184,
-            "onlyInDraftPx": 7846
+            "onlyInCardsPx": 1318,
+            "onlyInDraftPx": 7578
           }
         },
         "runtimeMaterial": "MAT_HumanHair_Tintable_Parted (cards + mass), alphaMode MASK, doubleSided, KHR_materials_anisotropy, KHR_materials_specular 0.25, souldrifterTintChannel HAIR",
         "evidence": {
-          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13",
-          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\owner-contact-sheet.png"
-        },
-        "toolchainCopy": {
-          "root": "H:/CodexData/souldrifter-toolchain/hair-parted",
-          "note": "byte-identical copies of the session scripts and atlas listed above (their sha256s are recorded per file); rebuild = hair_atlas_build.py atlas, then blender -b --factory-startup --gpu-backend opengl --python hair_card_build.py -- <head.glb> <out> <atlas.png> <cap.png>, then hair_card_post.py <out> --install <game root>, hair_fresh_import_check.py, hair_provenance_update.py"
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v14",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v14\\owner-contact-sheet.png"
         }
       }
     }
@@ -803,7 +799,7 @@
           "material": "MAT_HumanHair_Tintable_Parted_Cards"
         },
         "SK_Hair_Parted_Mass": {
-          "vertices": 6799,
+          "vertices": 6802,
           "triangles": 12560,
           "material": "MAT_HumanHair_Tintable_Parted_Mass"
         }
@@ -831,12 +827,12 @@
     "visualGate": "PASS_FAIL_CLOSED_PER_MODULE",
     "silhouetteGate": "PASS_IOU_GE_0.93_VS_OWNER_APPROVED_DRAFT11",
     "silhouetteIoUByView": {
-      "01-front": 0.9601,
-      "02-front34-L": 0.9547,
-      "03-front34-R": 0.9588,
-      "04-profile-L": 0.9562,
-      "09-crown": 0.9462,
-      "12-pitch-25": 0.9602
+      "01-front": 0.9606,
+      "02-front34-L": 0.9566,
+      "03-front34-R": 0.9605,
+      "04-profile-L": 0.9587,
+      "09-crown": 0.947,
+      "12-pitch-25": 0.9608
     },
     "withheldModulesExcluded": true
   },
@@ -854,22 +850,22 @@
     "approvalMetadataRoundTrips": true
   },
   "evidence": {
-    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13",
-    "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\owner-contact-sheet.png",
-    "ownerViews": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\owner-view",
-    "silhouettes": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\silhouette",
+    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v14",
+    "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v14\\owner-contact-sheet.png",
+    "ownerViews": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v14\\owner-view",
+    "silhouettes": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v14\\silhouette",
     "hairTint": "preview multiply (0.42, 0.27, 0.17); runtime tints from HAIR_COLORS",
     "renderer": "Blender 5.2.1 EEVEE, 1024 px, ortho 0.215",
     "modules": {
       "SK_Hair_Parted": {
-        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\owner-contact-sheet.png"
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v14\\owner-contact-sheet.png"
       }
     }
   },
   "output": {
     "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb\\public/assets/3d/characters/human-foundation-pilot\\human-foundation-pilot-modular-appearance.glb",
-    "bytes": 3237468,
-    "sha256": "FF64ECA62394EF8790B934B6FB4DCB1CB7DACC1F147E6370BFA655350C9A88FB"
+    "bytes": 3237720,
+    "sha256": "A7B0D58906BAF6AE47EEA62750CC003C25D7B43770B31A900E7C612491501744"
   },
   "runtimeNotes": [
     "Shaved-buzzed remains the zero-volume baseline and is not duplicated.",
