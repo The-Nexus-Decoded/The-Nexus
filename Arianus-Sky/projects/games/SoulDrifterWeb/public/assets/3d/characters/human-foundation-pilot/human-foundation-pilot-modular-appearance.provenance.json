@@ -730,6 +730,10 @@
         "evidence": {
           "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13",
           "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/cards-v13\\owner-contact-sheet.png"
+        },
+        "toolchainCopy": {
+          "root": "H:/CodexData/souldrifter-toolchain/hair-parted",
+          "note": "byte-identical copies of the session scripts and atlas listed above (their sha256s are recorded per file); rebuild = hair_atlas_build.py atlas, then blender -b --factory-startup --gpu-backend opengl --python hair_card_build.py -- <head.glb> <out> <atlas.png> <cap.png>, then hair_card_post.py <out> --install <game root>, hair_fresh_import_check.py, hair_provenance_update.py"
         }
       }
     }
