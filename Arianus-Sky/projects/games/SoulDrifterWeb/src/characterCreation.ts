@@ -379,6 +379,12 @@ export class CharacterCreation {
       autoRotate: this.appearanceAutoRotate,
       onLoadFailure: (reason) => this.showAppearanceLoadFailure(reason),
     });
+    if (import.meta.env.DEV) {
+      // Hands the live preview to the QA harness and to manual checks such as
+      // `__souldrifterCreationPreview.playReaction("listen")` in DevTools.
+      (window as Window & { __souldrifterCreationPreview?: CreationAvatarPreview })
+        .__souldrifterCreationPreview = this.appearancePreview;
+    }
     this.stage.querySelectorAll<HTMLButtonElement>("button[data-appearance-panel]").forEach((button) => {
       button.addEventListener("click", () => {
         const panel = button.dataset.appearancePanel;

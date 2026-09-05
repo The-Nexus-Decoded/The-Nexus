@@ -9,11 +9,16 @@ import {
 } from "../src/characterCreation";
 import {
   bodyPreviewFitDistance,
+  CREATOR_GAZE_LIMITS,
+  CREATOR_REACTION_CLIPS,
   CREATOR_RELAXED_IDLE_PACK,
   EMPTY_CREATION_PREVIEW_AVAILABILITY,
   inspectCreationPreviewAvailability,
   creatorBreathEnvelope,
+  creatorGazeAngles,
+  resolveCreatorReactionSpec,
   stabilizeCreatorRelaxedIdle,
+  type CreationPreviewReaction,
 } from "../src/creationPreview";
 import { resolveCharacterAppearance } from "../src/game/character";
 import {
@@ -608,5 +613,36 @@ describe("character-creator modular appearance contract", () => {
     resetCreationStageScroll(stage);
 
     expect(stage).toEqual({ scrollTop: 0, focusOwner: "appearance-heading" });
+  });
+});
+
+describe("creator reactions and gaze", () => {
+  it("resolves every reaction to an approved, prop-free, in-place Human clip", () => {
+    for (const reaction of Object.keys(CREATOR_REACTION_CLIPS) as CreationPreviewReaction[]) {
+      const spec = resolveCreatorReactionSpec(reaction);
+      expect(spec, reaction).not.toBeNull();
+      expect(["OWNER_APPROVED", "IN_GAME_QA_ACCEPTED"]).toContain(spec!.reviewStatus);
+      expect(spec!.rootPolicy).toBe("in-place");
+      expect(spec!.externalTargetBinding).toBeUndefined();
+      expect(spec!.semanticClipName).toBe(CREATOR_REACTION_CLIPS[reaction].semanticClipName);
+      expect(spec!.url).toMatch(/^\/assets\/3d\/animations\/human-foundation-pilot\//);
+    }
+  });
+
+  it("turns the head toward the pointer and compensates the turntable within neck limits", () => {
+    const maxYaw = THREE.MathUtils.degToRad(CREATOR_GAZE_LIMITS.yawDegrees);
+    const maxPitch = THREE.MathUtils.degToRad(CREATOR_GAZE_LIMITS.pitchDegrees);
+    expect(creatorGazeAngles(1, 0, 0).yaw).toBeCloseTo(maxYaw, 6);
+    expect(creatorGazeAngles(-3, 0, 0).yaw).toBeCloseTo(-maxYaw, 6);
+    expect(creatorGazeAngles(0, 1, 0).pitch).toBeCloseTo(maxPitch, 6);
+    expect(creatorGazeAngles(0, -4, 0).pitch).toBeCloseTo(-maxPitch, 6);
+    // Body turned an eighth of a turn toward screen-right: the head turns
+    // back toward a pointer at the centre.
+    expect(creatorGazeAngles(0, 0, Math.PI / 8).yaw).toBeCloseTo(-Math.PI / 8, 6);
+    // Turned away entirely (and after several full turns): the neck's limit
+    // holds, no whiplash.
+    expect(Math.abs(creatorGazeAngles(0, 0, Math.PI).yaw)).toBeCloseTo(maxYaw, 6);
+    expect(Math.abs(creatorGazeAngles(0, 0, 7 * Math.PI).yaw)).toBeCloseTo(maxYaw, 6);
+    expect(creatorGazeAngles(0, 0, 4 * Math.PI).yaw).toBeCloseTo(0, 6);
   });
 });

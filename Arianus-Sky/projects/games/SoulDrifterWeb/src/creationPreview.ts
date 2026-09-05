@@ -25,6 +25,10 @@ import {
   bindOptionalCompatibleAnimationClip,
   normalizeAnimationPackRootMotion,
 } from "./game/animationPacks";
+import {
+  HUMAN_FOUNDATION_APPROVED_ANIMATIONS,
+  type HumanFoundationApprovedAnimationSpec,
+} from "./game/humanFoundationApprovedAnimations";
 
 const PREVIEW_MODEL_LEGACY_HUMAN = "/assets/3d/characters/human-shadowknight/human-shadowknight.glb";
 const PREVIEW_MODEL_ELF = "/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb";
@@ -34,6 +38,61 @@ export const CREATOR_RELAXED_IDLE_PACK = Object.freeze({
   url: "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-male-locomotion-01.glb",
   sourceClipName: "MaleLocomotion__Idle",
 });
+export type CreationPreviewReaction = "listen" | "farewell";
+
+/**
+ * Reactions the creator may ask of the character. Each resolves, by semantic
+ * clip name, to an entry of HUMAN_FOUNDATION_APPROVED_ANIMATIONS, so nothing
+ * unapproved or prop-bound can be played here even if a key is added later.
+ * `fadeSeconds` is the crossfade out of the idle.
+ */
+export const CREATOR_REACTION_CLIPS: Readonly<Record<CreationPreviewReaction, {
+  semanticClipName: string;
+  fadeSeconds: number;
+}>> = Object.freeze({
+  listen: { semanticClipName: "AuthoredUtility__NpcListen", fadeSeconds: 0.35 },
+  farewell: { semanticClipName: "AuthoredUtility__Farewell", fadeSeconds: 0.3 },
+});
+const CREATOR_REACTION_SETTLE_SECONDS = 0.45;
+
+/** The approved spec behind a reaction, or null when it is unapproved or needs a prop. */
+export function resolveCreatorReactionSpec(
+  reaction: CreationPreviewReaction,
+): HumanFoundationApprovedAnimationSpec | null {
+  const entry = CREATOR_REACTION_CLIPS[reaction];
+  const spec = HUMAN_FOUNDATION_APPROVED_ANIMATIONS
+    .find((candidate) => candidate.semanticClipName === entry.semanticClipName);
+  if (!spec || spec.externalTargetBinding) return null;
+  return spec;
+}
+
+/** How far the head may turn toward the pointer. */
+export const CREATOR_GAZE_LIMITS = Object.freeze({ yawDegrees: 28, pitchDegrees: 12 });
+const CREATOR_GAZE_RESPONSE_PER_SECOND = 6;
+const CREATOR_GAZE_HOLD_MS = 4000;
+const CREATOR_GAZE_NEUTRAL = Object.freeze({ yaw: 0, pitch: 0 });
+
+function wrapAngle(radians: number): number {
+  const wrapped = (radians + Math.PI) % (2 * Math.PI);
+  return (wrapped < 0 ? wrapped + 2 * Math.PI : wrapped) - Math.PI;
+}
+
+/**
+ * Yaw/pitch (radians) the head adds to look toward the pointer. `ndcX/ndcY`
+ * are the pointer's position on the canvas in -1..1 (right and up positive);
+ * `pivotYaw` is the turntable rotation, which the head undoes as far as a neck
+ * allows so a figure turned away still glances the right way.
+ */
+export function creatorGazeAngles(ndcX: number, ndcY: number, pivotYaw: number): { yaw: number; pitch: number } {
+  const maxYaw = THREE.MathUtils.degToRad(CREATOR_GAZE_LIMITS.yawDegrees);
+  const maxPitch = THREE.MathUtils.degToRad(CREATOR_GAZE_LIMITS.pitchDegrees);
+  const wanted = THREE.MathUtils.clamp(ndcX, -1, 1) * maxYaw - wrapAngle(pivotYaw);
+  return {
+    yaw: THREE.MathUtils.clamp(wanted, -maxYaw, maxYaw),
+    pitch: THREE.MathUtils.clamp(ndcY, -1, 1) * maxPitch,
+  };
+}
+
 /**
  * GLTFLoader runs every node name through `PropertyBinding.sanitizeNodeName`,
  * which strips ":" - so the rig's `mixamorig:Head` reaches the runtime as
@@ -78,7 +137,30 @@ interface CreatorBreathJoint {
   readonly base: THREE.Quaternion;
   readonly axis: THREE.Vector3;
   readonly radians: number;
+  /**
+   * True when the bound idle writes this bone every frame, so the breath can
+   * ride on the mixer's output (and on any blended reaction) instead of
+   * overwriting it.
+   */
+  readonly written: boolean;
 }
+
+interface CreatorGazeJoint {
+  readonly bone: THREE.Object3D;
+  /** Share of the gaze angle this joint carries; neck and head sum to 1. */
+  readonly share: number;
+}
+
+const CREATOR_GAZE_JOINTS: ReadonlyArray<{ names: ReadonlySet<string>; share: number }> = [
+  { names: boneNameVariants("mixamorig:Neck", "Neck"), share: 0.35 },
+  { names: boneNameVariants("mixamorig:Head", "Head"), share: 0.65 },
+];
+// Bone-local axes of the upright mixamorig neck/head: Y runs up the bone, X
+// is the ear-to-ear axis. Looking up is a negative turn about X.
+const CREATOR_GAZE_YAW_AXIS = new THREE.Vector3(0, 1, 0);
+const CREATOR_GAZE_PITCH_AXIS = new THREE.Vector3(-1, 0, 0);
+const CREATOR_GAZE_SCRATCH_YAW = new THREE.Quaternion();
+const CREATOR_GAZE_SCRATCH_PITCH = new THREE.Quaternion();
 
 const CREATOR_BREATH_JOINTS: ReadonlyArray<{
   names: ReadonlySet<string>;
@@ -105,6 +187,11 @@ export function creatorBreathEnvelope(elapsedSeconds: number): number {
 function trackNodeName(trackName: string): string {
   const cut = trackName.lastIndexOf(".");
   return cut === -1 ? trackName : trackName.slice(0, cut);
+}
+
+/** Lower-cased names of every node a clip writes. */
+function clipNodeNames(clip: THREE.AnimationClip): ReadonlySet<string> {
+  return new Set(clip.tracks.map((track) => trackNodeName(track.name).toLowerCase()));
 }
 const CREATOR_BODY_FRONT_YAW = -Math.PI / 2;
 const CREATOR_FACE_FRONT_YAW = 0;
@@ -251,6 +338,17 @@ export class CreationAvatarPreview {
   private readonly onLoadFailure: ((reason: string) => void) | undefined;
   private breathJoints: CreatorBreathJoint[] = [];
   private breathSeconds = 0;
+  private idleAction: THREE.AnimationAction | null = null;
+  private reactionAction: THREE.AnimationAction | null = null;
+  private reactionRequest = 0;
+  private readonly reactionClips = new Map<string, THREE.AnimationClip>();
+  private gazeJoints: CreatorGazeJoint[] = [];
+  private gazeEnabled = true;
+  /** Smoothed (yaw, pitch) in radians. */
+  private readonly gaze = new THREE.Vector2();
+  /** Pointer position on the canvas in NDC, right and up positive. */
+  private readonly gazeTarget = new THREE.Vector2();
+  private gazeSeenAt = 0;
   private cssWidth = 0;
   private cssHeight = 0;
   private appliedPixelRatio = 0;
@@ -290,6 +388,8 @@ export class CreationAvatarPreview {
     // pointerup, which would leave `dragging` true and kill manual rotation.
     window.addEventListener("pointercancel", this.onPointerUp);
     canvas.addEventListener("lostpointercapture", this.onPointerUp);
+    document.documentElement.addEventListener("mouseleave", this.onGazeLost);
+    window.addEventListener("blur", this.onGazeLost);
 
     this.loadModelForRace(this.appearance.raceId);
     this.frame = requestAnimationFrame(() => this.render());
@@ -366,6 +466,95 @@ export class CreationAvatarPreview {
     this.lastInteractionAt = performance.now();
   }
 
+  /**
+   * Plays one approved reaction clip over the idle and settles back into it.
+   * Resolves true once the clip is playing, false when it cannot be shown
+   * (model or idle not bound yet, unapproved, incompatible). The creator
+   * treats false as "the character keeps idling", never as an error.
+   */
+  public playReaction(reaction: CreationPreviewReaction): Promise<boolean> {
+    const model = this.model;
+    const mixer = this.mixer;
+    const idle = this.idleAction;
+    if (!model || !mixer || !idle) return Promise.resolve(false);
+    const spec = resolveCreatorReactionSpec(reaction);
+    if (!spec) {
+      console.warn(`Creator reaction "${reaction}" has no approved, prop-free Human clip.`);
+      return Promise.resolve(false);
+    }
+    const request = ++this.reactionRequest;
+    const fadeSeconds = CREATOR_REACTION_CLIPS[reaction].fadeSeconds;
+    return this.bindReactionClip(spec, model)
+      .then((clip) => {
+        if (!clip || this.disposed || request !== this.reactionRequest || this.mixer !== mixer) return false;
+        const action = mixer.clipAction(clip);
+        const previous = this.reactionAction;
+        // Mirrors three's skinning_blending example: enable, restore the base
+        // weight and rewind before fading, or a previously faded-out action
+        // stays disabled and the fade is invisible.
+        action.enabled = true;
+        action.setEffectiveTimeScale(1);
+        action.setEffectiveWeight(1);
+        action.reset();
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = true;
+        action.play();
+        if (previous && previous !== action) previous.fadeOut(fadeSeconds);
+        action.crossFadeFrom(idle, fadeSeconds, false);
+        this.reactionAction = action;
+        return true;
+      })
+      .catch((error) => {
+        console.warn(`Creator reaction "${reaction}" failed to load.`, error);
+        return false;
+      });
+  }
+
+  /** Whether the head follows the pointer; off when a station wants a still portrait. */
+  public setGazeEnabled(enabled: boolean): void {
+    this.gazeEnabled = enabled;
+    if (!enabled) this.gazeTarget.set(0, 0);
+  }
+
+  private settleReaction(): void {
+    const idle = this.idleAction;
+    const action = this.reactionAction;
+    if (!idle || !action) return;
+    idle.enabled = true;
+    idle.setEffectiveTimeScale(1);
+    idle.setEffectiveWeight(1);
+    idle.crossFadeFrom(action, CREATOR_REACTION_SETTLE_SECONDS, false);
+    this.reactionAction = null;
+  }
+
+  private bindReactionClip(
+    spec: HumanFoundationApprovedAnimationSpec,
+    model: THREE.Object3D,
+  ): Promise<THREE.AnimationClip | null> {
+    const cached = this.reactionClips.get(spec.semanticClipName);
+    if (cached) return Promise.resolve(cached);
+    return loadPreviewModel(spec.url).then((gltf) => {
+      if (this.model !== model) return null;
+      const source = gltf.animations.find((clip) => clip.name === spec.sourceClipName);
+      if (!source) {
+        console.warn(`Approved reaction pack ${spec.url} is missing ${spec.sourceClipName}.`);
+        return null;
+      }
+      const bound = bindOptionalCompatibleAnimationClip(source, model, `Creator_${spec.semanticClipName}`);
+      if (!bound) {
+        console.warn(`Approved reaction ${spec.semanticClipName} is incompatible with the Human foundation rig.`);
+        return null;
+      }
+      const rootNode = model.getObjectByName(spec.rootNodeName);
+      // Same hip treatment as the idle, so a blend never slides the pelvis.
+      const clip = spec.rootPolicy === "authored"
+        ? bound
+        : normalizeAnimationPackRootMotion(bound, spec.rootNodeName, rootNode?.position, "lock-to-rest");
+      this.reactionClips.set(spec.semanticClipName, clip);
+      return clip;
+    });
+  }
+
   private frontYaw(): number {
     // Both stations share one upright front yaw. The old body-only -PI/2 existed
     // solely to cancel the `skeleton.pose()` orientation bug removed below.
@@ -390,6 +579,8 @@ export class CreationAvatarPreview {
     window.removeEventListener("pointerup", this.onPointerUp);
     window.removeEventListener("pointercancel", this.onPointerUp);
     this.canvas.removeEventListener("lostpointercapture", this.onPointerUp);
+    document.documentElement.removeEventListener("mouseleave", this.onGazeLost);
+    window.removeEventListener("blur", this.onGazeLost);
     this.stopPreviewMotion();
     if (this.model) {
       // Only the per-instance material clones are ours to release. Geometries
@@ -409,8 +600,9 @@ export class CreationAvatarPreview {
     this.renderer.forceContextLoss();
   }
 
-  private captureBreathJoints(model: THREE.Object3D): void {
+  private captureBreathJoints(model: THREE.Object3D, idle: THREE.AnimationClip): void {
     const joints: CreatorBreathJoint[] = [];
+    const written = clipNodeNames(idle);
     model.traverse((node) => {
       for (const spec of CREATOR_BREATH_JOINTS) {
         if (!spec.names.has(node.name.toLowerCase())) continue;
@@ -419,6 +611,7 @@ export class CreationAvatarPreview {
           base: node.quaternion.clone(),
           axis: new THREE.Vector3(spec.axis[0], spec.axis[1], spec.axis[2]).normalize(),
           radians: THREE.MathUtils.degToRad(spec.degrees),
+          written: written.has(node.name.toLowerCase()),
         });
       }
     });
@@ -437,20 +630,78 @@ export class CreationAvatarPreview {
   }
 
   /**
-   * Re-derives each joint from its captured base every frame rather than
-   * multiplying into the live quaternion, so the layer cannot integrate and
-   * drift if a clip ever stops writing one of these tracks.
+   * Rides on the mixer's output for bones the idle writes every frame (so a
+   * blended reaction keeps breathing) and re-derives the rest from a captured
+   * base, so the layer cannot integrate and drift if a clip ever stops
+   * writing one of these tracks.
    */
   private applyBreath(deltaSeconds: number): void {
     if (this.breathJoints.length === 0) return;
     this.breathSeconds += deltaSeconds;
     const envelope = creatorBreathEnvelope(this.breathSeconds);
     for (const joint of this.breathJoints) {
-      joint.bone.quaternion
-        .copy(joint.base)
-        .multiply(CREATOR_BREATH_SCRATCH.setFromAxisAngle(joint.axis, joint.radians * envelope));
+      CREATOR_BREATH_SCRATCH.setFromAxisAngle(joint.axis, joint.radians * envelope);
+      if (joint.written) joint.bone.quaternion.multiply(CREATOR_BREATH_SCRATCH);
+      else joint.bone.quaternion.copy(joint.base).multiply(CREATOR_BREATH_SCRATCH);
     }
   }
+
+  /**
+   * Neck and head bones the idle writes every frame, so the gaze can be added
+   * on top of the mixer's output without ever integrating. The stabilised idle
+   * holds them at the clip's neutral frame; a reaction clip moves them, and
+   * the gaze simply rides along.
+   */
+  private captureGazeJoints(model: THREE.Object3D, idle: THREE.AnimationClip): void {
+    const joints: CreatorGazeJoint[] = [];
+    const written = clipNodeNames(idle);
+    model.traverse((node) => {
+      for (const spec of CREATOR_GAZE_JOINTS) {
+        if (!spec.names.has(node.name.toLowerCase())) continue;
+        if (!written.has(node.name.toLowerCase())) {
+          console.warn(`Creator gaze skipped ${node.name}: the idle does not write it.`);
+          continue;
+        }
+        joints.push({ bone: node, share: spec.share });
+      }
+    });
+    this.gazeJoints = joints;
+    this.gaze.set(0, 0);
+  }
+
+  private applyGaze(deltaSeconds: number): void {
+    if (this.gazeJoints.length === 0) return;
+    const attentive = this.gazeEnabled && !this.dragging
+      && performance.now() - this.gazeSeenAt < CREATOR_GAZE_HOLD_MS;
+    const target = attentive
+      ? creatorGazeAngles(this.gazeTarget.x, this.gazeTarget.y, this.yaw)
+      : CREATOR_GAZE_NEUTRAL;
+    const blend = 1 - Math.exp(-deltaSeconds * CREATOR_GAZE_RESPONSE_PER_SECOND);
+    this.gaze.x += (target.yaw - this.gaze.x) * blend;
+    this.gaze.y += (target.pitch - this.gaze.y) * blend;
+    for (const joint of this.gazeJoints) {
+      CREATOR_GAZE_SCRATCH_YAW.setFromAxisAngle(CREATOR_GAZE_YAW_AXIS, this.gaze.x * joint.share);
+      CREATOR_GAZE_SCRATCH_PITCH.setFromAxisAngle(CREATOR_GAZE_PITCH_AXIS, this.gaze.y * joint.share);
+      joint.bone.quaternion.multiply(CREATOR_GAZE_SCRATCH_YAW).multiply(CREATOR_GAZE_SCRATCH_PITCH);
+    }
+  }
+
+  private trackGaze(event: PointerEvent): void {
+    // A finger only moves while it is dragging the figure, and a drag is an
+    // inspection, so touch never steers the gaze.
+    if (event.pointerType === "touch") return;
+    const rect = this.canvas.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return;
+    this.gazeTarget.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -(((event.clientY - rect.top) / rect.height) * 2 - 1),
+    );
+    this.gazeSeenAt = performance.now();
+  }
+
+  private readonly onGazeLost = (): void => {
+    this.gazeSeenAt = 0;
+  };
 
   private stopPreviewMotion(resetPose = false): void {
     this.breathJoints = [];
@@ -459,6 +710,11 @@ export class CreationAvatarPreview {
       this.mixer.uncacheRoot(this.model);
     }
     this.mixer = null;
+    this.idleAction = null;
+    this.reactionAction = null;
+    this.reactionRequest += 1;
+    this.reactionClips.clear();
+    this.gazeJoints = [];
     if (resetPose && this.model) {
       this.model.traverse((child) => {
         if (child instanceof THREE.SkinnedMesh) child.skeleton.pose();
@@ -496,14 +752,20 @@ export class CreationAvatarPreview {
           ? normalizeAnimationPackRootMotion(bound, rootNodeName, rootNode?.position, "lock-to-rest")
           : bound;
         const clip = stabilizeCreatorRelaxedIdle(normalized);
-        this.mixer = new THREE.AnimationMixer(model);
-        this.mixer.clipAction(clip).setLoop(THREE.LoopRepeat, Infinity).play();
+        const mixer = new THREE.AnimationMixer(model);
+        this.mixer = mixer;
+        this.idleAction = mixer.clipAction(clip).setLoop(THREE.LoopRepeat, Infinity);
+        this.idleAction.play();
+        mixer.addEventListener("finished", (event) => {
+          if (event.action === this.reactionAction) this.settleReaction();
+        });
         // The bind pose is a T-pose; the idle drops the arms, collapsing the
         // horizontal bounds by ~3.4x. Framing computed before the mixer binds
         // would render the figure tiny and then jump on the next re-frame.
-        this.mixer.update(0);
+        mixer.update(0);
         model.updateMatrixWorld(true);
-        this.captureBreathJoints(model);
+        this.captureBreathJoints(model, clip);
+        this.captureGazeJoints(model, clip);
         this.updatePreviewFraming();
       })
       .catch((error) => {
@@ -581,6 +843,7 @@ export class CreationAvatarPreview {
   };
 
   private readonly onPointerMove = (event: PointerEvent): void => {
+    this.trackGaze(event);
     if (!this.dragging) return;
     this.targetYaw += (event.clientX - this.lastPointerX) * 0.012;
     this.lastPointerX = event.clientX;
@@ -599,6 +862,7 @@ export class CreationAvatarPreview {
     this.lastFrameAt = now;
     this.mixer?.update(deltaSeconds);
     this.applyBreath(deltaSeconds);
+    this.applyGaze(deltaSeconds);
     const width = Math.max(1, Math.round(this.canvas.clientWidth));
     const height = Math.max(1, Math.round(this.canvas.clientHeight));
     // Compare CSS pixels against CSS pixels. `canvas.width` becomes a device
