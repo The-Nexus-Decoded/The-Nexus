@@ -117,6 +117,47 @@ async function completeHumanShadowknight(page) {
   await page.waitForFunction(loaded, null, { timeout: 120_000 });
   const statusAfterSkin = await page.locator("#appearance-preview-status").textContent();
   if (!statusAfterSkin?.includes("Deep") && selectedSkin === "deep") throw new Error(`Readout did not follow the skin tone: ${statusAfterSkin}`);
+  // The skin tint tweens (design §2.2: a 220 ms ease-out of the tone the tint is derived
+  // from), so two frames 110 ms apart must differ. Read in real time off the head crop once
+  // the face stop has settled: Deep -> Light is the widest step, then back to Deep for the
+  // rest of the flow. The readout swaps at the start of the tween, never at its end.
+  await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_CREATOR_DEBUG__?.cueRegion("head")), null, { timeout: 90_000 });
+  await page.waitForTimeout(900);
+  const skinTween = await page.evaluate(async () => {
+    const debug = window.__SOULDRIFTER_CREATOR_DEBUG__;
+    const region = debug?.cueRegion("head");
+    const light = document.querySelector('button[data-skin-tone="light"]');
+    const deep = document.querySelector('button[data-skin-tone="deep"]');
+    if (!region || !light || !deep) return null;
+    const luma = () => {
+      const sample = debug.sampleRegion(region);
+      return 0.2126 * sample.r + 0.7152 * sample.g + 0.0722 * sample.b;
+    };
+    const readout = () => document.querySelector("#appearance-preview-status")?.textContent ?? "";
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    let frames = 0;
+    let counting = true;
+    const count = () => { frames += 1; if (counting) requestAnimationFrame(count); };
+    requestAnimationFrame(count);
+    const idleBefore = luma();
+    await sleep(110);
+    const idleDrift = Math.abs(luma() - idleBefore);
+    light.click();
+    const atPick = luma();
+    const readoutAtPick = readout();
+    const framesAtPick = frames;
+    await sleep(110);
+    const at110 = luma();
+    const framesAt110 = frames;
+    await sleep(490);
+    const at600 = luma();
+    counting = false;
+    deep.click();
+    await sleep(400);
+    return { region, idleDrift, atPick, at110, at600, readoutAtPick, framesBetween: framesAt110 - framesAtPick, readoutAfter: readout() };
+  });
+  if (!skinTween) throw new Error("The skin tint tween could not be sampled: no head crop or swatches on the face station.");
+  if (!skinTween.readoutAfter.includes("Deep")) throw new Error(`Readout did not return to Deep after the tween sample: ${skinTween.readoutAfter}`);
   await page.locator("#creation-next").click();
   await page.waitForSelector('button[data-calling="shadowknight"]');
   const selectionPortrait = await page.locator('button[data-calling="shadowknight"] img').getAttribute("src");
@@ -132,7 +173,7 @@ async function completeHumanShadowknight(page) {
   }
   await page.locator("#creation-confirm").click();
   await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_DEBUG__), null, { timeout: 120_000 });
-  return { bodyPanel, facePanel, selectedSkin, ancestry, nameUnderline: { oneChar: underlineOneChar, twoChars: underlineTwoChars } };
+  return { bodyPanel, facePanel, selectedSkin, ancestry, nameUnderline: { oneChar: underlineOneChar, twoChars: underlineTwoChars }, skinTween };
 }
 
 async function completeIlyraAndImprint(page) {
@@ -384,6 +425,13 @@ try {
         && desktopLegacy.keyLight.after.luma > desktopLegacy.keyLight.before.luma,
       ancestryOneBodyThreeNotes: mobile.appearance.ancestry.raceButtons === 1 && mobile.appearance.ancestry.notes === 3 && mobile.appearance.ancestry.disabled === 0,
       stationHeadingFocused: mobile.appearance.ancestry.headingFocused && mobile.appearance.bodyPanel.headingFocused && mobile.appearance.facePanel.headingFocused,
+      // Deep -> Light: the head crop is brighter 110 ms after the pick than at it, brighter
+      // again once landed, and the tone travels far enough to be the tint and not the idle.
+      skinToneTweens: Boolean(mobile.appearance.skinTween)
+        && mobile.appearance.skinTween.at110 - mobile.appearance.skinTween.atPick >= 4
+        && mobile.appearance.skinTween.at600 - mobile.appearance.skinTween.at110 >= 1
+        && mobile.appearance.skinTween.at600 - mobile.appearance.skinTween.atPick >= 20
+        && mobile.appearance.skinTween.readoutAtPick.includes("Light"),
       appearanceHairOffered: mobile.appearance.facePanel.hairStyles.includes("parted") && mobile.appearance.facePanel.hairStyles.includes("shaved-buzzed")
         && mobile.appearance.facePanel.hairTextures.includes("straight") && mobile.appearance.facePanel.hairTextures.includes("curly"),
       mobileImprintUnblocked: mobile.imprint.modalState.hudVisibility === "hidden",

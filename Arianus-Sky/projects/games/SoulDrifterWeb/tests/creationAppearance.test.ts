@@ -17,6 +17,8 @@ import {
   CREATOR_GAZE_LIMITS,
   CREATOR_REACTION_CLIPS,
   CREATOR_RELAXED_IDLE_PACK,
+  CREATOR_SKIN_TINT_TWEEN_MS,
+  creatorSkinTintTone,
   EMPTY_CREATION_PREVIEW_AVAILABILITY,
   inspectCreationPreviewAvailability,
   creatorBreathEnvelope,
@@ -885,5 +887,53 @@ describe("skin tone material colour", () => {
     expect(skinToneMaterialColor(base, SKIN_TONES.light.color, target)).toBe(target);
     expect(base.r).toBeCloseTo(0.8, 6);
     expect(Math.max(target.r, target.g, target.b)).toBeLessThanOrEqual(0.8 * 1.25 + 1e-6);
+  });
+});
+
+describe("creator skin tint tween", () => {
+  const luma = (c: THREE.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+  const fair = new THREE.Color(SKIN_TONES.ashen.color);
+  const deep = new THREE.Color(SKIN_TONES.deep.color);
+
+  it("travels the tone over 220 ms, ease-out, from the shown tone to the chosen one", () => {
+    expect(CREATOR_SKIN_TINT_TWEEN_MS).toBe(220);
+    expect(creatorSkinTintTone(fair, deep, 0).getHex()).toBe(SKIN_TONES.ashen.color);
+    expect(creatorSkinTintTone(fair, deep, 1).getHex()).toBe(SKIN_TONES.deep.color);
+    // past the end and before the start clamp: the tone never overshoots either palette entry
+    expect(creatorSkinTintTone(fair, deep, 1.6).getHex()).toBe(SKIN_TONES.deep.color);
+    expect(creatorSkinTintTone(fair, deep, -0.2).getHex()).toBe(SKIN_TONES.ashen.color);
+    // ease-out: halfway through the time, three quarters of the way through the colour
+    const half = creatorSkinTintTone(fair, deep, 110 / CREATOR_SKIN_TINT_TWEEN_MS);
+    expect(half.r).toBeCloseTo(fair.r + (deep.r - fair.r) * 0.75, 6);
+    expect(half.g).toBeCloseTo(fair.g + (deep.g - fair.g) * 0.75, 6);
+    expect(half.b).toBeCloseTo(fair.b + (deep.b - fair.b) * 0.75, 6);
+  });
+
+  it("puts a visibly different skin colour on frames 110 ms apart, and lands exactly where a direct pick would", () => {
+    const base = new THREE.Color(0.8, 0.7, 0.6);
+    const frameMs = 1000 / 60;
+    const materialAt = (elapsedMs: number) => skinToneMaterialColor(
+      base, creatorSkinTintTone(fair, deep, elapsedMs / CREATOR_SKIN_TINT_TWEEN_MS).getHex(),
+    );
+    const first = materialAt(frameMs);
+    const later = materialAt(frameMs + 110);
+    const landed = materialAt(CREATOR_SKIN_TINT_TWEEN_MS);
+    // the acceptance gate: two frames 110 ms apart differ, on the way from fair toward deep
+    expect(luma(first)).toBeGreaterThan(luma(later) + 0.02);
+    expect(luma(later)).toBeGreaterThan(luma(landed));
+    expect(landed.getHex()).toBe(skinToneMaterialColor(base, SKIN_TONES.deep.color).getHex());
+    // the first frame after a pick has barely moved: no pop
+    expect(luma(first)).toBeLessThan(luma(materialAt(0)));
+    expect(luma(materialAt(0)) - luma(first)).toBeLessThan((luma(materialAt(0)) - luma(landed)) * 0.2);
+  });
+
+  it("is monotonic frame to frame, so the tone never flickers back on its way", () => {
+    let previous = luma(creatorSkinTintTone(fair, deep, 0));
+    for (let step = 1; step <= 14; step += 1) {
+      const next = luma(creatorSkinTintTone(fair, deep, (step * 1000 / 60) / CREATOR_SKIN_TINT_TWEEN_MS));
+      expect(next).toBeLessThanOrEqual(previous);
+      previous = next;
+    }
+    expect(previous).toBeCloseTo(luma(deep), 6);
   });
 });

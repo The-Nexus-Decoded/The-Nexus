@@ -486,6 +486,11 @@ export const CREATION_RIM_DEFAULT = 0x6de6dc;
 /** Base-colour-only skin with KHR specular 1.6 turns to plastic above this. */
 export const CREATION_SKIN_ENV_INTENSITY = 0.35;
 export const CREATION_CAMERA_TWEEN_MS = 720;
+/**
+ * A skin swatch tweens the tone the tint is derived from over this long, ease-out, so the
+ * skin never pops (design §2.2, §7); reduced motion cuts to the new tone in one frame.
+ */
+export const CREATOR_SKIN_TINT_TWEEN_MS = 220;
 /** `sampleRegion` keeps the last read of this many distinct regions to diff against. */
 const CREATOR_REGION_SAMPLE_SLOTS = 8;
 const CREATOR_REGION_CENTRE = new THREE.Vector3();
@@ -608,6 +613,16 @@ export function creatorWheelZoomStep(deltaY: number, deltaMode: number): number 
   // scrolling up (negative deltaY) zooms in; a zero delta is a plain 0, never -0
   const step = -pixels * CREATOR_WHEEL_ZOOM_PER_PIXEL;
   return step === 0 ? 0 : step;
+}
+
+/**
+ * The tone the skin tint is derived from, `progress` (0..1, clamped) of the way through a
+ * swatch change: an ease-out lerp from the tone the skin was showing toward the chosen
+ * one. The material colour is still `skinToneMaterialColor(authored, tone)` every frame;
+ * only the tone travels, so the map's own pores and shadows never blend away.
+ */
+export function creatorSkinTintTone(from: THREE.Color, to: THREE.Color, progress: number, target = new THREE.Color()): THREE.Color {
+  return target.copy(from).lerp(to, easeOutQuad(progress));
 }
 
 /** The camera stop `zoom` (0..1) of the way from the station's stop to the face stop. */
@@ -838,6 +853,15 @@ export class CreationAvatarPreview {
   private readonly lightState: CreationLightState = { key: 1, fill: 0.6, rim: 1, under: 1 };
   private readonly lightTarget: CreationLightState = { key: 1, fill: 0.6, rim: 1, under: 1 };
   private readonly rimColorTarget = new THREE.Color(CREATION_RIM_DEFAULT);
+  /**
+   * The tone the skin tint is derived from right now (`value`), travelling from `from` to
+   * `to` since `startedAt`; `toHex` is the palette entry `to` was set from, so a repeated
+   * pick of the same swatch does not restart the tween.
+   */
+  private readonly skinTint: { value: THREE.Color; from: THREE.Color; to: THREE.Color; toHex: number; startedAt: number; durationMs: number };
+  private skinTintActive = false;
+  /** Every skin material on the loaded body with its authored colour, re-tinted per frame while the tone travels. */
+  private skinSurfaces: Array<{ material: THREE.MeshStandardMaterial; base: THREE.Color }> = [];
   private readonly keyLight: THREE.PointLight;
   private readonly fillLight: THREE.PointLight;
   private readonly rimLight: THREE.PointLight;
@@ -868,6 +892,10 @@ export class CreationAvatarPreview {
     this.autoRotate = options.autoRotate ?? false;
     const gazeWeight = this.reducedMotion ? 0 : 1;
     this.gazeWeight = { value: gazeWeight, from: gazeWeight, to: gazeWeight, startedAt: 0 };
+    const skinTone = this.currentSkinColor();
+    this.skinTint = {
+      value: new THREE.Color(skinTone), from: new THREE.Color(skinTone), to: new THREE.Color(skinTone), toHex: skinTone, startedAt: 0, durationMs: 0,
+    };
     this.onLoadFailure = options.onLoadFailure;
     // Until a station speaks, the figure behaves as it does on the body station.
     this.cues.setSettleAmplitude(this.gazeProfile.settle, performance.now());
@@ -1249,11 +1277,12 @@ export class CreationAvatarPreview {
     this.lastSettleAt = now;
   }
 
-  /** Mid-session OS changes apply: cuts the camera, stills the motes, drops every cue and the gaze. */
+  /** Mid-session OS changes apply: cuts the camera and the skin tint, stills the motes, drops every cue and the gaze. */
   public setReducedMotion(flag: boolean): void {
     this.reducedMotion = flag;
     if (!flag) return;
     this.cameraTween = null;
+    this.skinTint.durationMs = 0;
     this.cues.cancel();
     this.gazeOverride = null;
     this.gazeBias = null;
@@ -1413,6 +1442,7 @@ export class CreationAvatarPreview {
       });
       this.rotationPivot.remove(this.model);
     }
+    this.skinSurfaces = [];
     this.scene.environment?.dispose();
     this.contactShadow.geometry.dispose();
     this.contactShadow.material.map?.dispose();
@@ -1668,7 +1698,9 @@ export class CreationAvatarPreview {
 
   private applyAppearance(): void {
     if (!this.model) return;
-    const skinTone = this.currentSkinColor();
+    const now = performance.now();
+    this.retargetSkinTint(this.currentSkinColor(), now);
+    const surfaces: Array<{ material: THREE.MeshStandardMaterial; base: THREE.Color }> = [];
     this.model.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -1676,11 +1708,13 @@ export class CreationAvatarPreview {
           const base = material.userData.authoredColor as THREE.Color | undefined;
           if (material instanceof THREE.MeshStandardMaterial && base
             && isActorSkinSurface(`${child.name} ${material.name}`)) {
-            skinToneMaterialColor(base, skinTone, material.color);
+            surfaces.push({ material, base });
           }
         });
       }
     });
+    this.skinSurfaces = surfaces;
+    this.applySkinTint(now);
     applyModularAppearance(this.model, {
       hairStyle: this.appearance.hairStyle,
       hairTexture: this.appearance.hairTexture,
@@ -1695,6 +1729,33 @@ export class CreationAvatarPreview {
     const shape = raceAvatarShape(this.appearance.raceId);
     this.model.scale.set(shape.width, 1, shape.depth);
     this.updatePreviewFraming();
+  }
+
+  /**
+   * Points the tint tween at `tone`, starting from wherever the tone is right now, so a
+   * second swatch picked mid-travel turns instead of jumping. A repeated pick, the first
+   * body load and a race reload all keep the tone where it is.
+   */
+  private retargetSkinTint(tone: number, now: number): void {
+    const tint = this.skinTint;
+    if (tone === tint.toHex) return;
+    tint.from.copy(tint.value);
+    tint.to.set(tone);
+    tint.toHex = tone;
+    tint.startedAt = now;
+    tint.durationMs = this.reducedMotion ? 0 : CREATOR_SKIN_TINT_TWEEN_MS;
+    this.skinTintActive = true;
+  }
+
+  /** Writes the tone at `now` onto every skin material; clears `skinTintActive` once the tween has landed. */
+  private applySkinTint(now: number): void {
+    const tint = this.skinTint;
+    const progress = tint.durationMs <= 0 ? 1 : (now - tint.startedAt) / tint.durationMs;
+    creatorSkinTintTone(tint.from, tint.to, progress, tint.value);
+    // The palette is eight-bit sRGB, so the hex round trip is exact at both ends.
+    const tone = tint.value.getHex();
+    for (const { material, base } of this.skinSurfaces) skinToneMaterialColor(base, tone, material.color);
+    this.skinTintActive = progress < 1;
   }
 
   private updatePreviewFraming(): void {
@@ -1778,6 +1839,7 @@ export class CreationAvatarPreview {
     this.applyGaze(deltaSeconds, now);
     this.applyCues(deltaSeconds, now);
     this.applyLights(deltaSeconds);
+    if (this.skinTintActive) this.applySkinTint(now);
     this.updateMotes(deltaSeconds);
     const width = Math.max(1, Math.round(this.canvas.clientWidth));
     const height = Math.max(1, Math.round(this.canvas.clientHeight));
