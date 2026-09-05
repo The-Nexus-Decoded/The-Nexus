@@ -640,6 +640,8 @@ function hideAppearanceModules(model: THREE.Object3D): void {
 }
 
 const GREYING_COLOR = new THREE.Color(0xa8a39b);
+/** Hair reflects toward its own colour, never toward the Well's teal. */
+const HAIR_SPECULAR_TINT = 0xd8c4b0;
 const HAIR_MAP_RECOLOR_KEY = "souldrifter-hair-map-recolor-v2";
 
 function enableHairMapRecolor(material: THREE.MeshStandardMaterial): void {
@@ -659,6 +661,12 @@ function enableHairMapRecolor(material: THREE.MeshStandardMaterial): void {
   material.roughness = Math.max(0.58, material.roughness);
   if (material instanceof THREE.MeshPhysicalMaterial) {
     material.anisotropy = Math.max(0.45, material.anisotropy);
+    // The Well's rim is a saturated teal. On alpha-tested card edges a white specular lobe
+    // picked it up whole and black hair glittered cyan. Real hair reflects toward its own
+    // colour, so the highlight is tinted warm and kept faint; the strand contrast comes from
+    // the map and the anisotropy, not from a mirror.
+    material.specularIntensity = Math.min(material.specularIntensity, 0.08);
+    material.specularColor.setHex(HAIR_SPECULAR_TINT);
   }
   const previousCompile = material.onBeforeCompile.bind(material);
   const previousCacheKey = material.customProgramCacheKey.bind(material);
