@@ -378,6 +378,7 @@
   display: grid;
   height: 100vh;
   min-width: 0;
+  container-type: inline-size;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   border-left: 1px solid var(--rule);
@@ -398,12 +399,17 @@
 .creation-main::before { top: 10px; left: 10px; border-width: 1px 0 0 1px; }
 .creation-main::after { right: 10px; bottom: 10px; border-width: 0 1px 1px 0; }
 
+/*
+ * The word is sized by the folio it sits in, not the viewport: ANCESTRY at 0.18em tracking
+ * runs 6.9x its font size, so 11.5cqi keeps it inside the 440 px folio's 367 px inner width
+ * (350 px) and inside the 520 px folio at 1920 (422 px in 447 px).
+ */
 .station-word {
   margin: 0;
   padding: 34px 36px 8px;
   color: var(--parchment);
   font-family: "Soul Cinzel", serif;
-  font-size: clamp(40px, 4.6vw, 64px);
+  font-size: clamp(40px, 11.5cqi, 64px);
   font-weight: 600;
   line-height: 1;
   letter-spacing: 0.18em;
@@ -411,11 +417,15 @@
   overflow-wrap: normal;
 }
 
-/* The imprint shows the returned name: tighter, heavier, allowed to wrap by word. */
+/*
+ * The imprint shows the returned name: tighter, heavier, wrapping by word, and a 24-character
+ * single word breaks rather than widening the folio.
+ */
 .station-word--name {
-  font-size: clamp(32px, 4vw, 56px);
+  font-size: clamp(32px, 10cqi, 56px);
   font-weight: 700;
   letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
 }
 
 .station-word.is-revealing { animation: station-word-reveal 520ms var(--ease-out) both; }
