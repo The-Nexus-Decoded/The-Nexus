@@ -16,6 +16,7 @@ import {
   type ResolvedCharacterAppearance,
 } from "./game/character";
 import {
+  CREATION_CAMERA_TWEEN_MS,
   CreationAvatarPreview,
   EMPTY_CREATION_PREVIEW_AVAILABILITY,
   type CreationLightState,
@@ -23,6 +24,17 @@ import {
   type CreationPreviewAvailability,
   type CreationPreviewView,
 } from "./creationPreview";
+import {
+  AWAKEN_CLIP_CAP_MS,
+  CREATOR_MEMORY_GLANCE,
+  CREATOR_STATION_CHOREOGRAPHY,
+  awakenTimeline,
+  memoryListenDelayMs,
+  resolveWithin,
+  type AwakenAction,
+  type AwakenStep,
+  type CreatorStation,
+} from "./creationChoreography";
 import { CreationStageBackdrop } from "./creationStage";
 
 export function characterPortraitPath(raceId: string, callingId: string): string {
@@ -184,10 +196,17 @@ export class CharacterCreation {
   private readonly stageStatus = requiredElement<HTMLElement>("creation-stage-status");
   private readonly stageFallback = requiredElement<HTMLImageElement>("creation-stage-fallback");
   private readonly previewControls = requiredElement<HTMLElement>("appearance-preview-controls");
-  private readonly reducedMotion = typeof window.matchMedia === "function"
-    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  private readonly reducedMotionQuery = typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-reduced-motion: reduce)")
+    : null;
+  /** Follows the OS setting for the whole session, not only the first paint. */
+  private reducedMotion = this.reducedMotionQuery?.matches ?? false;
   private backdrop: CreationStageBackdrop | null = null;
   private uiHidden = false;
+  /** NpcListen waits for the camera to arrive on the first memory; a station change cancels it. */
+  private listenTimer = 0;
+  /** Set once Awaken (or a quick completion) has begun, so nothing runs it twice. */
+  private completing = false;
 
   public constructor(
     private readonly onComplete: (profile: CharacterProfile, resumeSavedSoul: boolean) => void,
@@ -199,6 +218,10 @@ export class CharacterCreation {
       if (profile) this.editAppearance(profile);
     });
     window.addEventListener("popstate", this.onPopState);
+    this.reducedMotionQuery?.addEventListener("change", (event) => {
+      this.reducedMotion = event.matches;
+      this.appearancePreview?.setReducedMotion(event.matches);
+    });
     window.history.replaceState(this.creationHistoryState(), "");
     this.mountStage();
     this.render();
@@ -221,6 +244,7 @@ export class CharacterCreation {
     });
     requiredElement<HTMLButtonElement>("appearance-front-view").addEventListener("click", () => {
       this.appearancePreview?.resetFacing();
+      this.appearancePreview?.playCue("nod");
     });
     requiredElement<HTMLButtonElement>("creation-hide-ui").addEventListener("click", () => {
       this.setUiHidden(!this.uiHidden);
@@ -270,9 +294,17 @@ export class CharacterCreation {
     }
     if (import.meta.env.DEV) {
       // Hands the live preview to the QA harness and to manual checks such as
-      // `__souldrifterCreationPreview.playReaction("listen")` in DevTools.
-      (window as Window & { __souldrifterCreationPreview?: CreationAvatarPreview | null })
-        .__souldrifterCreationPreview = this.appearancePreview;
+      // `__souldrifterCreationPreview.playReaction("listen")` in DevTools, and the
+      // pixel gate behind every cue: `sampleRegion` reads the figure back from the
+      // drawing buffer, so a cue that does not move the numbers cannot ship.
+      const debugWindow = window as Window & {
+        __souldrifterCreationPreview?: CreationAvatarPreview | null;
+        __SOULDRIFTER_CREATOR_DEBUG__?: { sampleRegion: CreationAvatarPreview["sampleRegion"] };
+      };
+      debugWindow.__souldrifterCreationPreview = this.appearancePreview;
+      debugWindow.__SOULDRIFTER_CREATOR_DEBUG__ ??= {
+        sampleRegion: (region) => this.appearancePreview?.sampleRegion(region) ?? null,
+      };
     }
   }
 
@@ -295,8 +327,17 @@ export class CharacterCreation {
     };
   }
 
-  /** Points the one stage at the current station: backdrop crop, camera stop, yaw, light, chrome. */
-  private applyStationPresentation(): void {
+  /** The station as the choreography sees it: the appearance step splits into its two stops. */
+  private choreographyStation(): CreatorStation {
+    return this.step === "appearance" ? this.appearancePanel : this.step;
+  }
+
+  /**
+   * Points the one stage at the current station: backdrop crop, camera stop, yaw, light,
+   * choreography, chrome. Returns whether the camera stop changed, so a station cue can
+   * time itself to the move.
+   */
+  private applyStationPresentation(): boolean {
     const presentation = STATION_PRESENTATION[this.step];
     this.stageViewport.dataset.station = this.step;
     this.stage.dataset.station = this.step;
@@ -310,15 +351,17 @@ export class CharacterCreation {
     }
     this.backdrop?.setStation(this.step);
     const preview = this.appearancePreview;
+    let cameraMoved = false;
     if (preview) {
       const facePanel = this.step === "appearance" && this.appearancePanel === "face";
-      preview.setView(this.step === "appearance" ? this.appearancePanel : presentation.view);
+      cameraMoved = preview.setView(this.step === "appearance" ? this.appearancePanel : presentation.view);
       preview.setPresentationYaw(presentation.yaw);
       const light: CreationLightState = this.step === "name"
         ? { ...presentation.light, ...creatorNameLight(this.draft.name.trim().length) }
         : facePanel ? { ...presentation.light, under: 1.3 } : presentation.light;
       preview.setLightState(light);
       preview.setViewOffset(creatorViewOffset(window.innerWidth, this.uiHidden));
+      preview.setStationChoreography(CREATOR_STATION_CHOREOGRAPHY[this.choreographyStation()]);
     }
     this.previewControls.hidden = this.step !== "appearance";
     const copy = APPEARANCE_PANEL_COPY[this.appearancePanel];
@@ -328,6 +371,31 @@ export class CharacterCreation {
     );
     const mode = document.getElementById("appearance-preview-mode");
     if (mode) mode.textContent = copy.mode;
+    return cameraMoved;
+  }
+
+  /**
+   * What the figure does when a station is revealed. The reaction clips are warmed one
+   * station ahead so they start on the beat; NpcListen answers every memory question,
+   * timed to land as the camera arrives when the stop changed, and the last question
+   * ends with a glance down into the water.
+   */
+  private choreographStation(cameraMoved: boolean): void {
+    window.clearTimeout(this.listenTimer);
+    const preview = this.appearancePreview;
+    if (!preview) return;
+    if (this.step === "calling") preview.prefetchReaction("listen");
+    if (this.step === "review") preview.prefetchReaction("farewell");
+    if (this.step !== "memory") return;
+    const lastMemory = this.memoryIndex === MEMORY_QUESTIONS.length - 1;
+    const listen = (): void => {
+      void preview.playReaction("listen", lastMemory
+        ? () => preview.glance(CREATOR_MEMORY_GLANCE.pitchDegrees, CREATOR_MEMORY_GLANCE.holdMs, CREATOR_MEMORY_GLANCE.blendMs)
+        : undefined);
+    };
+    const delayMs = memoryListenDelayMs(cameraMoved, CREATION_CAMERA_TWEEN_MS);
+    if (delayMs === 0) listen();
+    else this.listenTimer = window.setTimeout(listen, delayMs);
   }
 
   private setUiHidden(hidden: boolean): void {
@@ -379,7 +447,9 @@ export class CharacterCreation {
     this.draft.appearance = { ...normalized.appearance };
     this.appearancePanel = "face";
     this.step = "appearance";
-    this.root.classList.remove("is-dissolving");
+    this.completing = false;
+    this.root.inert = false;
+    this.root.classList.remove("is-dissolving", "is-awakening");
     this.root.hidden = false;
     // The game owns its own context once it is running; the preview was released
     // at Awaken, so the edit path brings it back for the duration of the edit.
@@ -399,7 +469,7 @@ export class CharacterCreation {
     else if (this.step === "memory") this.renderMemory();
     else this.renderReview();
 
-    this.applyStationPresentation();
+    this.choreographStation(this.applyStationPresentation());
     resetCreationStageScroll(this.stage);
   }
 
@@ -450,9 +520,12 @@ export class CharacterCreation {
     const advance = (): void => {
       this.draft.name = input.value.trim();
       if (this.draft.name.length < 2) return this.fail("The Well cannot hold a name shorter than two characters.");
+      // The nod rides across the camera move to the ancestry stop.
+      this.appearancePreview?.playCue("nod");
       this.navigate("race");
     };
     requiredElement<HTMLButtonElement>("creation-next").addEventListener("click", advance);
+    this.bindGazeHover("#continue-character");
     document.getElementById("continue-character")?.addEventListener("click", () => {
       if (this.savedProfile) this.complete(this.savedProfile, true);
     });
@@ -484,11 +557,14 @@ export class CharacterCreation {
         }).join("")}
       </div>
       ${this.navigation("Return to name", "Choose ancestry")}`;
+    this.bindGazeHover("button[data-race]");
     this.bindChoices("button[data-race]", "race", (id) => {
       this.draft.raceId = id;
       if (this.draft.callingId && raceCallingEligibility(id, this.draft.callingId).status === "forbidden") {
         this.draft.callingId = "";
       }
+      this.appearancePreview?.playCue("nod");
+      this.appearancePreview?.playCue("settle");
     });
     this.bindNavigation(() => this.navigateBack("name"), () => {
       if (!this.draft.raceId) return this.fail("Choose the ancestry carried by this soul.");
@@ -557,9 +633,12 @@ export class CharacterCreation {
         this.switchAppearancePanel(panel);
       });
     });
-    this.bindChoices("button[data-skin-tone]", "skinTone", (id) => {
+    this.bindGazeHover("button[data-skin-tone]");
+    this.bindChoices("button[data-skin-tone]", "skinTone", (id, swatch) => {
       this.draft.appearance.skinTone = id as CharacterDraft["appearance"]["skinTone"];
       this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+      // The figure glances at the chosen tone for a beat before returning to the pointer.
+      this.appearancePreview?.setGazeTarget(swatch, 700);
       this.updateAppearanceReadout();
     });
     const leaveAppearance = (): void => {
@@ -693,7 +772,11 @@ export class CharacterCreation {
         }).join("")}
       </div>
       ${this.navigation("Return to appearance", "Enter the memories")}`;
-    this.bindChoices("button[data-calling]", "calling", (id) => { this.draft.callingId = id; });
+    this.bindGazeHover("button[data-calling]");
+    this.bindChoices("button[data-calling]", "calling", (id) => {
+      this.draft.callingId = id;
+      this.appearancePreview?.playCue("brace");
+    });
     this.bindNavigation(() => this.navigateBack("appearance"), () => {
       if (!this.draft.callingId) return this.fail("Choose the calling that first answered the breach.");
       if (raceCallingEligibility(this.draft.raceId, this.draft.callingId).status === "forbidden") {
@@ -724,7 +807,11 @@ export class CharacterCreation {
           </button>`).join("")}
       </div>
       ${this.navigation(this.memoryIndex === 0 ? "Return to calling" : "Previous memory", this.memoryIndex === MEMORY_QUESTIONS.length - 1 ? "Read the soul imprint" : "Accept this memory")}`;
-    this.bindChoices("button[data-answer]", "answer", (id) => { this.draft.answers[question.id] = id; });
+    this.bindGazeHover("button[data-answer]");
+    this.bindChoices("button[data-answer]", "answer", (id) => {
+      this.draft.answers[question.id] = id;
+      this.appearancePreview?.playCue("nod");
+    });
     this.bindNavigation(() => {
       this.navigateBack(this.memoryIndex === 0 ? "calling" : "memory", Math.max(0, this.memoryIndex - 1));
     }, () => {
@@ -793,7 +880,17 @@ export class CharacterCreation {
     });
   }
 
+  /**
+   * Leaves the creator. Awaken plays the Farewell clip and runs the awaken timeline from
+   * the moment the clip is confirmed playing; if it has not bound within the cap, or the
+   * player is resuming a saved soul (the continue card, an appearance edit), the quick
+   * path dissolves the shell at once. The chrome goes inert straight away so nothing can
+   * navigate while the figure takes its leave.
+   */
   private complete(profile: CharacterProfile, resumeSavedSoul = false): void {
+    if (this.completing) return;
+    this.completing = true;
+    window.clearTimeout(this.listenTimer);
     profile.appearance ??= {
       bodyType: "foundation",
       faceType: "foundation",
@@ -805,15 +902,38 @@ export class CharacterCreation {
       hairGreying: 0,
       facialHairGreying: 0,
     };
-    this.root.classList.add("is-dissolving");
-    window.setTimeout(() => {
-      this.root.hidden = true;
-      window.removeEventListener("popstate", this.onPopState);
-      // Release the creator's context before the game can create its own: two live
-      // contexts is the exact failure mobile Safari punishes with a blank canvas.
-      this.releasePreview();
-      this.onComplete(profile, resumeSavedSoul);
-    }, 520);
+    this.root.inert = true;
+    const preview = this.appearancePreview;
+    const farewell = resumeSavedSoul || !preview
+      ? Promise.resolve(false)
+      : resolveWithin(preview.playReaction("farewell"), AWAKEN_CLIP_CAP_MS);
+    void farewell.then((clipPlaying) => {
+      this.runAwaken(awakenTimeline(this.reducedMotion, clipPlaying), profile, resumeSavedSoul);
+    });
+  }
+
+  private runAwaken(timeline: readonly AwakenStep[], profile: CharacterProfile, resumeSavedSoul: boolean): void {
+    for (const step of timeline) {
+      window.setTimeout(() => this.awakenStep(step.action, profile, resumeSavedSoul), step.atMs);
+    }
+  }
+
+  private awakenStep(action: AwakenAction, profile: CharacterProfile, resumeSavedSoul: boolean): void {
+    switch (action) {
+      case "fade-chrome":
+        this.root.classList.add("is-awakening");
+        return;
+      case "dissolve":
+        this.root.classList.add("is-dissolving");
+        return;
+      default:
+        this.root.hidden = true;
+        window.removeEventListener("popstate", this.onPopState);
+        // Release the creator's context before the game can create its own: two live
+        // contexts is the exact failure mobile Safari punishes with a blank canvas.
+        this.releasePreview();
+        this.onComplete(profile, resumeSavedSoul);
+    }
   }
 
   private navigation(backLabel: string, nextLabel: string): string {
@@ -828,12 +948,20 @@ export class CharacterCreation {
     requiredElement<HTMLButtonElement>("creation-next").addEventListener("click", next);
   }
 
-  private bindChoices(selector: string, dataKey: string, select: (id: string) => void): void {
+  /** A hovered card, row or swatch draws the figure's gaze; it lets go a beat after the pointer leaves. */
+  private bindGazeHover(selector: string): void {
+    this.stage.querySelectorAll<HTMLElement>(selector).forEach((element) => {
+      element.addEventListener("pointerenter", () => this.appearancePreview?.setGazeTarget(element));
+      element.addEventListener("pointerleave", () => this.appearancePreview?.setGazeTarget(null));
+    });
+  }
+
+  private bindChoices(selector: string, dataKey: string, select: (id: string, button: HTMLButtonElement) => void): void {
     this.stage.querySelectorAll<HTMLButtonElement>(selector).forEach((button) => {
       button.addEventListener("click", () => {
         const id = button.dataset[dataKey];
         if (!id) return;
-        select(id);
+        select(id, button);
         this.stage.querySelectorAll<HTMLElement>(selector).forEach((candidate) => {
           candidate.classList.remove("is-selected");
           candidate.setAttribute("aria-pressed", "false");
@@ -861,8 +989,10 @@ export class CharacterCreation {
     status.textContent = `Human foundation · ${tone}`;
   }
 
+  /** A refused step: the strip shakes (CSS) and so does the figure's head. */
   private fail(message: string): void {
     this.error.textContent = message;
+    this.appearancePreview?.playCue("shake");
   }
 
   private escape(value: string): string {

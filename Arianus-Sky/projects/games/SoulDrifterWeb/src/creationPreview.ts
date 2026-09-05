@@ -31,6 +31,24 @@ import {
   HUMAN_FOUNDATION_APPROVED_ANIMATIONS,
   type HumanFoundationApprovedAnimationSpec,
 } from "./game/humanFoundationApprovedAnimations";
+import {
+  CREATOR_CUE_AMPLITUDE,
+  CREATOR_GAZE_OVERRIDE_RELEASE_MS,
+  CREATOR_GAZE_WEIGHT_MS,
+  CREATOR_SETTLE_IDLE_MS,
+  CREATOR_STATION_CHOREOGRAPHY,
+  cueDurationMs,
+  cueEnvelope,
+  easeInOutCubic,
+  easeOutQuad,
+  gazeDriftYaw,
+  gazeTargetFromPointer,
+  holdEnvelope,
+  scaleGazeAngles,
+  type CreatorCue,
+  type CreatorGazeAngles,
+  type CreatorStationChoreography,
+} from "./creationChoreography";
 
 const PREVIEW_MODEL_LEGACY_HUMAN = "/assets/3d/characters/human-shadowknight/human-shadowknight.glb";
 const PREVIEW_MODEL_ELF = "/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb";
@@ -139,6 +157,11 @@ interface CreatorBreathJoint {
   readonly radians: number;
 }
 
+interface CreatorAdditivePoseEntry {
+  readonly quaternion: THREE.Quaternion;
+  readonly position: THREE.Vector3;
+}
+
 /**
  * The mixer's own pose for every bone an additive layer touches.
  *
@@ -150,10 +173,12 @@ interface CreatorBreathJoint {
  * previous frame: the offsets integrate and the head folds onto the shoulder
  * within seconds of real time. Restoring the mixer's last pose before every
  * update and snapshotting it after makes each frame's additive offset start
- * from the same place whether or not the mixer wrote anything.
+ * from the same place whether or not the mixer wrote anything. The same trap
+ * holds for positions: the root-locked Hips track is one constant value, so
+ * the settle's hip slide is restored here too.
  */
 export class CreatorAdditivePose {
-  private readonly joints = new Map<THREE.Object3D, THREE.Quaternion>();
+  private readonly joints = new Map<THREE.Object3D, CreatorAdditivePoseEntry>();
 
   public get size(): number {
     return this.joints.size;
@@ -161,21 +186,168 @@ export class CreatorAdditivePose {
 
   /** Records the bone with whatever pose it holds right now as the mixer's. */
   public register(bone: THREE.Object3D): void {
-    if (!this.joints.has(bone)) this.joints.set(bone, bone.quaternion.clone());
+    if (!this.joints.has(bone)) {
+      this.joints.set(bone, { quaternion: bone.quaternion.clone(), position: bone.position.clone() });
+    }
   }
 
   /** Before `mixer.update`: hand every bone back to the mixer untouched. */
   public restore(): void {
-    for (const [bone, pose] of this.joints) bone.quaternion.copy(pose);
+    for (const [bone, pose] of this.joints) {
+      bone.quaternion.copy(pose.quaternion);
+      bone.position.copy(pose.position);
+    }
   }
 
   /** After `mixer.update`: remember what the mixer left, written or not. */
   public snapshot(): void {
-    for (const [bone, pose] of this.joints) pose.copy(bone.quaternion);
+    for (const [bone, pose] of this.joints) {
+      pose.quaternion.copy(bone.quaternion);
+      pose.position.copy(bone.position);
+    }
   }
 
   public clear(): void {
     this.joints.clear();
+  }
+}
+
+const CREATOR_CUE_BONES = {
+  head: boneNameVariants("mixamorig:Head", "Head"),
+  spine1: boneNameVariants("mixamorig:Spine1", "Spine1"),
+  leftShoulder: boneNameVariants("mixamorig:LeftShoulder", "LeftShoulder"),
+  rightShoulder: boneNameVariants("mixamorig:RightShoulder", "RightShoulder"),
+  hips: boneNameVariants("mixamorig:Hips", "Hips"),
+} as const;
+type CreatorCueBone = keyof typeof CREATOR_CUE_BONES;
+// Bone-local axes of the upright mixamorig spine and head: X ear-to-ear (a positive
+// turn nods down), Y up the bone, Z forward. The shoulders rotate about their own Z.
+const CREATOR_CUE_AXIS_X = new THREE.Vector3(1, 0, 0);
+const CREATOR_CUE_AXIS_Y = new THREE.Vector3(0, 1, 0);
+const CREATOR_CUE_AXIS_Z = new THREE.Vector3(0, 0, 1);
+const CREATOR_CUE_SCRATCH = new THREE.Quaternion();
+/** The settle amplitude follows a station change over this long, so body <-> face never pops. */
+const CREATOR_SETTLE_AMPLITUDE_SECONDS = 0.3;
+
+/**
+ * Writes the additive cues onto the rig. Every bone it touches is registered with the
+ * preview's `CreatorAdditivePose`, and `apply` runs after that pose is snapshotted, so a
+ * cue is always one offset from the mixer's frame and never compounds on its own last
+ * frame. Envelopes come from `creationChoreography`; this class only turns them into
+ * rotations and, for the settle, a hip slide.
+ */
+export class CreatorCuePlayer {
+  private readonly bones = new Map<CreatorCueBone, THREE.Object3D>();
+  private readonly startedAt = new Map<Exclude<CreatorCue, "settle">, number>();
+  private settleFrom = 0;
+  private settleTo = 0;
+  private settleStartedAt = 0;
+  private settleAmplitude = 0;
+  private settleAmplitudeTarget = 0;
+
+  /** Resolves the cue bones on the model; returns how many of the five were found. */
+  public bind(model: THREE.Object3D, additivePose: CreatorAdditivePose): number {
+    this.release();
+    model.traverse((node) => {
+      const name = node.name.toLowerCase();
+      for (const bone of Object.keys(CREATOR_CUE_BONES) as CreatorCueBone[]) {
+        if (!CREATOR_CUE_BONES[bone].has(name) || this.bones.has(bone)) continue;
+        additivePose.register(node);
+        this.bones.set(bone, node);
+      }
+    });
+    return this.bones.size;
+  }
+
+  public release(): void {
+    this.bones.clear();
+    this.cancel();
+  }
+
+  /** Drops every cue in flight; the next `apply` writes nothing. */
+  public cancel(): void {
+    this.startedAt.clear();
+    this.settleFrom = 0;
+    this.settleTo = 0;
+    this.settleAmplitude = 0;
+  }
+
+  public play(cue: CreatorCue, now: number): void {
+    if (cue === "settle") {
+      // Alternate sides from wherever the last shift left the figure.
+      this.settleFrom = this.settleValue(now);
+      this.settleTo = this.settleTo > 0 ? -1 : 1;
+      this.settleStartedAt = now;
+      return;
+    }
+    this.startedAt.set(cue, now);
+  }
+
+  public isPlaying(cue: CreatorCue, now: number): boolean {
+    if (cue === "settle") return this.settleTo !== 0 && now - this.settleStartedAt < cueDurationMs("settle");
+    const startedAt = this.startedAt.get(cue);
+    return startedAt !== undefined && now - startedAt < cueDurationMs(cue);
+  }
+
+  /** The side the figure is settled toward, -1..1 (0 when standing square). */
+  private settleValue(now: number): number {
+    return this.settleFrom + (this.settleTo - this.settleFrom) * cueEnvelope("settle", now - this.settleStartedAt);
+  }
+
+  /** The station's settle amplitude (0 stands the figure square again). */
+  public setSettleAmplitude(amplitude: number, now: number): void {
+    this.settleAmplitudeTarget = amplitude;
+    if (amplitude === 0 && this.settleTo !== 0) {
+      this.settleFrom = this.settleValue(now);
+      this.settleTo = 0;
+      this.settleStartedAt = now;
+    }
+  }
+
+  public apply(now: number, deltaSeconds: number): void {
+    this.settleAmplitude += (this.settleAmplitudeTarget - this.settleAmplitude)
+      * (1 - Math.exp(-deltaSeconds / CREATOR_SETTLE_AMPLITUDE_SECONDS));
+    const nod = this.envelope("nod", now);
+    const shake = this.envelope("shake", now);
+    const brace = this.envelope("brace", now);
+    const settle = this.settleValue(now) * this.settleAmplitude;
+    const head = this.bones.get("head");
+    if (head && (nod !== 0 || shake !== 0)) {
+      this.rotate(head, CREATOR_CUE_AXIS_Y, shake * CREATOR_CUE_AMPLITUDE.shakeYawDegrees);
+      this.rotate(head, CREATOR_CUE_AXIS_X, nod * CREATOR_CUE_AMPLITUDE.nodPitchDegrees);
+    }
+    const spine1 = this.bones.get("spine1");
+    if (spine1 && (brace !== 0 || settle !== 0)) {
+      this.rotate(spine1, CREATOR_CUE_AXIS_X, brace * CREATOR_CUE_AMPLITUDE.braceSpinePitchDegrees);
+      // Counter-roll: a positive turn about the forward axis leans the torso toward -X
+      // while the hips slide toward +X, so the head stays over the feet.
+      this.rotate(spine1, CREATOR_CUE_AXIS_Z, settle * CREATOR_CUE_AMPLITUDE.settleSpineRollDegrees);
+    }
+    if (brace !== 0) {
+      const left = this.bones.get("leftShoulder");
+      const right = this.bones.get("rightShoulder");
+      if (left) this.rotate(left, CREATOR_CUE_AXIS_Z, -brace * CREATOR_CUE_AMPLITUDE.braceShoulderDegrees);
+      if (right) this.rotate(right, CREATOR_CUE_AXIS_Z, brace * CREATOR_CUE_AMPLITUDE.braceShoulderDegrees);
+    }
+    const hips = this.bones.get("hips");
+    if (hips && settle !== 0) hips.position.x += settle * CREATOR_CUE_AMPLITUDE.settleHipsMetres;
+  }
+
+  private envelope(cue: Exclude<CreatorCue, "settle">, now: number): number {
+    const startedAt = this.startedAt.get(cue);
+    if (startedAt === undefined) return 0;
+    const elapsed = now - startedAt;
+    if (elapsed >= cueDurationMs(cue)) {
+      this.startedAt.delete(cue);
+      return 0;
+    }
+    return cueEnvelope(cue, elapsed);
+  }
+
+  private rotate(bone: THREE.Object3D, axis: THREE.Vector3, degrees: number): void {
+    if (degrees === 0) return;
+    CREATOR_CUE_SCRATCH.setFromAxisAngle(axis, THREE.MathUtils.degToRad(degrees));
+    bone.quaternion.multiply(CREATOR_CUE_SCRATCH);
   }
 }
 
@@ -250,7 +422,10 @@ export interface CreationPreviewOptions {
   autoRotate?: boolean;
   /** Called with a human-readable reason whenever the model or its idle cannot be shown. */
   onLoadFailure?: (reason: string) => void;
-  /** Cuts camera tweens, stills the motes, keeps the head from following the pointer. */
+  /**
+   * Initial reduced-motion state; `setReducedMotion` follows the OS afterwards. Cuts camera
+   * tweens, stills the motes, drops the gaze, cues and clips, keeps the breath at 60%.
+   */
   reducedMotion?: boolean;
 }
 
@@ -370,11 +545,6 @@ export function creationCameraStop(
   }
 }
 
-export function easeInOutCubic(t: number): number {
-  const x = THREE.MathUtils.clamp(t, 0, 1);
-  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-}
-
 /** Soft radial blob under the feet; no shadow maps anywhere in the creator. */
 function contactShadowTexture(): THREE.CanvasTexture {
   const size = 128;
@@ -429,6 +599,41 @@ export function stabilizeCreatorRelaxedIdle(clip: THREE.AnimationClip): THREE.An
   return new THREE.AnimationClip(`${clip.name}_StableHead`, clip.duration, tracks, clip.blendMode);
 }
 
+/**
+ * Turns an in-place reaction clip to face the way the idle it crossfades from faces.
+ *
+ * The authored utility packs and the review-pack idle disagree about the Hips rest
+ * orientation: measured on the bound clips, NpcListen's and Farewell's Hips sit a
+ * constant 95 deg from MaleLocomotion__Idle's while their spines agree within 4 deg.
+ * Root normalisation only pins the Hips position, so without this the whole figure
+ * swings a quarter turn to face screen-right the moment a reaction starts. Every root
+ * key is premultiplied by the same delta, so authored root motion inside the clip
+ * survives relative to the idle's facing. A clip or reference without a root
+ * quaternion track is returned unchanged.
+ */
+export function alignClipRootRotation(
+  clip: THREE.AnimationClip,
+  reference: THREE.AnimationClip,
+  rootNodeName: string,
+): THREE.AnimationClip {
+  const rootTrackName = `${rootNodeName}.quaternion`;
+  const referenceTrack = reference.tracks.find((track) => track.name === rootTrackName);
+  const rootTrack = clip.tracks.find((track) => track.name === rootTrackName);
+  if (!referenceTrack || !rootTrack || referenceTrack.getValueSize() !== 4 || rootTrack.getValueSize() !== 4) return clip;
+  const delta = new THREE.Quaternion().fromArray(referenceTrack.values, 0)
+    .multiply(new THREE.Quaternion().fromArray(rootTrack.values, 0).invert());
+  const key = new THREE.Quaternion();
+  const tracks = clip.tracks.map((sourceTrack) => {
+    const track = sourceTrack.clone();
+    if (track.name !== rootTrackName) return track;
+    for (let offset = 0; offset < track.values.length; offset += 4) {
+      key.fromArray(track.values, offset).premultiply(delta).toArray(track.values, offset);
+    }
+    return track;
+  });
+  return new THREE.AnimationClip(clip.name, clip.duration, tracks, clip.blendMode);
+}
+
 const CREATOR_BREATH_SCRATCH = new THREE.Quaternion();
 
 const gltfCache = new Map<string, Promise<GLTF>>();
@@ -470,6 +675,7 @@ export class CreationAvatarPreview {
   private frame = 0;
   private disposed = false;
   private previewView: CreationPreviewView;
+  /** The player's opt-in turntable; reduced motion overrides it per frame, so the choice survives an OS toggle. */
   private autoRotate: boolean;
   private mixer: THREE.AnimationMixer | null = null;
   private motionRequest = 0;
@@ -483,13 +689,23 @@ export class CreationAvatarPreview {
   private reactionRequest = 0;
   private readonly reactionClips = new Map<string, THREE.AnimationClip>();
   private gazeJoints: CreatorGazeJoint[] = [];
-  private gazeEnabled = true;
   /** Smoothed (yaw, pitch) in radians. */
   private readonly gaze = new THREE.Vector2();
   /** Pointer position on the canvas in NDC, right and up positive. */
   private readonly gazeTarget = new THREE.Vector2();
   private gazeSeenAt = 0;
-  private readonly reducedMotion: boolean;
+  private gazeProfile: CreatorStationChoreography = CREATOR_STATION_CHOREOGRAPHY.body;
+  /** A hovered card, row or swatch the head turns toward instead of the pointer. */
+  private gazeOverride: { x: number; y: number; until: number } | null = null;
+  /** A timed pitch bias (the fourth memory's look down into the water). */
+  private gazeBias: { pitch: number; startedAt: number; holdMs: number; blendMs: number } | null = null;
+  /** 0..1 share of the gaze written to the bones; a drag or a clip owns the head at 0. */
+  private readonly gazeWeight: { value: number; from: number; to: number; startedAt: number };
+  private clipHoldsHead = false;
+  private reactionFinished: (() => void) | null = null;
+  private readonly cues = new CreatorCuePlayer();
+  private lastSettleAt = performance.now();
+  private reducedMotion: boolean;
   private presentationYaw = 0;
   private viewOffsetFraction = 0;
   private appliedViewOffset = 0;
@@ -524,9 +740,12 @@ export class CreationAvatarPreview {
     this.yaw = this.frontYaw();
     this.targetYaw = this.yaw;
     this.reducedMotion = options.reducedMotion ?? false;
-    this.autoRotate = this.reducedMotion ? false : (options.autoRotate ?? false);
-    this.gazeEnabled = !this.reducedMotion;
+    this.autoRotate = options.autoRotate ?? false;
+    const gazeWeight = this.reducedMotion ? 0 : 1;
+    this.gazeWeight = { value: gazeWeight, from: gazeWeight, to: gazeWeight, startedAt: 0 };
     this.onLoadFailure = options.onLoadFailure;
+    // Until a station speaks, the figure behaves as it does on the body station.
+    this.cues.setSettleAmplitude(this.gazeProfile.settle, performance.now());
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -672,16 +891,20 @@ export class CreationAvatarPreview {
     this.applyAppearance();
   }
 
-  /** Moves to another camera stop with the authored tween; the idle keeps playing. */
-  public setView(view: CreationPreviewView): void {
-    if (this.previewView === view) return;
+  /**
+   * Moves to another camera stop with the authored tween; the idle keeps playing.
+   * Returns whether the stop changed, so a station cue can time itself to the move.
+   */
+  public setView(view: CreationPreviewView): boolean {
+    if (this.previewView === view) return false;
     this.previewView = view;
     this.beginCameraTween();
     this.resetFacing();
+    return true;
   }
 
   public setAutoRotate(enabled: boolean): void {
-    this.autoRotate = enabled && !this.reducedMotion;
+    this.autoRotate = enabled;
     this.lastInteractionAt = performance.now();
   }
 
@@ -772,14 +995,16 @@ export class CreationAvatarPreview {
   /**
    * Plays one approved reaction clip over the idle and settles back into it.
    * Resolves true once the clip is playing, false when it cannot be shown
-   * (model or idle not bound yet, unapproved, incompatible). The creator
-   * treats false as "the character keeps idling", never as an error.
+   * (model or idle not bound yet, unapproved, incompatible, reduced motion).
+   * The creator treats false as "the character keeps idling", never as an
+   * error. While the clip plays it owns the head: the gaze weight eases to 0
+   * and comes back once the clip has settled, when `onFinished` also fires.
    */
-  public playReaction(reaction: CreationPreviewReaction): Promise<boolean> {
+  public playReaction(reaction: CreationPreviewReaction, onFinished?: () => void): Promise<boolean> {
     const model = this.model;
     const mixer = this.mixer;
     const idle = this.idleAction;
-    if (!model || !mixer || !idle) return Promise.resolve(false);
+    if (!model || !mixer || !idle || this.reducedMotion) return Promise.resolve(false);
     const spec = resolveCreatorReactionSpec(reaction);
     if (!spec) {
       console.warn(`Creator reaction "${reaction}" has no approved, prop-free Human clip.`);
@@ -805,6 +1030,8 @@ export class CreationAvatarPreview {
         if (previous && previous !== action) previous.fadeOut(fadeSeconds);
         action.crossFadeFrom(idle, fadeSeconds, false);
         this.reactionAction = action;
+        this.clipHoldsHead = true;
+        this.reactionFinished = onFinished ?? null;
         return true;
       })
       .catch((error) => {
@@ -813,10 +1040,105 @@ export class CreationAvatarPreview {
       });
   }
 
-  /** Whether the head follows the pointer; off when a station wants a still portrait. */
-  public setGazeEnabled(enabled: boolean): void {
-    this.gazeEnabled = enabled;
-    if (!enabled) this.gazeTarget.set(0, 0);
+  /** Warms a reaction clip (fetch and bind) so a later `playReaction` starts on the beat. */
+  public prefetchReaction(reaction: CreationPreviewReaction): void {
+    if (this.reducedMotion) return;
+    const spec = resolveCreatorReactionSpec(reaction);
+    if (!spec) return;
+    const model = this.model;
+    const warm: Promise<unknown> = model ? this.bindReactionClip(spec, model) : loadPreviewModel(spec.url);
+    void warm.catch((error) => {
+      console.warn(`Creator reaction "${reaction}" could not be prefetched.`, error);
+    });
+  }
+
+  /**
+   * The station's gaze amplitude and settle behaviour (CREATOR_STATION_CHOREOGRAPHY).
+   * Re-applying the current profile (a resize, the hide-UI toggle) changes nothing, so the
+   * settle clock only restarts on a real station change.
+   */
+  public setStationChoreography(profile: CreatorStationChoreography): void {
+    if (this.gazeProfile === profile) return;
+    const now = performance.now();
+    this.gazeProfile = profile;
+    this.cues.setSettleAmplitude(profile.settle, now);
+    this.lastSettleAt = now;
+  }
+
+  /**
+   * Turns the head toward an element (a hovered card, row or swatch) instead of the
+   * pointer, capped below the station's limit. `null` releases the override a beat
+   * after the pointer leaves; `holdMs` lets a chosen swatch hold the glance first.
+   */
+  public setGazeTarget(element: Element | null, holdMs = Infinity): void {
+    const now = performance.now();
+    if (!element) {
+      if (this.gazeOverride) {
+        this.gazeOverride.until = Math.min(this.gazeOverride.until, now + CREATOR_GAZE_OVERRIDE_RELEASE_MS);
+      }
+      return;
+    }
+    const rect = element.getBoundingClientRect();
+    const target = gazeTargetFromPointer(
+      rect.left + rect.width / 2,
+      rect.top + rect.height / 2,
+      this.canvas.getBoundingClientRect(),
+    );
+    if (!target) return;
+    this.gazeOverride = { x: target.x, y: target.y, until: now + holdMs };
+  }
+
+  /** A timed pitch bias on top of the gaze; negative degrees look down. */
+  public glance(pitchDegrees: number, holdMs: number, blendMs: number): void {
+    if (this.reducedMotion) return;
+    this.gazeBias = { pitch: THREE.MathUtils.degToRad(pitchDegrees), startedAt: performance.now(), holdMs, blendMs };
+  }
+
+  /** Plays one additive cue on the rig; nothing under reduced motion or before the idle binds. */
+  public playCue(cue: CreatorCue): void {
+    if (this.reducedMotion) return;
+    const now = performance.now();
+    this.cues.play(cue, now);
+    this.lastSettleAt = now;
+  }
+
+  /** Mid-session OS changes apply: cuts the camera, stills the motes, drops every cue and the gaze. */
+  public setReducedMotion(flag: boolean): void {
+    this.reducedMotion = flag;
+    if (!flag) return;
+    this.cameraTween = null;
+    this.cues.cancel();
+    this.gazeOverride = null;
+    this.gazeBias = null;
+  }
+
+  /**
+   * Renders one frame and reads the mean RGB (0..255) of a canvas region, given in CSS
+   * pixels from the top-left, back from the drawing buffer in the same task. This is
+   * the pixel gate behind every cue: a cue that does not move these numbers does not ship.
+   */
+  public sampleRegion(region: { x: number; y: number; w: number; h: number }): { r: number; g: number; b: number; pixels: number } | null {
+    if (this.disposed) return null;
+    this.renderer.render(this.scene, this.camera);
+    const gl = this.renderer.getContext();
+    const ratio = this.appliedPixelRatio || 1;
+    const width = Math.max(1, Math.round(region.w * ratio));
+    const height = Math.max(1, Math.round(region.h * ratio));
+    const x = Math.round(region.x * ratio);
+    // GL rows run bottom-up.
+    const y = Math.round((this.cssHeight - region.y - region.h) * ratio);
+    const pixels = new Uint8Array(width * height * 4);
+    gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+      r += pixels[offset]!;
+      g += pixels[offset + 1]!;
+      b += pixels[offset + 2]!;
+    }
+    const count = width * height;
+    return { r: r / count, g: g / count, b: b / count, pixels: count };
   }
 
   private settleReaction(): void {
@@ -828,6 +1150,10 @@ export class CreationAvatarPreview {
     idle.setEffectiveWeight(1);
     idle.crossFadeFrom(action, CREATOR_REACTION_SETTLE_SECONDS, false);
     this.reactionAction = null;
+    this.clipHoldsHead = false;
+    const finished = this.reactionFinished;
+    this.reactionFinished = null;
+    finished?.();
   }
 
   private bindReactionClip(
@@ -837,7 +1163,10 @@ export class CreationAvatarPreview {
     const cached = this.reactionClips.get(spec.semanticClipName);
     if (cached) return Promise.resolve(cached);
     return loadPreviewModel(spec.url).then((gltf) => {
-      if (this.model !== model) return null;
+      // The bound idle is the reference the clip is aligned to; before it exists a
+      // prefetch has still warmed the pack, and playReaction refuses to play anyway.
+      const idle = this.idleAction?.getClip();
+      if (this.model !== model || !idle) return null;
       const source = gltf.animations.find((clip) => clip.name === spec.sourceClipName);
       if (!source) {
         console.warn(`Approved reaction pack ${spec.url} is missing ${spec.sourceClipName}.`);
@@ -849,10 +1178,15 @@ export class CreationAvatarPreview {
         return null;
       }
       const rootNode = model.getObjectByName(spec.rootNodeName);
-      // Same hip treatment as the idle, so a blend never slides the pelvis.
+      // Same hip treatment as the idle, so a blend never slides the pelvis, and the
+      // same facing, so it never turns the figure away either.
       const clip = spec.rootPolicy === "authored"
         ? bound
-        : normalizeAnimationPackRootMotion(bound, spec.rootNodeName, rootNode?.position, "lock-to-rest");
+        : alignClipRootRotation(
+          normalizeAnimationPackRootMotion(bound, spec.rootNodeName, rootNode?.position, "lock-to-rest"),
+          idle,
+          spec.rootNodeName,
+        );
       this.reactionClips.set(spec.semanticClipName, clip);
       return clip;
     });
@@ -942,7 +1276,8 @@ export class CreationAvatarPreview {
   private applyBreath(deltaSeconds: number): void {
     if (this.breathJoints.length === 0) return;
     this.breathSeconds += deltaSeconds;
-    const envelope = creatorBreathEnvelope(this.breathSeconds);
+    // Breathing is the one motion that stays on under reduced motion, at 60%.
+    const envelope = creatorBreathEnvelope(this.breathSeconds) * (this.reducedMotion ? 0.6 : 1);
     for (const joint of this.breathJoints) {
       CREATOR_BREATH_SCRATCH.setFromAxisAngle(joint.axis, joint.radians * envelope);
       joint.bone.quaternion.multiply(CREATOR_BREATH_SCRATCH);
@@ -972,19 +1307,79 @@ export class CreationAvatarPreview {
     this.gaze.set(0, 0);
   }
 
-  private applyGaze(deltaSeconds: number): void {
+  /** Head, Spine1, both shoulders and Hips for the cues; they share the additive pose with breath and gaze. */
+  private captureCueJoints(model: THREE.Object3D): void {
+    const wanted = Object.keys(CREATOR_CUE_BONES).length;
+    const bound = this.cues.bind(model, this.additivePose);
+    if (bound !== wanted) console.warn(`Creator cues resolved ${bound} of ${wanted} joints; some cues are inert.`);
+  }
+
+  /** The cues ride on the same snapshotted pose as breath and gaze; the settle fires itself when idle. */
+  private applyCues(deltaSeconds: number, now: number): void {
+    if (!this.reducedMotion && this.gazeProfile.settle > 0
+      && now - Math.max(this.lastInteractionAt, this.lastSettleAt) > CREATOR_SETTLE_IDLE_MS) {
+      this.cues.play("settle", now);
+      this.lastSettleAt = now;
+    }
+    this.cues.apply(now, deltaSeconds);
+  }
+
+  /** Where the head wants to look this frame, in radians at the station's amplitude. */
+  private gazeWanted(now: number): CreatorGazeAngles {
+    if (this.gazeOverride && now >= this.gazeOverride.until) this.gazeOverride = null;
+    const override = this.gazeOverride;
+    let wanted: CreatorGazeAngles;
+    if (override) {
+      wanted = scaleGazeAngles(
+        creatorGazeAngles(override.x, override.y, this.yaw), this.gazeProfile, CREATOR_GAZE_LIMITS, true,
+      );
+    } else if (now - this.gazeSeenAt < CREATOR_GAZE_HOLD_MS) {
+      wanted = scaleGazeAngles(
+        creatorGazeAngles(this.gazeTarget.x, this.gazeTarget.y, this.yaw), this.gazeProfile, CREATOR_GAZE_LIMITS,
+      );
+    } else {
+      wanted = { ...CREATOR_GAZE_NEUTRAL };
+    }
+    // Unattended, the target wanders a little so the figure never stares at one point.
+    wanted.yaw += gazeDriftYaw(now - this.gazeSeenAt) * this.gazeProfile.gazeScale;
+    const bias = this.gazeBias;
+    if (bias) {
+      const elapsed = now - bias.startedAt;
+      wanted.pitch += bias.pitch * holdEnvelope(elapsed, bias.blendMs, bias.holdMs);
+      if (elapsed >= bias.blendMs * 2 + bias.holdMs) this.gazeBias = null;
+    }
+    return wanted;
+  }
+
+  /**
+   * 0..1 share of the gaze the bones receive. A drag, a playing clip or reduced motion
+   * takes it to 0 in 200 ms so the clip owns the head outright (two drivers on one bone
+   * jitter); it comes back over 600 ms once the head is free again.
+   */
+  private gazeWeightAt(now: number): number {
+    const weight = this.gazeWeight;
+    const to = this.dragging || this.clipHoldsHead || this.reducedMotion ? 0 : 1;
+    if (to !== weight.to) {
+      weight.from = weight.value;
+      weight.to = to;
+      weight.startedAt = now;
+    }
+    const durationMs = to === 0 ? CREATOR_GAZE_WEIGHT_MS.out : CREATOR_GAZE_WEIGHT_MS.in;
+    weight.value = weight.from + (weight.to - weight.from) * easeOutQuad((now - weight.startedAt) / durationMs);
+    return weight.value;
+  }
+
+  private applyGaze(deltaSeconds: number, now: number): void {
     if (this.gazeJoints.length === 0) return;
-    const attentive = this.gazeEnabled && !this.dragging
-      && performance.now() - this.gazeSeenAt < CREATOR_GAZE_HOLD_MS;
-    const target = attentive
-      ? creatorGazeAngles(this.gazeTarget.x, this.gazeTarget.y, this.yaw)
-      : CREATOR_GAZE_NEUTRAL;
+    const wanted = this.gazeWanted(now);
     const blend = 1 - Math.exp(-deltaSeconds * CREATOR_GAZE_RESPONSE_PER_SECOND);
-    this.gaze.x += (target.yaw - this.gaze.x) * blend;
-    this.gaze.y += (target.pitch - this.gaze.y) * blend;
+    this.gaze.x += (wanted.yaw - this.gaze.x) * blend;
+    this.gaze.y += (wanted.pitch - this.gaze.y) * blend;
+    const weight = this.gazeWeightAt(now);
+    if (weight <= 0) return;
     for (const joint of this.gazeJoints) {
-      CREATOR_GAZE_SCRATCH_YAW.setFromAxisAngle(CREATOR_GAZE_YAW_AXIS, this.gaze.x * joint.share);
-      CREATOR_GAZE_SCRATCH_PITCH.setFromAxisAngle(CREATOR_GAZE_PITCH_AXIS, this.gaze.y * joint.share);
+      CREATOR_GAZE_SCRATCH_YAW.setFromAxisAngle(CREATOR_GAZE_YAW_AXIS, this.gaze.x * joint.share * weight);
+      CREATOR_GAZE_SCRATCH_PITCH.setFromAxisAngle(CREATOR_GAZE_PITCH_AXIS, this.gaze.y * joint.share * weight);
       joint.bone.quaternion.multiply(CREATOR_GAZE_SCRATCH_YAW).multiply(CREATOR_GAZE_SCRATCH_PITCH);
     }
   }
@@ -993,12 +1388,9 @@ export class CreationAvatarPreview {
     // A finger only moves while it is dragging the figure, and a drag is an
     // inspection, so touch never steers the gaze.
     if (event.pointerType === "touch") return;
-    const rect = this.canvas.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) return;
-    this.gazeTarget.set(
-      ((event.clientX - rect.left) / rect.width) * 2 - 1,
-      -(((event.clientY - rect.top) / rect.height) * 2 - 1),
-    );
+    const target = gazeTargetFromPointer(event.clientX, event.clientY, this.canvas.getBoundingClientRect());
+    if (!target) return;
+    this.gazeTarget.set(target.x, target.y);
     this.gazeSeenAt = performance.now();
   }
 
@@ -1018,7 +1410,10 @@ export class CreationAvatarPreview {
     this.reactionAction = null;
     this.reactionRequest += 1;
     this.reactionClips.clear();
+    this.clipHoldsHead = false;
+    this.reactionFinished = null;
     this.gazeJoints = [];
+    this.cues.release();
     if (resetPose && this.model) {
       this.model.traverse((child) => {
         if (child instanceof THREE.SkinnedMesh) child.skeleton.pose();
@@ -1070,6 +1465,7 @@ export class CreationAvatarPreview {
         model.updateMatrixWorld(true);
         this.captureBreathJoints(model);
         this.captureGazeJoints(model);
+        this.captureCueJoints(model);
         this.updatePreviewFraming();
       })
       .catch((error) => {
@@ -1185,7 +1581,8 @@ export class CreationAvatarPreview {
     this.mixer?.update(deltaSeconds);
     this.additivePose.snapshot();
     this.applyBreath(deltaSeconds);
-    this.applyGaze(deltaSeconds);
+    this.applyGaze(deltaSeconds, now);
+    this.applyCues(deltaSeconds, now);
     this.applyLights(deltaSeconds);
     this.updateMotes(deltaSeconds);
     const width = Math.max(1, Math.round(this.canvas.clientWidth));
@@ -1213,7 +1610,9 @@ export class CreationAvatarPreview {
       this.camera.updateProjectionMatrix();
     }
 
-    if (this.autoRotate && !this.dragging && now - this.lastInteractionAt > 2200) this.targetYaw += 0.0035;
+    if (this.autoRotate && !this.reducedMotion && !this.dragging && now - this.lastInteractionAt > 2200) {
+      this.targetYaw += 0.0035;
+    }
     this.yaw += (this.targetYaw - this.yaw) * 0.12;
     if (this.model) {
       this.rotationPivot.rotation.y = this.yaw;
