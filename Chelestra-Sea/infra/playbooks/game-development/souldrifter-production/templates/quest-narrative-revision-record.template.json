@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "templateStatus": "AUTHORING_COMPANION_NOT_RUNTIME_SCHEMA",
+  "policyRef": "NARRATIVE_AUTONOMY_AND_DGC_CONTINUITY_POLICY.md",
+  "policyRevision": "2026-09-05-narrative-v1",
+  "revisionId": "",
+  "ticket": null,
+  "workerRole": "",
+  "questId": "",
+  "questDefinitionVersionBefore": null,
+  "questDefinitionVersionAfter": null,
+  "changeStatus": "AGENT_REVISED_DRAFT",
+  "previousVersionRef": "",
+  "proposedVersionRef": "",
+  "delegationDecisionRef": "",
+  "changes": [],
+  "loreMismatchOrWeakness": "",
+  "revisedLocalStoryPurpose": "",
+  "overarchingCampaignContribution": [],
+  "ownerLocksPreserved": [],
+  "continuation": {
+    "mode": "UNOFFICIAL_DEATH_GATE_CYCLE_FAN_CONTINUATION",
+    "verifiedBookHistoryBoundary": "",
+    "projectTimelineOrRelativeEra": "",
+    "ownerContinuationPremiseRefs": [],
+    "deliberateAlternateContinuity": false,
+    "alternateContinuityDecisionRef": null,
+    "newOfficialCanonClaim": false
+  },
+  "callbacks": [
+    {
+      "callbackId": "",
+      "sourceEntityOrEventId": "",
+      "sourceName": "",
+      "entityKind": "PLACE_OR_PERSON_OR_EVENT_OR_INSTITUTION",
+      "claim": "",
+      "classification": "UNKNOWN_CONFLICT",
+      "sources": [
+        {
+          "sourceId": "",
+          "title": "",
+          "chapterOrScene": "",
+          "edition": null,
+          "page": null,
+          "repositoryOrSuppliedSourceRef": "",
+          "contentHashOrCommit": null,
+          "readCoverage": "NOT_YET_READ"
+        }
+      ],
+      "deliveryChannel": "DIALOGUE_OR_OBJECT_OR_JOURNAL_OR_MAP_OR_SCENE",
+      "localSpeakerOrObjectId": "",
+      "whyThisSourceKnows": "",
+      "npcBeliefOrRumor": false,
+      "underlyingTruthStatus": "UNKNOWN_CONFLICT",
+      "currentQuestRelevance": "",
+      "revealStage": "",
+      "laterPayoff": "",
+      "physicalBookCharacterAppearance": false,
+      "appearanceApprovalRef": null
+    }
+  ],
+  "coverage": {
+    "chapterId": "",
+    "actId": "",
+    "callbackCoverageMapRef": "",
+    "multiplePresentationChannels": false,
+    "unnecessaryRepetitionReviewed": false,
+    "originalProseVerified": false
+  },
+  "integration": {
+    "actorIds": [],
+    "locationAndSocketIds": [],
+    "prerequisiteChanges": [],
+    "objectiveChanges": [],
+    "rewardBudgetRef": "",
+    "budgetChanged": false,
+    "newMechanicRequired": false,
+    "newPaidAssetRequired": false,
+    "sharedFileOwnerCoordinationRefs": [],
+    "stableIdsPreserved": true,
+    "migrationOrAliasPlanRef": null,
+    "existingSaveImpact": "UNASSESSED"
+  },
+  "verification": {
+    "sourceAccuracy": "NOT_RUN",
+    "timelineAndKnowledge": "NOT_RUN",
+    "humanOnlyHeartvalePopulation": "NOT_RUN",
+    "starterPowerRestrictions": "NOT_RUN",
+    "questGraphAndReachability": "NOT_RUN",
+    "optionalMainSeparation": "NOT_RUN",
+    "inventoryAndRewardIdempotency": "NOT_RUN",
+    "bothCombatModes": "NOT_RUN",
+    "spatialRevalidation": "NOT_ASSESSED",
+    "saveMigration": "NOT_ASSESSED",
+    "evidenceRefs": [],
+    "independentVerdict": "PENDING"
+  },
+  "escalations": [],
+  "batchedOwnerReview": {
+    "summary": "",
+    "decision": "PENDING",
+    "decisionRef": null
+  },
+  "rights": {
+    "sourceAttributionRefs": [],
+    "authorizationStatus": "NOT_ESTABLISHED",
+    "officialOrEndorsedClaimAllowed": false,
+    "publicReleaseReview": "REQUIRED_BEFORE_RELEASE",
+    "noncommercialImpliesPermission": false
+  },
+  "rollbackRef": ""
+}
