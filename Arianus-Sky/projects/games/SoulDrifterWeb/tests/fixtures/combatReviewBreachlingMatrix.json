@@ -90,15 +90,15 @@
     "window": "0.450–1.200 s",
     "profileId": "base-spit:SpitAttack",
     "status": "contact",
-    "timeSeconds": 0.5583,
+    "timeSeconds": 0.5567,
     "separationMeters": 1.8,
     "direction": "front",
     "bearing": "front",
     "severity": "light",
     "position": [
-      -0.037,
-      0.898,
-      0.368
+      -0.034,
+      0.876,
+      0.369
     ],
     "responseClip": "GreatSword__GreatSwordImpact",
     "effect": "poison-spit projectile poison · stopped at surface anchor",
@@ -6008,8 +6008,8 @@
     "bearing": "front",
     "severity": "light",
     "position": [
-      -0.109,
-      0.932,
+      -0.11,
+      0.931,
       0.41
     ],
     "responseClip": "GreatSword__GreatSwordImpact",
@@ -6082,15 +6082,15 @@
     "window": "0.450–1.200 s",
     "profileId": "base-spit:SpitAttack",
     "status": "contact",
-    "timeSeconds": 0.575,
+    "timeSeconds": 0.5624,
     "separationMeters": 2,
     "direction": "front",
     "bearing": "front",
     "severity": "light",
     "position": [
       -0.11,
-      0.868,
-      0.366
+      0.854,
+      0.411
     ],
     "responseClip": "GreatSword__GreatSwordImpact",
     "effect": "poison-spit projectile poison · stopped at surface anchor",
@@ -6140,8 +6140,8 @@
     "bearing": "front",
     "severity": "light",
     "position": [
-      -0.109,
-      0.932,
+      -0.11,
+      0.931,
       0.41
     ],
     "responseClip": "GreatSword__TwoHandedSwordDeath",
@@ -8992,9 +8992,9 @@
     "bearing": "front",
     "severity": "light",
     "position": [
-      -0.008,
+      -0.007,
       0.929,
-      0.363
+      0.362
     ],
     "responseClip": "GreatSword__GreatSwordImpact",
     "effect": "surface-anchored physical impact",
@@ -9132,9 +9132,9 @@
     "bearing": "front",
     "severity": "light",
     "position": [
-      -0.008,
+      -0.007,
       0.929,
-      0.363
+      0.362
     ],
     "responseClip": "GreatSword__TwoHandedSwordDeath",
     "effect": "surface-anchored physical impact",

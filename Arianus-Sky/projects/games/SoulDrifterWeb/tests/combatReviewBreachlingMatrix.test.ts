@@ -87,7 +87,25 @@ interface MatrixRow {
   readonly reason: string;
 }
 
-const round = (value: number, digits = 4) => Number(value.toFixed(digits));
+/**
+ * Rounds, and normalises negative zero away.
+ *
+ * Number((-0.0001).toFixed(3)) is -0, and toEqual compares with Object.is
+ * semantics, where -0 does not equal 0. JSON.stringify(-0) writes "0", so a
+ * recorded fixture can never hold a negative zero - which makes any row that
+ * measures one impossible to replay: it records as 0 and re-measures as -0,
+ * forever. That is exactly how it failed here, on a TailWhip position whose x
+ * came out -0. Two full recordings were byte-identical to each other and the
+ * replay still failed, because the asymmetry is in the serialisation, not in
+ * the measurement.
+ *
+ * `value === 0 ? 0 : value` is deliberate: -0 === 0 is true, so both zeroes
+ * collapse to a literal +0 and every other value passes through untouched.
+ */
+const round = (value: number, digits = 4) => {
+  const rounded = Number(value.toFixed(digits));
+  return rounded === 0 ? 0 : rounded;
+};
 const installed = new Map<string, Uint8Array<ArrayBuffer>>();
 function bytesAt(path: string) {
   let bytes = installed.get(path);
@@ -111,8 +129,21 @@ function realHumanFactory() {
 
 const measured: MatrixRow[] = [];
 let factory: ReturnType<typeof realHumanFactory>;
-// One pack fetch per archetype for the whole matrix, not one per pair.
-const mobReactionClips = createMobReactionClipLoader();
+/**
+ * A FRESH pack loader per pair, deliberately - not one shared across the matrix.
+ *
+ * createMobReactionClipLoader caches one in-flight fetch per archetype for the life
+ * of the loader, so a single shared instance makes every pair depend on which pair
+ * warmed the cache first. That is cross-test state, and it made this matrix
+ * order-sensitive: two rows of 'breachling-base' x longswordTwoHand recorded as
+ * `death` inside a full sweep and as `reaction` when that pair ran alone, while the
+ * pair run alone was bit-identical to itself across repeats. A fixture that only
+ * reproduces at one execution order cannot be pinned.
+ *
+ * Sharing it saves a handful of fetches against a local stub. Not worth an
+ * unreproducible baseline.
+ */
+const mobReactionClips = () => createMobReactionClipLoader();
 
 beforeAll(() => {
   vi.stubGlobal("document", { baseURI: "http://localhost:5179/weapon-lab.html" });
@@ -186,7 +217,7 @@ function nearestApproach(controller: CombatReviewController, attacker: ReviewAct
 async function measurePair(body: string, loadout: string): Promise<MatrixRow[]> {
   const rows: MatrixRow[] = [];
   const controller = new CombatReviewController({ definitions: COMBAT_REVIEW_DEFINITIONS,
-    loadActor: createCombatReviewActorLoader(factory, createMobReviewActor, mobReactionClips),
+    loadActor: createCombatReviewActorLoader(factory, createMobReviewActor, mobReactionClips()),
     initial: { a: `human:${loadout}`, b: body } });
   const captures = new Map<string, Capture>();
   const stop = controller.subscribe((snapshot) => {
