@@ -10,7 +10,7 @@ import {
   createBreachV2HumanFoundationActor,
   createBreachV2HumanFoundationActorFactory,
 } from "../src/game/dungeons/breach-v2-human-foundation-actor";
-import { CALIBRATION_HEIGHT_METERS } from "../src/game/humanWeaponCalibration";
+import { APPROVED_GREATSWORD_BACK_CARRY, CALIBRATION_HEIGHT_METERS } from "../src/game/humanWeaponCalibration";
 
 function clip(name: string, hipY = 1): THREE.AnimationClip {
   return new THREE.AnimationClip(name, 1, [
@@ -25,6 +25,11 @@ function sourceModel(): THREE.Group {
   const hand = new THREE.Bone();
   hand.name = "mixamorigRightHand";
   hips.add(hand);
+  // The shipped 65-bone rig carries Spine2; the back carry mounts on it.
+  const spine2 = new THREE.Bone();
+  spine2.name = "mixamorigSpine2";
+  spine2.position.y = 0.4;
+  hips.add(spine2);
   const body = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial());
   body.position.y = 1;
   model.add(hips, body);
@@ -143,6 +148,44 @@ describe("BREACH-V2 Human Foundation actor", () => {
       expect(socket.getWorldScale(new THREE.Vector3()).toArray()).toEqual([1, 1, 1]);
       expect(socket.localToWorld(new THREE.Vector3(0, 1.05, 0))
         .distanceTo(socket.localToWorld(new THREE.Vector3()))).toBeCloseTo(1.05, 10);
+      actor.dispose();
+    }
+  });
+
+  // A bare back carry: undrawn no longer means invisible. Exactly one copy shows at
+  // a time, the blade keeps its modelled length at every body height, and the seat
+  // tracks the body the same way the hand seat does.
+  it("carries the greatsword on the back whenever it is not drawn", () => {
+    for (const height of [1.5, 2.06, 2.4]) {
+      const actor = createBreachV2HumanFoundationActor(sourceModel(),
+        Object.values(BREACH_V2_HUMAN_FOUNDATION_ACTIONS).map((name) => clip(name)),
+        "back-carry", height, sourceWeapon());
+      const hand = actor.model.getObjectByName("weapon-socket-hand-r")!;
+      const back = actor.model.getObjectByName("weapon-socket-back")!;
+      expect(back, `${height} m back socket`).toBeDefined();
+      expect(back.parent?.name).toMatch(/Spine2$/);
+
+      // Undrawn: on the back, not gone.
+      actor.pose(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.idle, 0.2);
+      expect(back.visible, `${height} m undrawn back`).toBe(true);
+      expect(hand.visible, `${height} m undrawn hand`).toBe(false);
+
+      // Drawn: in the hand, and never two swords at once.
+      actor.pose(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.greatswordCombatIdle, 0.2);
+      expect(hand.visible, `${height} m drawn hand`).toBe(true);
+      expect(back.visible, `${height} m drawn back`).toBe(false);
+
+      // Seat is anatomy and scales; blade is absolute and does not.
+      const units = height / CALIBRATION_HEIGHT_METERS;
+      APPROVED_GREATSWORD_BACK_CARRY.position.forEach((value, axis) => {
+        expect(back.position.getComponent(axis) * actor.model.scale.x, `${height} m back axis ${axis}`)
+          .toBeCloseTo(value * units, 10);
+      });
+      back.getWorldScale(new THREE.Vector3()).toArray().forEach((value, axis) => {
+        expect(value, `${height} m back world scale ${axis}`).toBeCloseTo(1, 12);
+      });
+      expect(back.localToWorld(new THREE.Vector3(0, 1.05, 0))
+        .distanceTo(back.localToWorld(new THREE.Vector3()))).toBeCloseTo(1.05, 10);
       actor.dispose();
     }
   });

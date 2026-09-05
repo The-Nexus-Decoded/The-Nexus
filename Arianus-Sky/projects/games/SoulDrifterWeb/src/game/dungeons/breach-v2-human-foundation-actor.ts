@@ -8,7 +8,8 @@ import {
 } from "../animationPacks";
 import {
   APPROVED_GREATSWORD_CALIBRATION,
-  handSocketBodyUnits,
+  socketBodyUnits,
+  APPROVED_GREATSWORD_BACK_CARRY,
   applyAdditiveHumanHandGrip,
   solveGreatswordSupportGrip,
 } from "../humanWeaponCalibration";
@@ -147,6 +148,9 @@ function prepareClip(source: THREE.AnimationClip, model: THREE.Object3D): THREE.
 
 interface FoundationWeaponPresentation {
   handSocket: THREE.Group;
+  /** Bare back carry; null only if the rig has no spine bone to mount on. */
+  backSocket: THREE.Group | null;
+  /** "unequipped" means carried on the back, not absent -- the actor owns a sword. */
   state: "unequipped" | "drawn";
 }
 
@@ -189,14 +193,34 @@ function createFoundationWeaponPresentation(
   handSocket.name = "weapon-socket-hand-r";
   handSocket.scale.setScalar(inverseModelScale);
   handSocket.position.fromArray(APPROVED_GREATSWORD_CALIBRATION.socketPosition)
-    .multiplyScalar(handSocketBodyUnits(heightMeters, model.scale.x));
+    .multiplyScalar(socketBodyUnits(heightMeters, model.scale.x));
   handSocket.rotation.set(...APPROVED_GREATSWORD_CALIBRATION.socketRotation);
   const handVisual = sourceWeapon.clone(true);
   handVisual.name = "weapon-sword-longsword-starter-v001-hand";
   handSocket.add(handVisual);
   handBone.add(handSocket);
 
-  return { handSocket, state: "unequipped" };
+  // A second copy resting across the back for whenever the sword is not drawn.
+  // Same split as the hand socket: scale undoes the body scale so the blade keeps
+  // its modelled length, position spends the body ratio because where the mount
+  // sits on a torso is anatomy. Numbers come from the reviewed sheathe's final
+  // key -- see APPROVED_GREATSWORD_BACK_CARRY.
+  const backBone = findFoundationSocketBone(model, APPROVED_GREATSWORD_BACK_CARRY.boneCandidates);
+  let backSocket: THREE.Group | null = null;
+  if (backBone) {
+    backSocket = new THREE.Group();
+    backSocket.name = "weapon-socket-back";
+    backSocket.scale.setScalar(inverseModelScale);
+    backSocket.position.fromArray(APPROVED_GREATSWORD_BACK_CARRY.position)
+      .multiplyScalar(socketBodyUnits(heightMeters, model.scale.x));
+    backSocket.rotation.set(...APPROVED_GREATSWORD_BACK_CARRY.rotation);
+    const backVisual = sourceWeapon.clone(true);
+    backVisual.name = "weapon-sword-longsword-starter-v001-back";
+    backSocket.add(backVisual);
+    backBone.add(backSocket);
+  }
+
+  return { handSocket, backSocket, state: "unequipped" };
 }
 
 function setFoundationWeaponState(
@@ -205,7 +229,10 @@ function setFoundationWeaponState(
 ): void {
   if (!weapon) return;
   weapon.state = state;
+  // Exactly one copy is ever visible. Undrawn no longer means invisible: the
+  // sword is carried on the back rather than vanishing off the character.
   weapon.handSocket.visible = state === "drawn";
+  if (weapon.backSocket) weapon.backSocket.visible = state !== "drawn";
 }
 
 export function createBreachV2HumanFoundationActor(

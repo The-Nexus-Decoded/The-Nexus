@@ -1585,9 +1585,12 @@ export function createHumanReviewActorFactory({
     function restoreGreatswordHandAttachment() {
       const record = actor?.primary;
       if (!record || record.asset !== "longsword") return;
-      if (record.socket.parent === scene) {
-        const hand = findBone(actor.bones, record.bone);
-        if (hand) hand.add(record.socket);
+      // The socket may be parked on the scene (mid-sheathe world transfer) OR on
+      // Spine2 (finished sheathe, resting on the back). Test against the hand
+      // rather than for one specific foster parent, or the back carry never lets go.
+      const hand = findBone(actor.bones, record.bone);
+      if (hand && record.socket.parent !== hand) {
+        hand.add(record.socket);
         record.socket.scale.setScalar(1 / actor.model.scale.x);
         updateSocketFromControls();
       }
@@ -1633,6 +1636,16 @@ export function createHumanReviewActorFactory({
 
       const state = actor.greatswordSheathe;
       const normalizedTime = THREE.MathUtils.clamp(settings.normalizedTime, 0, 1);
+      // The `inserted` key IS the back carry. Hand the socket to the real Spine2
+      // pose there rather than leaving it parented to the scene, so the sword stays
+      // on the back once the clip releases it. LOADOUTS' `back` literal was derived
+      // from this exact key, so the swap is transform-identical and cannot pop.
+      // The world-transfer state is deliberately kept: scrubbing back off the last
+      // frame must resume the keyed path from the hand pose it started at.
+      if (normalizedTime >= GREATSWORD_SHEATHE_TIMING.inserted && record.poses?.back) {
+        applyAttachmentPose(record, "back");
+        return;
+      }
       const shoulder = findBone(actor.bones, "RightShoulder")?.getWorldPosition(new THREE.Vector3());
       const spine = findBone(actor.bones, "Spine2")?.getWorldPosition(new THREE.Vector3());
       if (!shoulder || !spine) return;

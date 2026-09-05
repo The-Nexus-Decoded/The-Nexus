@@ -256,7 +256,27 @@ export const LOADOUTS = {
     label: "Greatsword — matched two-hand clips (no shield)",
     actionFamily: "twoHandSword",
     match: "matched: dedicated GreatSword two-hand animation family",
-    attachments: [{ asset: "longsword", bone: "RightHand", role: "primary", position: [0, 0.04, 0], rotation: [0, 0, R] }],
+    attachments: [{
+      asset: "longsword", bone: "RightHand", role: "primary",
+      position: [0, 0.04, 0], rotation: [0, 0, R],
+      // A bare back carry -- no harness, no scabbard, the greatsword simply rests
+      // across the back. The `back` literal is not hand-authored: it is the world
+      // transform the approved GapAuthored__GreatswordTwoHandSheathe already ends
+      // on (its `inserted` key), re-expressed in Spine2-local calibration metres.
+      // Deriving it that way makes the sheathe's hand-off transform-identical, so
+      // the sword cannot pop as the clip releases it. Measured on the shipped rig:
+      // hilt 1.384 m, tip 0.355 m, sitting 144-354 mm behind the spine, i.e. clear
+      // of a torso whose half-depth is ~120 mm.
+      //
+      // Carry only. The library has no draw-from-back animation to match it: on
+      // GreatSword__DrawAGreatSword1 the right hand comes no closer than 386 mm to
+      // this hilt, and on DrawAGreatSword2 it starts at 484 mm and travels AWAY, to
+      // 713 mm. Wiring these clips to the mount would have the hand grasp open air.
+      poses: {
+        hand: { bone: "RightHand", position: [0, 0.04, 0], rotation: [0, 0, R] },
+        back: { bone: "Spine2", position: [-0.278, 0.0433, -0.165], rotation: [-0.2644, 0.7055, 3.0893] },
+      },
+    }],
   },
   shortswordOnly: {
     label: "Shortsword — one-hand proxy (no shield)",
@@ -564,7 +584,7 @@ export const TARGET_HEIGHT_METERS = 1.8;
  * because the man holding it does. The weapons are modelled to scale already.
  *
  * The game lane owns the same reference in src/game/humanWeaponCalibration.ts,
- * where its handSocketBodyUnits converts per-actor rather than against one target
+ * where its socketBodyUnits converts per-actor rather than against one target
  * height. It is duplicated rather than imported because this file is pure JS that
  * scripts/verify-weapon-lab-staff.mjs loads under plain node, which cannot parse a
  * .ts import. tests/humanWeaponCalibration.test.ts pins the two values equal.

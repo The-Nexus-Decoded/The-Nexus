@@ -8,7 +8,7 @@ export type HumanFingerCurls = Readonly<Record<"Index" | "Middle" | "Ring" | "Pi
  *
  * socketPosition is wrist to fist centre -- anatomy, and anatomy shrinks with the
  * body. It is stored as metres on this reference body and re-expressed for
- * whatever height an actor is actually built at, via handSocketBodyUnits. Ratio,
+ * whatever height an actor is actually built at, via socketBodyUnits. Ratio,
  * not table: one constant covers the selectable 1.5-2.0 m range with no per-height
  * column, which is why nothing in this file had to move when the review lane
  * dropped from 2.06 to 1.8 m.
@@ -20,9 +20,9 @@ export type HumanFingerCurls = Readonly<Record<"Index" | "Middle" | "Ring" | "Pi
 export const CALIBRATION_HEIGHT_METERS = 2.06;
 
 /**
- * Bone-local units for an offset that seats something IN A HAND.
+ * Bone-local units for a socket seat, held or mounted.
  *
- * A hand socket is a child of a bone inside the scaled model, so the plain
+ * A socket is a child of a bone inside the scaled model, so the plain
  * `1 / modelScale` this site used to spend lands the offset the same number of
  * world millimetres from the wrist at every body height. That is right for the
  * socket's own SCALE -- a 1.05 m longsword is 1.05 m long whoever is holding it,
@@ -34,16 +34,37 @@ export const CALIBRATION_HEIGHT_METERS = 2.06;
  * been fitted to. Spending the ratio instead holds the whole fit at exactly
  * heightMeters / CALIBRATION_HEIGHT_METERS of its approved shape.
  */
-export function handSocketBodyUnits(heightMeters: number, modelScale: number): number {
+export function socketBodyUnits(heightMeters: number, modelScale: number): number {
   return heightMeters / (CALIBRATION_HEIGHT_METERS * modelScale);
 }
+
+/**
+ * A bare back carry: no harness, no scabbard, the greatsword simply rests across
+ * the back whenever it is not drawn.
+ *
+ * These are not hand-authored numbers. They are the world transform the approved
+ * review-lane sheathe (GapAuthored__GreatswordTwoHandSheathe) already ends on --
+ * its `inserted` key -- re-expressed in Spine2-local metres on the
+ * CALIBRATION_HEIGHT_METERS body, so the game carry and the reviewed animation
+ * agree by construction rather than by eye. Measured on the shipped rig at 1.8 m:
+ * hilt 1.384 m, blade tip 0.355 m, sitting 144-354 mm behind the spine -- clear of
+ * a torso whose half-depth is about 120 mm.
+ *
+ * `position` is BODY-relative and spends socketBodyUnits, like every other seat.
+ * `rotation` is angular and absolute.
+ */
+export const APPROVED_GREATSWORD_BACK_CARRY = Object.freeze({
+  boneCandidates: Object.freeze(["mixamorig:Spine2", "spine_02"] as const),
+  position: Object.freeze([-0.278, 0.0433, -0.165] as const),
+  rotation: Object.freeze([-0.2644, 0.7055, 3.0893] as const),
+});
 
 /**
  * Owner-approved #435 lab calibration; distances are metres, not rig units.
  *
  * Two kinds of metre live here and they scale differently. socketPosition is
  * BODY-relative -- measured on the CALIBRATION_HEIGHT_METERS body, so it must be
- * re-expressed through handSocketBodyUnits for any other height. supportTarget,
+ * re-expressed through socketBodyUnits for any other height. supportTarget,
  * supportWrist, curls and thumb are WEAPON-relative or angular: supportTarget is
  * socket-local and says where the left hand goes along a 1.05 m haft, and a haft
  * does not shrink because the person holding it does. Do not scale those.
@@ -98,6 +119,14 @@ export function applyAdditiveHumanHandGrip(
   apply("Thumb2", new THREE.Euler(thumb * 0.65, 0, -thumb * 0.25 * mirror));
 }
 
+/**
+ * Convergence budget for the support-hand CCD. The tolerance is the point at which
+ * the palm is on the haft for any purpose the eye can judge; the ceiling bounds the
+ * cost on frames that cannot reach it.
+ */
+export const SUPPORT_GRIP_TOLERANCE_METERS = 0.001;
+export const SUPPORT_GRIP_MAX_ITERATIONS = 32;
+
 /** Exact #435 support-hand CCD; source animation owns the primary/right hand. */
 export function solveGreatswordSupportGrip(
   model: THREE.Object3D,
@@ -123,7 +152,23 @@ export function solveGreatswordSupportGrip(
   const parentWorld = new THREE.Quaternion();
   const deltaWorld = new THREE.Quaternion();
   const desiredWorld = new THREE.Quaternion();
-  for (let iteration = 0; iteration < 6; iteration += 1) {
+  // Iterate to a tolerance rather than to a fixed count. At the fixed 6 the support
+  // hand still sat 45.5 mm off supportTarget on the worst frame (GreatSwordAttack
+  // t=0.95) at 1.8 m, and it is not a reach limit -- the chain includes the
+  // shoulder, so the target is reachable and the gap was pure convergence error.
+  // Measured on that frame at 1.8 m, worst residual and mean cost per posed frame:
+  //   6 -> 45.5 mm (0.69 ms)   16 -> 21.4 mm (0.58)   24 -> 13.9 mm (0.67)
+  //   32 -> 9.6 mm  (0.78 ms)  56 -> 3.5 mm  (1.30)
+  // The haft is 35.6 mm across, so anything inside its 17.8 mm radius puts the palm
+  // on the wood; 32 sits at half that with no measurable cost over the old 6, while
+  // 56 spends 0.5 ms more to buy 6 mm nobody can see. Raise the ceiling, not the
+  // tolerance, if a future body or weapon needs it.
+  //
+  // The early exit is what keeps this cheap: ordinary frames reach tolerance in a
+  // few passes and only the extreme swings ever spend the ceiling.
+  for (let iteration = 0; iteration < SUPPORT_GRIP_MAX_ITERATIONS; iteration += 1) {
+    hand.getWorldPosition(handPosition);
+    if (handPosition.distanceToSquared(targetWorld) < SUPPORT_GRIP_TOLERANCE_METERS ** 2) break;
     for (const link of links) {
       if (!link.parent) continue;
       model.updateMatrixWorld(true);

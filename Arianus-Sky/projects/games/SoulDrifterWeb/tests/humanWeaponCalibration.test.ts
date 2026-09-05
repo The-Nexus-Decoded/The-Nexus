@@ -6,7 +6,7 @@ import {
   APPROVED_GREATSWORD_CALIBRATION,
   CALIBRATION_HEIGHT_METERS,
   applyAdditiveHumanHandGrip,
-  handSocketBodyUnits,
+  socketBodyUnits,
   solveGreatswordSupportGrip,
 } from "../src/game/humanWeaponCalibration";
 // @ts-expect-error Existing shared catalog is the loadout authority.
@@ -167,8 +167,20 @@ it("applies the accepted grip to the real 65-bone body without mutating 400 sour
       referenceAction.time = phase * referenceAction.getClip().duration;
       referenceMixer.update(0);
       const originalResidual = originalLabSupport(reference, referenceSocket);
-      expect(leftHand.getWorldPosition(new THREE.Vector3()).distanceTo(target), `${action} ${phase}`)
-        .toBeCloseTo(originalResidual, 6);
+      const residual = leftHand.getWorldPosition(new THREE.Vector3()).distanceTo(target);
+      // DELIBERATE DEVIATION from the frozen #435 lab CCD, which ran a fixed 6
+      // iterations. That budget left the support palm up to 45.5 mm off supportTarget
+      // on GreatSwordAttack t=0.95 -- well outside the haft's 17.8 mm radius, i.e.
+      // visibly off the wood -- and the miss grew with body height, which is what the
+      // visual review flagged. The solver now iterates to a tolerance instead.
+      //
+      // The frozen reference is deliberately KEPT as the anti-drift guard it always
+      // was, but re-aimed: production must now be at least as good as #435 on every
+      // sampled frame, and inside the haft radius on all of them. It may not silently
+      // get worse, and it may not silently drift somewhere else either.
+      expect(residual, `${action} ${phase} not worse than frozen #435`)
+        .toBeLessThanOrEqual(originalResidual + 1e-9);
+      expect(residual * 1000, `${action} ${phase} palm on the haft`).toBeLessThan(17.8);
       const before = bones.map((bone) => bone.quaternion.clone());
       for (let frame = 0; frame < 25; frame += 1) actor.update(0);
       bones.forEach((bone, index) => {
@@ -278,7 +290,7 @@ describe("hand socket seats by body height, weapon stays the length it was model
     expect(CALIBRATION_HEIGHT_METERS).toBe(REVIEW_CALIBRATION_HEIGHT_METERS);
     // At the calibration height the conversion is identity, which is why every
     // approved number in this file stayed put when the ratio was introduced.
-    expect(handSocketBodyUnits(CALIBRATION_HEIGHT_METERS, 1)).toBe(1);
-    expect(handSocketBodyUnits(1.8, 2)).toBeCloseTo(1.8 / (CALIBRATION_HEIGHT_METERS * 2), 12);
+    expect(socketBodyUnits(CALIBRATION_HEIGHT_METERS, 1)).toBe(1);
+    expect(socketBodyUnits(1.8, 2)).toBeCloseTo(1.8 / (CALIBRATION_HEIGHT_METERS * 2), 12);
   });
 });
