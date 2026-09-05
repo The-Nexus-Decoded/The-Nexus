@@ -754,6 +754,54 @@ export function createHumanReviewActorFactory({
       return new THREE.CatmullRomCurve3(controlPoints, false, "centripetal").getPoints(samples);
     }
 
+    /**
+     * Pull the sampled centreline in onto the body.
+     *
+     * Seating the CONTROL POINTS is not enough: the ribbon is a Catmull-Rom curve
+     * and it bows outward between them, so a strap whose waypoints all sit on the
+     * chest still stands off it in between. That overshoot is what capped the waist
+     * seating at 60% -- pulling the control points harder swung the curve further,
+     * rather than closer.
+     *
+     * This works on the curve itself. Any sample standing further from the spine
+     * axis than the measured surface is drawn back to it; a sample already at or
+     * inside the surface is left alone, because the strap is allowed to disappear
+     * behind a shoulder but never to float in front of a chest.
+     *
+     * The ends are exempt. The first and last samples run out to the quiver, which
+     * genuinely stands off the back, and clamping those would peel the strap off
+     * the thing it is carrying. The exemption fades in rather than switching, so the
+     * curve stays smooth where it leaves the body.
+     */
+    function conformHarnessToBody(actor, points, frame, profile) {
+      if (!frame || !profile || points.length < 8) return points;
+      const standoff = 0.012;
+      const endExemption = 0.18;
+      const PROXY_MARGIN_METERS = 0.014;
+      return points.map((point, index) => {
+        const along = index / (points.length - 1);
+        const freedom = Math.min(along, 1 - along) / endExemption;
+        if (freedom <= 0) return point;
+        const radial = point.clone().sub(frame.origin);
+        const height = radial.dot(frame.axis) / frame.axisLength;
+        radial.addScaledVector(frame.axis, -radial.dot(frame.axis));
+        const radius = radial.length();
+        if (radius < 1e-5 || height < 0 || height > 1) return point;
+        const bearing = Math.atan2(radial.dot(frame.forward), radial.dot(frame.right));
+        const surface = frontTorsoRadius(profile, height, frame.axisLength, bearing);
+        if (surface === null) return clearHarnessProxies(actor, point.clone(), PROXY_MARGIN_METERS);
+        const target = surface + standoff;
+        // Every sample gets the proxy check, including one already inside the
+        // surface. Skipping the untouched ones left the curve free to graze a
+        // proxy sphere it never had to be pulled away from -- measured, half a
+        // millimetre through, which is still a failed gate.
+        if (radius <= target) return clearHarnessProxies(actor, point.clone(), PROXY_MARGIN_METERS);
+        const pulled = point.clone().addScaledVector(radial.divideScalar(radius), target - radius);
+        const conformed = point.clone().lerp(pulled, Math.min(1, freedom));
+        return clearHarnessProxies(actor, conformed, PROXY_MARGIN_METERS);
+      });
+    }
+
     function updateHarnessRibbon(mesh, socket, centerlineWorld, torsoCenterWorld, torsoUpWorld, widthMeters = 0.026) {
       const positions = [];
       const indices = [];
@@ -906,7 +954,6 @@ export function createHumanReviewActorFactory({
       const surfaceFrame = currentTorsoFrame(actor);
       const profile = surfaceFrame ? frontTorsoProfileFor(actor, surfaceFrame) : null;
       const STRAP_STANDOFF_METERS = 0.012;
-      const WAIST_SEAT_BLEND = 0.6;
       const measuredFront = (height, fallback) => {
         const radius = surfaceFrame ? frontTorsoRadius(profile, height, surfaceFrame.axisLength) : null;
         return radius === null ? fallback : radius + STRAP_STANDOFF_METERS;
@@ -940,14 +987,7 @@ export function createHumanReviewActorFactory({
         if (radius === null) return fallback;
         const direction = surfaceFrame.right.clone().multiplyScalar(Math.cos(bearing))
           .addScaledVector(surfaceFrame.forward, Math.sin(bearing));
-        const seated = clearHarnessProxies(actor, axisPointAt(height).addScaledVector(direction, radius + STRAP_STANDOFF_METERS));
-        // Blend toward the measured seat rather than snapping to it. The strap is
-        // one spline through all its waypoints, so yanking the waist run onto the
-        // body swings the curve elsewhere -- at full strength it bulged the ribbon
-        // 24.5 mm through the torso near the collar on BowReleaseFromNock, which
-        // the shipped gate rejects. The blend keeps most of the closure and leaves
-        // the curve enough slack to stay outside the proxy.
-        return fallback ? fallback.clone().lerp(seated, WAIST_SEAT_BLEND) : seated;
+        return clearHarnessProxies(actor, axisPointAt(height).addScaledVector(direction, radius + STRAP_STANDOFF_METERS));
       };
       const DEG = Math.PI / 180;
       const shoulderFront = topRight.clone()
@@ -978,7 +1018,7 @@ export function createHumanReviewActorFactory({
       routes.forEach((route, index) => updateHarnessRibbon(
         state.straps[index],
         harness.socket,
-        harnessPath(route),
+        conformHarnessToBody(actor, harnessPath(route), surfaceFrame, profile),
         chestCenter,
         up,
       ));
