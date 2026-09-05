@@ -17,10 +17,9 @@ const follicleMaskUrl = new URL(
 );
 
 const HEAD_SHA256 = "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8";
-const shippedModules = ["SK_Hair_Parted"];
+const shippedModules = ["SK_Hair_Parted", "SK_Hair_CurlyCoiled"];
 const withheldModules = [
   "SK_Hair_Cropped",
-  "SK_Hair_CurlyCoiled",
   "SK_Hair_Long",
   "SK_Hair_TiedBack",
   "SK_Hair_Braided",
@@ -77,29 +76,34 @@ const bytes = readFileSync(fileURLToPath(assetUrl));
 const { json, bin } = glb(bytes);
 const nodes = json.nodes ?? [];
 const module = nodes.find((node) => node.name === "SK_Hair_Parted");
+const modules = Object.fromEntries(shippedModules.map((name) => [name, nodes.find((node) => node.name === name)]));
 
 describe("Human foundation modular appearance pack", () => {
-  it("carries the locally validated parted hair module and nothing that was withheld", () => {
+  it("carries the locally validated hair modules and nothing that was withheld", () => {
     const names = nodes.map((node) => node.name);
     expect(names).toEqual(expect.arrayContaining(shippedModules));
     for (const withheld of withheldModules) expect(names).not.toContain(withheld);
-    expect(module).toBeDefined();
-    expect(module.extras).toMatchObject({
-      souldrifterApprovalStatus: "LOCAL_AUTHORING_VALIDATED",
-      souldrifterHeadBone: "mixamorig:Head",
-    });
-    const children = (module.children ?? []).map((index) => nodes[index]);
-    expect(children.map((child) => child.name).sort()).toEqual(["SK_Hair_Parted_Cards", "SK_Hair_Parted_Mass"]);
-    for (const child of children) {
-      expect(child.mesh).toBeTypeOf("number");
-      expect(child.skin).toBe(0);
-      // presentation.ts refuses a module that carries its own scalp/underlay
-      expect(child.name).not.toMatch(/scalp|rootcap|undercoat|underlay/i);
+    expect([...json.asset.extras.souldrifterModules].sort()).toEqual([...shippedModules].sort());
+    for (const name of shippedModules) {
+      const node = modules[name];
+      expect(node, name).toBeDefined();
+      expect(node.extras).toMatchObject({
+        souldrifterApprovalStatus: "LOCAL_AUTHORING_VALIDATED",
+        souldrifterHeadBone: "mixamorig:Head",
+      });
+      const children = (node.children ?? []).map((index) => nodes[index]);
+      expect(children.map((child) => child.name).sort()).toEqual([`${name}_Cards`, `${name}_Mass`]);
+      for (const child of children) {
+        expect(child.mesh).toBeTypeOf("number");
+        expect(child.skin).toBe(0);
+        // presentation.ts refuses a module that carries its own scalp/underlay
+        expect(child.name).not.toMatch(/scalp|rootcap|undercoat|underlay/i);
+      }
     }
     expect(json.skins).toHaveLength(1);
     expect(json.skins[0].joints).toHaveLength(65);
     expect(json.animations ?? []).toHaveLength(0);
-    expect(json.meshes).toHaveLength(2);
+    expect(json.meshes).toHaveLength(2 * shippedModules.length);
   });
 
   it("weights every hair vertex fully to mixamorig:Head", () => {
@@ -127,24 +131,46 @@ describe("Human foundation modular appearance pack", () => {
     }
   });
 
-  it("feathers the mass at the hairline through vertex alpha", () => {
-    const mass = json.meshes.find((mesh) => mesh.name === "SK_Hair_Parted_Mass");
-    const primitive = mass.primitives[0];
-    expect(primitive.attributes).toHaveProperty("COLOR_0");
+  function vertexAlphaStats(meshName) {
+    const mesh = json.meshes.find((entry) => entry.name === meshName);
+    const primitive = mesh.primitives[0];
+    expect(primitive.attributes, meshName).toHaveProperty("COLOR_0");
     const color = readAccessor(json, bin, primitive.attributes.COLOR_0);
     expect(color.size).toBe(4);
+    const max = { 5126: 1, 5123: 65535, 5121: 255 }[json.accessors[primitive.attributes.COLOR_0].componentType];
     let feathered = 0;
+    let alphaSum = 0;
     for (let vertex = 0; vertex < color.count; vertex += 1) {
-      const alpha = color.values[vertex * 4 + 3];
-      const max = { 5126: 1, 5123: 65535, 5121: 255 }[json.accessors[primitive.attributes.COLOR_0].componentType];
-      if (alpha / max < 0.99) feathered += 1;
+      const alpha = color.values[vertex * 4 + 3] / max;
+      alphaSum += alpha;
+      if (alpha < 0.99) feathered += 1;
     }
-    expect(feathered).toBeGreaterThan(200);
-    expect(feathered).toBeLessThan(color.count / 2);
+    return { count: color.count, feathered, meanAlpha: alphaSum / color.count };
+  }
+
+  it("feathers each mass at the hairline through vertex alpha", () => {
+    for (const name of shippedModules) {
+      const stats = vertexAlphaStats(`${name}_Mass`);
+      expect(stats.feathered, name).toBeGreaterThan(200);
+      expect(stats.feathered, name).toBeLessThan(stats.count / 2);
+    }
+  });
+
+  it("stacks the coily fur shells with a falling vertex alpha so alphaCutoff thins them outward", () => {
+    const stats = vertexAlphaStats("SK_Hair_CurlyCoiled_Cards");
+    const mass = json.meshes.find((entry) => entry.name === "SK_Hair_CurlyCoiled_Mass");
+    const massCount = json.accessors[mass.primitives[0].attributes.POSITION].count;
+    // five shells over the mass, every vertex carrying its shell's coverage
+    expect(stats.count).toBeGreaterThanOrEqual(massCount * 5 - 5 * 64);
+    expect(stats.feathered).toBe(stats.count);
+    expect(stats.meanAlpha).toBeGreaterThan(0.4);
+    expect(stats.meanAlpha).toBeLessThan(0.85);
   });
 
   it("uses alpha-tested, double-sided, tintable hair materials with anisotropy", () => {
     expect(json.materials.map((material) => material.name).sort()).toEqual([
+      "MAT_HumanHair_Tintable_CurlyCoiled_Cards",
+      "MAT_HumanHair_Tintable_CurlyCoiled_Mass",
       "MAT_HumanHair_Tintable_Parted_Cards",
       "MAT_HumanHair_Tintable_Parted_Mass",
     ]);
@@ -160,11 +186,12 @@ describe("Human foundation modular appearance pack", () => {
       expect(material.extensions.KHR_materials_specular.specularFactor).toBeLessThan(1);
     }
     expect(json.extensionsUsed).toEqual(expect.arrayContaining(["KHR_materials_anisotropy", "KHR_materials_specular"]));
-    expect(json.images).toHaveLength(2);
-    expect(json.images.map((image) => image.mimeType)).toEqual(["image/png", "image/png"]);
+    expect(json.images).toHaveLength(4);
+    expect(json.images.map((image) => image.mimeType)).toEqual(["image/png", "image/png", "image/png", "image/png"]);
   });
 
   it("ships the approved follicle mask its extras point at", () => {
+    for (const name of shippedModules) expect(modules[name].extras.souldrifterFollicleMaskSha256).toBe(module.extras.souldrifterFollicleMaskSha256);
     expect(module.extras).toMatchObject({
       souldrifterFollicleMaskStatus: "LOCAL_AUTHORING_VALIDATED",
       souldrifterFollicleMaskUrl: "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
@@ -178,7 +205,7 @@ describe("Human foundation modular appearance pack", () => {
     expect(sha256(mask)).toBe(module.extras.souldrifterFollicleMaskSha256);
   });
 
-  it("records exact provenance for the parted module and fail-closed dispositions for the rest", () => {
+  it("records exact provenance for the shipped modules and fail-closed dispositions for the rest", () => {
     const provenance = JSON.parse(readFileSync(fileURLToPath(provenanceUrl), "utf8"));
 
     expect(provenance).toMatchObject({
@@ -197,6 +224,11 @@ describe("Human foundation modular appearance pack", () => {
             sourceHeadSha256: HEAD_SHA256,
             ownerApproval: { silhouetteDraft: "draft11", date: "2026-09-04" },
           },
+          SK_Hair_CurlyCoiled: {
+            license: "PROJECT_ORIGINAL",
+            sourceHeadSha256: HEAD_SHA256,
+            ownerApproval: { status: "PENDING_LIVE_REVIEW" },
+          },
         },
       },
       contract: {
@@ -214,9 +246,9 @@ describe("Human foundation modular appearance pack", () => {
       },
       freshImport: {
         status: "PASS",
-        meshCount: 2,
+        meshCount: 4,
         boneCount: 65,
-        moduleNames: shippedModules,
+        moduleNames: [...shippedModules].sort(),
         embeddedActionCount: 0,
         approvalMetadataRoundTrips: true,
       },
