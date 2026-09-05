@@ -15,13 +15,24 @@ import * as THREE from "three";
  *      continuous lumpy tube instead of a run of separate beads. Spacing used to
  *      be in the caller's flight parameter, which meant the same code drew a
  *      tight rope in the dungeon and scattered beads in the review lab.
- *   2. FAT ENOUGH. The rope calibre is still sized off the measured mouth
- *      aperture, but with a floor: the 5 cm mouths on the review-lab ravager and
- *      stalker packs used to throw a 15 mm bead. This is deliberately a SECOND
- *      number (`acidRopeRadiusMeters`) rather than a change to the contact
- *      body's own radius, because the head gob is what a contact probe sweeps
- *      and the breachling matrix fixture pins the contacts it produces. Nothing
- *      measured moved; the rope around it got fat.
+ *   2. FAT ENOUGH IN THE LAB, AND HONEST ABOUT THE DUNGEON. The rope calibre is
+ *      sized off the measured mouth aperture by its own curve,
+ *      `clamp(0.024 + 0.16 * gape, 0.032, 0.06)`. That is NOT a floor under the
+ *      old calibre - it re-slopes the line and crosses under the contact calibre
+ *      `0.3 * gape` at a gape of 0.1714 m. All four dungeon apertures sit above
+ *      that crossover, so in GAMEPLAY the drawn rope is 2.5% to 5.9% THINNER on
+ *      the stalker, oathbound and ravager, and unchanged on the base only because
+ *      both numbers clamp at 60 mm there. The win it does buy in the dungeon is
+ *      connectivity and the shader, not calibre. Where it genuinely fattens is the
+ *      REVIEW LAB, whose 5 cm mouths used to throw a 15 mm bead and now draw a
+ *      32 mm rope. This is deliberately a SECOND number (`acidRopeRadiusMeters`)
+ *      rather than a change to the contact body's own radius, because the head gob
+ *      is what a contact probe sweeps and the breachling matrix fixture pins the
+ *      contacts it produces. Nothing MEASURED moved. Because those two numbers can
+ *      now differ by 2.1x, the REVIEW LAB additionally draws the swept body as its
+ *      own wireframe cage through the goo (`createBreachlingAcidContactOutline`),
+ *      so a reviewer can never read the drawn calibre as the measured one. The
+ *      dungeon draws no cage; the gameplay look is untouched by that.
  *   3. WET AND TOXIC. `acidFluidMaterial` is a clearcoated physical material
  *      whose shader is extended with a world-space goo field: it displaces the
  *      surface into travelling bulges, perturbs the shading and clearcoat normal
@@ -506,7 +517,15 @@ export interface BreachlingAcidStream {
   readonly head: THREE.Mesh;
   /** Radius of the contact body. Unchanged by the look pass; see `acidHeadRadiusMeters`. */
   readonly headRadiusMeters: number;
-  /** Calibre of the visible rope. Size the splash, pool and coating off THIS. */
+  /**
+   * Calibre of the VISIBLE rope. Drawn-only: it is what a viewer sees, and it is
+   * allowed to read fatter than the body that swept it.
+   *
+   * Do NOT size the splash, pool or coating off this. Those three sit where the
+   * acid actually landed, so both shipped callers hand them `headRadiusMeters`
+   * (see `acidPoolScaleForGob`); sizing them off the rope silently rescales
+   * gameplay art that nothing measured.
+   */
   readonly ropeRadiusMeters: number;
   /** Trail gobs in flight order behind the head. */
   readonly trail: readonly THREE.Mesh[];
@@ -785,6 +804,90 @@ export function createBreachlingAcidStream(options: AcidStreamOptions): Breachli
       drips.removeFromParent();
       drips.clear();
       head.removeFromParent();
+      material.dispose();
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Contact-body outline (review diagnostic)
+// ---------------------------------------------------------------------------
+
+export interface BreachlingAcidContactOutline {
+  /** Parent this NEXT TO the head, never under it: see the note above. */
+  readonly root: THREE.LineSegments;
+  /**
+   * Copy the head's pose so the cage sits exactly on the swept body. `head` and
+   * `root` must share a parent, which is how this stays out of a probe's reach.
+   */
+  follow(head: THREE.Mesh): void;
+  dispose(): void;
+}
+
+/**
+ * REVIEW DIAGNOSTIC. The wireframe cage of the CONTACT BODY, drawn through the
+ * goo that is wrapped around it.
+ *
+ * Why this exists. The rope is deliberately fatter than the body a contact probe
+ * sweeps — on the review-lab ravager and stalker packs (5.05 cm and 5.48 cm
+ * gapes) the drawn calibre is 32.1 mm against a 15.2 mm contact body, and the
+ * first trail gob is fat enough to bury the head inside it. In the dungeon that
+ * is exactly right: the player is being shown a stream of poison, not a collider.
+ * In Motion Forge it is not, because that tool's whole job is showing MEASURED
+ * contact, and a reviewer who reads the goo as the swept body reads a contact
+ * 2.1x too wide. So the review lab draws the swept body as well — the honest fix
+ * is to add the missing information, not to thin the goo (which would regress the
+ * gameplay look) and not to shrink the rope in the lab alone (which would make
+ * the lab stop showing what actually ships).
+ *
+ * It is built from the head's own `resources.blob` geometry, so the cage is that
+ * mesh's wireframe rather than an approximation of it, and the caller scales it
+ * by the head's own scale. `depthTest` is off and the render order is late, so it
+ * reads through the goo instead of being swallowed by it, in a magenta that never
+ * occurs anywhere in the acid palette.
+ *
+ * It is presentation only and review only: the dungeon never constructs one, and
+ * because it is a SIBLING of the head rather than a child, it can never join the
+ * body count of a contact probe built over the head.
+ */
+export function createBreachlingAcidContactOutline(options: {
+  readonly resources: BreachlingAcidResources;
+  readonly name?: string;
+  /** Default 0xff2fa0: the complement of the acid green, used by nothing else. */
+  readonly colour?: number;
+}): BreachlingAcidContactOutline {
+  const geometry = new THREE.WireframeGeometry(options.resources.blob);
+  const material = new THREE.LineBasicMaterial({
+    color: options.colour ?? 0xff2fa0,
+    transparent: true,
+    opacity: 0.85,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const root = new THREE.LineSegments(geometry, material);
+  root.name = options.name ?? "acid-contact-body-outline";
+  root.renderOrder = 4000;
+  root.frustumCulled = false;
+  let disposed = false;
+  return {
+    root,
+    follow(head) {
+      if (disposed) throw new Error("Acid contact outline has been disposed.");
+      if (head.parent !== root.parent) {
+        throw new Error("Acid contact outline must be a sibling of the head it traces.");
+      }
+      root.position.copy(head.position);
+      root.quaternion.copy(head.quaternion);
+      root.scale.copy(head.scale);
+      root.visible = head.visible;
+      root.updateMatrixWorld(true);
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      root.removeFromParent();
+      geometry.dispose();
       material.dispose();
     },
   };

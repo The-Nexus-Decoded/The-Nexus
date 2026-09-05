@@ -7,6 +7,7 @@ import {
 } from "../src/game/dungeons/breach-v2-breachling-mouths";
 import {
   createBreachlingAcidCoating,
+  createBreachlingAcidContactOutline,
   createBreachlingAcidPool,
   createBreachlingAcidResources,
   createBreachlingAcidSplash,
@@ -205,6 +206,57 @@ describe("acid stream", () => {
   it("rejects a body with no measured aperture", () => {
     expect(() => createBreachlingAcidStream({ resources, scale: 1, gapeMeters: 0 })).toThrow(/measured mouth gape/);
     expect(() => createBreachlingAcidStream({ resources, scale: 0, gapeMeters: 0.2 })).toThrow(/positive scale/);
+  });
+
+  it("draws a rope wider than the contact body, which is why the review lab traces the body", () => {
+    // The review-lab ravager gape. This gap is the whole reason the cage exists:
+    // the drawn calibre is 2.1x the swept one, and the first gob buries the head.
+    const stream = createBreachlingAcidStream({ resources, scale: 1, gapeMeters: 0.0505, trailCount: 4 });
+    expect(stream.headRadiusMeters).toBeCloseTo(0.01515, 6);
+    expect(stream.ropeRadiusMeters).toBeCloseTo(0.03208, 6);
+    expect(stream.ropeRadiusMeters / stream.headRadiusMeters).toBeGreaterThan(2);
+    // The head clamps at the same 0.060 m the rope does once the gape is wide, so
+    // a large-gape frame cannot show this gap at all - only a small-gape one can.
+    const wide = createBreachlingAcidStream({ resources, scale: 1, gapeMeters: 0.2272, trailCount: 4 });
+    expect(wide.headRadiusMeters).toBeCloseTo(wide.ropeRadiusMeters, 9);
+    for (const entry of [stream, wide]) entry.dispose();
+  });
+
+  it("traces the swept contact body as a sibling cage that no probe over the head can reach", () => {
+    const stream = createBreachlingAcidStream({ resources, scale: 1, gapeMeters: 0.0505, trailCount: 4 });
+    const outline = createBreachlingAcidContactOutline({ resources });
+    const parent = new THREE.Group();
+    parent.add(stream.head, outline.root);
+    stream.head.position.set(0.4, 1.1, -0.2);
+    stream.head.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.6);
+    outline.follow(stream.head);
+    // Exactly the swept body: the head's own pose and its own ellipsoid scale.
+    expect(outline.root.position.distanceTo(stream.head.position)).toBe(0);
+    expect(outline.root.scale.x).toBeCloseTo(stream.headRadiusMeters * 0.86, 12);
+    expect(outline.root.scale.z).toBeCloseTo(stream.headRadiusMeters * 2.1, 12);
+    expect(outline.root.quaternion.angleTo(stream.head.quaternion)).toBeLessThan(1e-12);
+    // Never under the head, so it can never enter a contact body count.
+    expect(outline.root.parent).toBe(stream.head.parent);
+    expect(stream.head.children).toHaveLength(0);
+    // It reads through the goo instead of being swallowed by it.
+    const material = outline.root.material as THREE.LineBasicMaterial;
+    expect(material.depthTest).toBe(false);
+    expect(outline.root.renderOrder).toBeGreaterThan(0);
+    stream.head.visible = false;
+    outline.follow(stream.head);
+    expect(outline.root.visible).toBe(false);
+    outline.dispose();
+    expect(() => outline.follow(stream.head)).toThrow(/disposed/);
+    stream.dispose();
+  });
+
+  it("refuses to trace a head it is not a sibling of", () => {
+    const stream = createBreachlingAcidStream({ resources, scale: 1, gapeMeters: 0.0505, trailCount: 4 });
+    const outline = createBreachlingAcidContactOutline({ resources });
+    stream.head.add(outline.root);
+    expect(() => outline.follow(stream.head)).toThrow(/sibling/);
+    outline.dispose();
+    stream.dispose();
   });
 });
 

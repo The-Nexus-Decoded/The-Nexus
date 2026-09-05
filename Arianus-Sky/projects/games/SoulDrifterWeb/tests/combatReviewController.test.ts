@@ -17,6 +17,7 @@ import { createHumanReviewActorFactory } from "../src/review/weapon-lab/human-re
 // @ts-expect-error Existing immutable shared bow action catalog.
 import { BOW_RELEASE_NAME, BOW_TRIPLE_SHOT_NAME } from "../src/review/weapon-lab/human-review-catalog.js";
 import { SPIT_PROJECTILE_MOTION, sampleReviewProjectileFlight } from "../src/review/weapon-lab/combat-review-projectiles";
+import { reviewPlantedArrowsFor } from "../src/review/weapon-lab/combat-review-planted-arrows";
 
 // Browser tsconfig has no ambient Node types; limit host declarations to this test.
 const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
@@ -555,9 +556,19 @@ describe("Combat Review visible ranged sequence", () => {
     value.seek(event.timeSeconds);
     const fixedImpact = sampleReviewProjectileFlight(flights[hitIndex]!, event.timeSeconds);
     const impactWorld = actor.projectile.visuals[hitIndex]!.getWorldPosition(new THREE.Vector3());
-    // The deformed-triangle replay differs from the resolver's fixed-flight
-    // sample only by float32 skinning noise at the exact impact frame.
-    expect(impactWorld.distanceTo(fixedImpact)).toBeLessThan(1e-5);
+    // A connected arrow is planted in the body rather than stopped on its skin:
+    // the deformed-triangle replay puts it exactly one derived burial depth
+    // further down its own flight line than the resolver's fixed-flight sample.
+    const planted = reviewPlantedArrowsFor(target).arrows.find((arrow) => arrow.id === event.projectileId)!;
+    expect(planted).toBeTruthy();
+    expect(planted.boneDegraded).toBe(false);
+    const sunk = impactWorld.clone().sub(fixedImpact);
+    expect(sunk.clone().normalize().dot(new THREE.Vector3().fromArray([...flights[hitIndex]!.direction]))).toBeCloseTo(1, 5);
+    expect(sunk.length()).toBeCloseTo(planted.penetrationMeters, 5);
+    expect(planted.penetrationMeters).toBeGreaterThanOrEqual(planted.metrics.headBuryMeters - 1e-9);
+    expect(planted.penetrationMeters).toBeLessThanOrEqual(planted.metrics.maxTravelMeters + 1e-9);
+    // It rides the bone the rig itself says drives that skin, not the archer.
+    expect(actor.projectile.visuals[hitIndex]!.parent!.name).toBe(planted.boneName);
     const rigidOffset = impactWorld.distanceTo(new THREE.Vector3().fromArray(event.position!));
     value.seek(after);
     flights.forEach((flight, index) => {

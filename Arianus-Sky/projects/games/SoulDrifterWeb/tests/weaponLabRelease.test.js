@@ -94,7 +94,7 @@ describe("packaged weapon review release", () => {
     });
     for (const page of reviewPages) {
       const html = await readFile(resolve(projectRoot, page), "utf8");
-      expect(html).toMatch(/<script\s+type="module"\s+src="[^\"]+"/);
+      expect(html).toMatch(/<script\s+type="module"\s+src="[^"]+"/);
       expect(html).not.toMatch(/\/@fs\/|[A-Z]:[\\/]/);
     }
   });

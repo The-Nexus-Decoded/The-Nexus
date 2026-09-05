@@ -4,11 +4,13 @@ import { BOW_PROJECTILE_MOTION, LOADOUTS } from "./human-review-catalog.js";
 import { createReviewMeshProbe, type ReviewMeshProbe } from "./combat-review-probes";
 import { reviewRenderedVertexIndices, sampleReviewMeshVertices } from "./combat-review-contact";
 import { createReviewImpactAttachment, type ReviewImpactAttachment } from "./combat-review-impact-anchor";
+import { reviewPlantedArrowsFor, type ReviewPlantedArrow, type ReviewPlantedArrows } from "./combat-review-planted-arrows";
 import type { ReviewActorAdapter, ReviewEvent, ReviewProjectileFlight } from "./combat-review-types";
 import { composerPackForDefinition } from "./composer-pack-lookup";
 import type { ComposerSpitMouth } from "./composer-mob-packs";
-import { acidPoolScaleForGob, createBreachlingAcidResources, createBreachlingAcidSplash, createBreachlingAcidStream,
-  createBreachlingAcidPool, type BreachlingAcidResources, type BreachlingAcidPool,
+import { acidPoolScaleForGob, createBreachlingAcidContactOutline, createBreachlingAcidResources,
+  createBreachlingAcidSplash, createBreachlingAcidStream, createBreachlingAcidPool,
+  type BreachlingAcidContactOutline, type BreachlingAcidResources, type BreachlingAcidPool,
   type BreachlingAcidSplash, type BreachlingAcidStream } from "../../game/vfx/breachling-acid-vfx";
 import { acidResponsePlan, createAcidVictimMark, type AcidResponsePlan,
   type AcidVictimMark } from "../../game/combat/acid-response";
@@ -142,6 +144,8 @@ export interface ReviewProjectiles {
 interface VisualFlight {
   flight: ReviewProjectileFlight; visual: THREE.Object3D; quaternion: THREE.Quaternion; probe: ReviewMeshProbe;
   impact?: ReviewEvent; impactSeconds?: number; attachment?: ReviewImpactAttachment; attachmentError?: string;
+  /** An arrow that connected is handed to the struck body's quiver, which owns it from then on. */
+  planted?: ReviewPlantedArrow;
 }
 
 /** Call after the shared clock samples the exact emission pose. No asset loader or actor copy. */
@@ -156,7 +160,11 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
   const rows: VisualFlight[] = [], resources: Array<{ dispose(): void }> = [];
   // Four-view acid presentation. Built only on the `context` path; the headless
   // contact sweep never allocates a trail, splash or pool.
-  const streams: { stream: BreachlingAcidStream; flight: ReviewProjectileFlight }[] = [];
+  const streams: { stream: BreachlingAcidStream; flight: ReviewProjectileFlight;
+    outline?: BreachlingAcidContactOutline }[] = [];
+  // The struck body's own quiver of planted arrows. Shared with any other set
+  // that plants into the same target, which is what bounds a rapid-fire volley.
+  let planted: ReviewPlantedArrows | undefined;
   let acidResources: BreachlingAcidResources | undefined;
   let acidSplash: BreachlingAcidSplash | undefined;
   let acidPool: BreachlingAcidPool | undefined;
@@ -256,11 +264,29 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
           const visual = stream.head;
           visual.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
           root.add(visual);
-          streams.push({ stream, flight: description });
+          const entry: { stream: BreachlingAcidStream; flight: ReviewProjectileFlight;
+            outline?: BreachlingAcidContactOutline } = { stream, flight: description };
+          streams.push(entry);
           resources.push(stream);
           // Trail and drips are presentation only; the headless sweep gets neither.
           if (context) { root.add(stream.root); root.add(stream.drips); }
           add(description, visual, visual.quaternion.clone());
+          // What this tool is for is MEASURED CONTACT, and the rope it draws is
+          // deliberately up to 2.1x the body that swept it (breachling-acid-vfx.ts):
+          // on the 5.05 cm ravager gape a 32.1 mm rope wraps a 15.2 mm contact body
+          // and the first trail gob buries it. So the swept body is drawn too, as
+          // its own wireframe cage read through the goo — a reviewer sees both and
+          // cannot mistake one for the other. A SIBLING of the head, added after the
+          // probe above is built over the head alone, so it is outside every contact
+          // body count; and built on the `context` path only, so the headless sweep
+          // that produces the pinned matrix never sees it at all.
+          if (context) {
+            entry.outline = createBreachlingAcidContactOutline({ resources: acidResources,
+              name: `review-acid-contact-body:${actor.definitionId}` });
+            root.add(entry.outline.root);
+            entry.outline.follow(visual);
+            resources.push(entry.outline);
+          }
         } else {
           // Procedural wet-fluid VFX; the mouth aperture bounds its initial size.
           const geometry = new THREE.SphereGeometry(0.008, 12, 8);
@@ -289,10 +315,22 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
       if (hits.length !== 1 || candidate.actorId !== row.flight.actorId || !timeInFlight) {
         throw new Error("Measured projectile impact is ambiguous or outside its fixed flight.");
       }
-      row.attachment = createReviewImpactAttachment({ target: context.target, event: candidate,
-        projectilePosition: sampleReviewProjectileFlight(row.flight, candidate.timeSeconds),
-        projectileQuaternion: row.quaternion });
-      row.impact = row.attachment.event;
+      if (row.flight.visualKind === "arrow") {
+        // An arrow that connects is planted in the body, not stopped on its
+        // surface: the quiver sinks it along its own flight line, parents it to
+        // the bone that drives the struck skin and retires it after its dwell.
+        planted ??= reviewPlantedArrowsFor(context.target);
+        row.planted = planted.plant({ id: row.flight.id, visual: row.visual, event: candidate,
+          contactPosition: sampleReviewProjectileFlight(row.flight, candidate.timeSeconds),
+          flightQuaternion: row.quaternion, flightDirection: vectorFrom(row.flight.direction),
+          flightSeconds: row.flight.endSeconds - row.flight.releaseSeconds });
+        row.impact = row.planted.event;
+      } else {
+        row.attachment = createReviewImpactAttachment({ target: context.target, event: candidate,
+          projectilePosition: sampleReviewProjectileFlight(row.flight, candidate.timeSeconds),
+          projectileQuaternion: row.quaternion });
+        row.impact = row.attachment.event;
+      }
     } catch (error) { row.attachmentError = error instanceof Error ? error.message : String(error); }
   }
   // Where the acid lands: a splash at the measured impact, and a pool wherever
@@ -355,16 +393,28 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
           && current.direction.distanceTo(borrowedDirection!) < 1e-8;
         if (!valid) throw new DOMException("Borrowed arrow emission changed during contact sampling", "AbortError");
       }
+      // Planted arrows first: an arrow whose contact has not been reached yet is
+      // handed back to its original parent here, before the fixed flight below
+      // writes local coordinates into it.
+      planted?.update(timeSeconds);
       for (const row of rows) {
         const impact = context ? row.impact : impacts.filter((event) => event.kind === "contact" && event.result === "hit"
           && event.projectileId === row.flight.id && event.timeSeconds >= row.flight.releaseSeconds
           && event.timeSeconds <= timeSeconds).sort((a, b) => a.timeSeconds - b.timeSeconds)[0];
         const impacted = Boolean(impact && timeSeconds >= (context ? row.impactSeconds! : impact.timeSeconds));
-        row.visual.visible = timeSeconds >= row.flight.releaseSeconds && (timeSeconds <= row.flight.endSeconds || impacted);
         if (impacted && row.attachmentError) {
           row.visual.visible = false;
           throw new Error(`Projectile attachment unavailable: ${row.attachmentError}`);
         }
+        if (row.planted && timeSeconds >= row.planted.plantedAtSeconds) {
+          // From the measured contact onward the struck body's quiver owns this
+          // arrow: its parent bone, its sunk pose, its dwell, its fade and
+          // whether it is still on the body at all. One the cap already retired
+          // stays gone rather than reappearing in flight.
+          if (row.planted.state(timeSeconds) === "retired") row.visual.visible = false;
+          continue;
+        }
+        row.visual.visible = timeSeconds >= row.flight.releaseSeconds && (timeSeconds <= row.flight.endSeconds || impacted);
         let world = sampleReviewProjectileFlight(row.flight, impacted ? impact!.timeSeconds : timeSeconds);
         let worldQuaternion = row.quaternion;
         if (impacted && row.attachment) {
@@ -387,6 +437,9 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
         // 3600 times per resolution and never renders the trail.
         const entry = context ? streams.find((candidate) => candidate.flight === row.flight) : undefined;
         if (entry) {
+          // The contact-body cage rides the head, before and after the measured
+          // contact, so the swept body stays legible where the goo covers it.
+          entry.outline?.follow(row.visual as THREE.Mesh);
           const span = row.flight.endSeconds - row.flight.releaseSeconds;
           const headTime = impacted ? row.impactSeconds ?? impact!.timeSeconds : timeSeconds;
           entry.stream.setVisible(row.visual.visible && !impacted);
@@ -410,7 +463,8 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
       acidMark?.update(timeSeconds);
     },
     projectileIdForProbe: (id) => rows.find((row) => id.startsWith(row.flight.id + "|"))?.flight.id,
-    dispose() { if (disposed) return; disposed = true; rows.forEach((row) => row.attachment?.dispose());
+    dispose() { if (disposed) return; disposed = true;
+      rows.forEach((row) => { row.attachment?.dispose(); if (row.planted) planted?.retire(row.planted); });
       acidSplash?.dispose(); acidPool?.dispose(); acidMark?.dispose();
       root.removeFromParent(); root.clear(); resources.forEach((resource) => resource.dispose());
       acidResources?.dispose(); },

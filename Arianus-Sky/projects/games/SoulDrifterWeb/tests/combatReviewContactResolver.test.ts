@@ -5,6 +5,7 @@ import { resolveReviewContact } from "../src/review/weapon-lab/combat-review-con
 import { createReviewStrikeProbe, reviewContactProfile, validateReviewContactProfile,
   type ReviewContactProfile } from "../src/review/weapon-lab/combat-review-contact-profiles";
 import { prepareReviewSequence } from "../src/review/weapon-lab/combat-review-timeline";
+import { reactionSetForContact } from "../src/review/weapon-lab/reaction-contract";
 import { createMobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
 import { MOB_CATALOG } from "../src/review/weapon-lab/mobs-stage";
 import { COMPOSER_MOB_PACKS } from "../src/review/weapon-lab/composer-mob-packs";
@@ -69,6 +70,35 @@ function rangedSetup(targetMovement?: (time: number) => number) {
     profile: reviewContactProfile(actor, actionId, { projectiles: true })!,
   };
 }
+/**
+ * The one path that actually produces a fire-typed measured contact today: the
+ * equipped fire wand's registered cast. The rod tip is a stand-in for the fitted
+ * Tripo wand bounds; what is under test here is the damage type the resolver
+ * stamps on the confirmed event, and that it is the type the reaction contract
+ * maps to the authored burning set.
+ */
+function fireWandSetup() {
+  const input = setup(), actionId = "ProMagic__Standing1HCastSpell01";
+  const rod = new THREE.Object3D();
+  // Local +Y is the wand's length; rotate it so the tip points along world +Z,
+  // which is the direction the emitter requires to fire at all.
+  rod.rotation.x = Math.PI / 2; rod.position.set(0, 0, -0.19);
+  input.attacker.actor.root.add(rod);
+  const actor = Object.assign(input.attacker.actor, { definitionId: "human-foundation-pilot",
+    snapshot: () => ({ loadoutId: "rod", mode: "equipment", actionId }),
+    primary: { asset: "rod", visual: rod,
+      prepared: { normalizedBounds: new THREE.Box3(new THREE.Vector3(-0.01, -0.19, -0.01), new THREE.Vector3(0.01, 0.19, 0.01)) } },
+  });
+  actor.actions = () => [{ id: actionId, clipName: actionId, label: "Fire wand cast", durationSeconds: 1,
+    semantic: "cast", approvalStatus: "source", rootPolicy: "authored-displacement" }];
+  actor.sample.mockImplementation(() => { actor.root.updateMatrixWorld(true); });
+  input.target.actor.root.position.z = 3; input.target.actor.root.updateMatrixWorld(true);
+  return { ...input, attacker: { ...input.attacker, actor }, rod,
+    sequence: { ...input.sequence, tracks: input.sequence.tracks.map((track, index) => index === 0 ? { ...track, actionId } : track) },
+    profile: reviewContactProfile(actor, actionId, { projectiles: true })!,
+  };
+}
+
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("explicit active-window surface resolution", () => {
@@ -192,6 +222,24 @@ describe("shared melee/ranged sampling loop", () => {
     expect(Array.from(input.arrow.geometry.getAttribute("position").array)).toEqual(original);
     expect(input.arrow.parent).toBe(input.attacker.actor.root);
     expect(reviewContactProfile(input.attacker.actor, input.profile.actionId)).toBeNull(); // activation remains explicit
+  });
+
+  it("types the fire wand's confirmed contact as fire, and that type selects the burning set", async () => {
+    const input = fireWandSetup();
+    expect(input.profile.surface).toEqual({ kind: "projectile", emitter: "wand-fire" });
+    const result = await resolveReviewContact({ ...input, toleranceMeters: 0.001 });
+    expect(result.status).toBe("contact");
+    expect(result.event).toMatchObject({ projectileId: result.flights![0]!.id, damageType: "fire" });
+    expect(result.flights![0]!.visualKind).toBe("fire-spell");
+    // The link this whole set exists for: the measured type reaches the picker and
+    // comes back as the authored burning set, not as a directional flinch.
+    expect(reactionSetForContact({ damageType: result.event!.damageType ?? null, severity: "light" })).toBe("burning");
+    expect(reactionSetForContact({ damageType: result.event!.damageType ?? null, severity: "heavy" })).toBe("burning");
+    // The bow's arrow through the same code path stays physical, so the fire type
+    // is the emitter's, not something every projectile now claims.
+    const arrow = await resolveReviewContact({ ...rangedSetup(), toleranceMeters: 0.001 });
+    expect(arrow.event).toMatchObject({ damageType: "physical" });
+    expect(reactionSetForContact({ damageType: arrow.event!.damageType ?? null, severity: "light" })).toBeNull();
   });
 
   it("uses the actual moving target at confirmation time, without homing or a release-time hit", async () => {
