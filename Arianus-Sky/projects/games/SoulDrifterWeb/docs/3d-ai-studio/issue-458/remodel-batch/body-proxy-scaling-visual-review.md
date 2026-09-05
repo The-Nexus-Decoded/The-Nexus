@@ -87,3 +87,64 @@ constants, so `lib/weapon-audit-metrics.mjs` measures against the same proxy the
 lab uses. That lane is not a git repository, so that edit is not under version
 control — rerun `node tools/weapon-audit-build.mjs` there after any change to the
 capsule table.
+
+---
+
+# Update — live review done, two findings fixed
+
+A live browser review was run against a frozen `git archive` snapshot of HEAD on
+its own Vite port (the worktree could not be used: another session was committing
+to it throughout). Verdict came back FAIL, and it was right about the code even
+though it was wrong about the cause.
+
+## Found and fixed
+
+**A sixth table of absolute body constants, which this document did not list.**
+`updateQuiverHarness()` routed the entire sling from metres measured off the
+bones — `shoulderOutboardMeters` 0.075, `frontTorsoDepth` 0.185,
+`lowerTorsoDepth` 0.16, `lowerLeft` at −0.17/−0.20, and a dozen more.
+`updateGreatswordSheathePreview()` placed all five sheathe waypoints the same
+way. Torso depth, shoulder width, waist drop, reach — anatomy, every one. Fixed
+by pre-scaling the basis vectors so the fitted literals stay as authored.
+
+**`getArtifactCollisionMetrics` was not a getter.** It called
+`enforceMountedArtifactClearance`, which moves sockets on a per-call budget — so
+reading the panel corrected an already-corrected pose a second time and displayed
+clearances for a frame that was never drawn. The corrector now records its result
+and the panel reads it.
+
+## Correction to the review's causation claim
+
+The review reported the sling float as caused by the proxy-radius commit. It was
+not. The float waypoints are `chestCenter + constant × axis` — bone position plus
+a fixed offset — mathematically invariant under a change to proxy radii and
+socket units. Measured directly: with the proxy change reverted the strap's
+quiver end sits at z = −0.0987, with it applied −0.0783. That change moved the
+strap ~20 mm TOWARD the body.
+
+The float was introduced by the 2.06 → 1.8 m height change in `4e9310681`, which
+shrank the body and left these offsets fixed. The proxy work neither caused it
+nor fixed it; it stopped the oversized proxy from hiding it.
+
+## Still open
+
+- **Residual weapon-through-body on the worst attack clips** — staff downward
+  53 mm, mace underarm 51 mm, bow close strike 120 mm. Confirmed visually as real
+  geometry (the staff butt protrudes from the lumbar spine, the mace emerges from
+  the buttock). This is an animation decision, not a constant.
+- **Off-hand weapons are never body-checked.** `ARTIFACT_CLEARANCE_POLICIES` has
+  no `offhand` key, so the second dagger is not gated at all.
+- **A visual re-review of THIS fix has not been done.** The sling and back-mount
+  changes are verified by measurement only.
+
+## Verification limits worth knowing
+
+- No screenshots exist. The renderer has no `preserveDrawingBuffer`, so canvas
+  readback returns a blank frame.
+- No before/after side-by-side render — only HEAD was ever served.
+- A skin-proximity metric was attempted and discarded as invalid: it measured
+  rest-pose vertices, since skinning happens on the GPU. Sphere clearance, which
+  the shipped gate uses, is the number to trust.
+- `ProLongbow__StandingDeathForward01` is unreachable with bow gear through the
+  browser UI (it exists only in catalog mode, where `attachments` is empty). It
+  was checked CPU-side instead.
