@@ -8,6 +8,8 @@ import {
   raceCallingBonus,
   raceCallingEligibility,
   resolveCharacterAppearance,
+  HAIR_COLORS,
+  HAIR_STYLES,
   SKIN_TONES,
   STAT_KEYS,
   STAT_LABELS,
@@ -612,8 +614,27 @@ export class CharacterCreation {
           </div>
         </section>
         <section data-appearance-section="face" ${facePanel ? "" : "hidden"}>
+          <h3>Hair</h3>
+          <div class="appearance-options appearance-options--hair">
+            ${this.availableHairStyles().map((style) => `
+              <button class="appearance-option ${this.selectedHairStyle() === style.id ? "is-selected" : ""}" data-hair-style="${style.id}" type="button" aria-pressed="${this.selectedHairStyle() === style.id}" title="${style.description}">
+                <strong>${style.name}</strong>
+              </button>`).join("")}
+          </div>
+          ${this.selectedHairStyle() === "shaved-buzzed" ? "" : `
+          <h3>Hair colour</h3>
+          <div class="appearance-options appearance-options--hair-colour">
+            ${Object.entries(HAIR_COLORS).map(([id, colour]) => `
+              <button class="appearance-option ${this.draft.appearance.hairColor === id ? "is-selected" : ""}" data-hair-color="${id}" type="button" aria-pressed="${this.draft.appearance.hairColor === id}">
+                <span class="appearance-swatch" style="--swatch:#${colour.color.toString(16).padStart(6, "0")}"></span>
+                <strong>${colour.name}</strong>
+              </button>`).join("")}
+          </div>`}
+          <p class="appearance-note">${this.withheldHairNote()}</p>
+        </section>
+        <section data-appearance-section="face" ${facePanel ? "" : "hidden"}>
           <h3>Withheld</h3>
-          <p class="appearance-note">Face shape, hair, facial hair, complexion detail and age are withheld until their canonical assets pass review. The creator never offers a control that cannot change what you see.</p>
+          <p class="appearance-note">Face shape, facial hair, complexion detail and age are withheld until their canonical assets pass review. The creator never offers a control that cannot change what you see.</p>
         </section>
         </div>
       </div>
@@ -632,6 +653,18 @@ export class CharacterCreation {
         if (panel !== "body" && panel !== "face") return;
         this.switchAppearancePanel(panel);
       });
+    });
+    this.bindGazeHover("button[data-hair-style]");
+    this.bindChoices("button[data-hair-style]", "hairStyle", (id) => {
+      this.draft.appearance.hairStyle = id as CharacterDraft["appearance"]["hairStyle"];
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+      // the colour row appears with the first real style and leaves with the shave
+      this.render();
+    });
+    this.bindGazeHover("button[data-hair-color]");
+    this.bindChoices("button[data-hair-color]", "hairColor", (id) => {
+      this.draft.appearance.hairColor = id as CharacterDraft["appearance"]["hairColor"];
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
     });
     this.bindGazeHover("button[data-skin-tone]");
     this.bindChoices("button[data-skin-tone]", "skinTone", (id, swatch) => {
@@ -972,12 +1005,31 @@ export class CharacterCreation {
     });
   }
 
+  /** Only styles the loaded, locally validated appearance pack can actually show. */
+  private availableHairStyles(): ReadonlyArray<(typeof HAIR_STYLES)[number]> {
+    return HAIR_STYLES.filter((style) => this.appearanceAvailability.hairStyles.includes(style.id));
+  }
+
+  private selectedHairStyle(): string {
+    return resolveCharacterAppearance(this.draft.appearance).hairStyle;
+  }
+
+  private withheldHairNote(): string {
+    const withheld = HAIR_STYLES.length - this.availableHairStyles().length;
+    if (this.appearanceAvailability === EMPTY_CREATION_PREVIEW_AVAILABILITY) return "Hair styles appear once the body has loaded.";
+    if (withheld === 0) return "Every canonical style has passed review.";
+    return `${withheld} more ${withheld === 1 ? "style is" : "styles are"} withheld until their assets pass review.`;
+  }
+
   private updateAppearanceAvailability(availability: CreationPreviewAvailability): void {
     // Fires once the canonical model has loaded and been inspected, so it doubles
     // as the honest "loaded" signal for the readout.
+    const changed = availability !== this.appearanceAvailability;
     this.appearanceAvailability = availability;
     if (availability !== EMPTY_CREATION_PREVIEW_AVAILABILITY) this.stageStatus.hidden = true;
     this.updateAppearanceReadout();
+    // the hair controls are drawn from availability, so a late load redraws the face panel
+    if (changed && this.step === "appearance" && this.appearancePanel === "face") this.render();
   }
 
   private updateAppearanceReadout(): void {
