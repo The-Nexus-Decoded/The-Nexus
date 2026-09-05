@@ -8,6 +8,9 @@ import { ReviewContactSurface } from "../src/review/weapon-lab/combat-review-con
 import { sampleReviewProjectileFlight } from "../src/review/weapon-lab/combat-review-projectiles";
 import type { ReviewActorAdapter, ReviewEvent, ReviewProjectileFlight, ReviewSequence } from "../src/review/weapon-lab/combat-review-types";
 import { MOB_CATALOG, type MobDefinition } from "../src/review/weapon-lab/mobs-stage";
+import { createMobReactionClipLoader, createMobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
+import { REACTION_ARCHETYPES } from "../src/review/weapon-lab/reaction-contract";
+import { REVIEWED_REACTION_PACKS } from "../src/review/weapon-lab/reviewed-reaction-receipt";
 import { composerPackForDefinition } from "../src/review/weapon-lab/composer-pack-lookup";
 // @ts-expect-error Existing studio wiring (JS); the matrix drives the tool's own loader and definitions.
 import { COMBAT_REVIEW_DEFINITIONS, createCombatReviewActorLoader } from "../src/review/weapon-lab/combat-review-studio.js";
@@ -86,11 +89,15 @@ interface MatrixRow {
 
 const round = (value: number, digits = 4) => Number(value.toFixed(digits));
 const installed = new Map<string, Uint8Array<ArrayBuffer>>();
-function bytesFor(definition: MobDefinition) {
-  let bytes = installed.get(definition.id);
-  if (!bytes) { bytes = Uint8Array.from(readFileSync(new URL(`../public${definition.url}`, import.meta.url))); installed.set(definition.id, bytes); }
+function bytesAt(path: string) {
+  let bytes = installed.get(path);
+  if (!bytes) { bytes = Uint8Array.from(readFileSync(new URL(`../public${path}`, import.meta.url))); installed.set(path, bytes); }
   return bytes;
 }
+function bytesFor(definition: MobDefinition) { return bytesAt(definition.url); }
+/** Every pinned reaction pack, by URL: a mob actor now installs its archetype's own. */
+const REACTION_PACK_URLS = new Set(REACTION_ARCHETYPES
+  .flatMap((archetype) => (REVIEWED_REACTION_PACKS[archetype] ?? []).map((pack) => pack.url)));
 const nativeParseAsync = GLTFLoader.prototype.parseAsync;
 function realHumanFactory() {
   return createHumanReviewActorFactory({ loader: { loadAsync: async (url: string) => {
@@ -104,15 +111,18 @@ function realHumanFactory() {
 
 const measured: MatrixRow[] = [];
 let factory: ReturnType<typeof realHumanFactory>;
+// One pack fetch per archetype for the whole matrix, not one per pair.
+const mobReactionClips = createMobReactionClipLoader();
 
 beforeAll(() => {
   vi.stubGlobal("document", { baseURI: "http://localhost:5179/weapon-lab.html" });
   vi.stubGlobal("crypto", webcrypto);
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
+    const pack = [...REACTION_PACK_URLS].find((candidate) => url.pathname.endsWith(candidate));
     const definition = MOB_CATALOG.find((candidate) => url.pathname.endsWith(candidate.url));
-    if (!definition) throw new Error(`Unexpected test fetch ${url}`);
-    return new Response(bytesFor(definition), { status: 200, headers: { "content-type": "model/gltf-binary" } });
+    if (!pack && !definition) throw new Error(`Unexpected test fetch ${url}`);
+    return new Response(pack ? bytesAt(pack) : bytesFor(definition!), { status: 200, headers: { "content-type": "model/gltf-binary" } });
   }));
   // Exact pinned GLB bytes, skin, rig and clips; only image decoding is stubbed for the CPU host.
   vi.spyOn(GLTFLoader.prototype, "parseAsync").mockImplementation(function (this: GLTFLoader, data, path) {
@@ -175,7 +185,8 @@ function nearestApproach(controller: CombatReviewController, attacker: ReviewAct
 
 async function measurePair(body: string, loadout: string): Promise<MatrixRow[]> {
   const rows: MatrixRow[] = [];
-  const controller = new CombatReviewController({ definitions: COMBAT_REVIEW_DEFINITIONS, loadActor: createCombatReviewActorLoader(factory),
+  const controller = new CombatReviewController({ definitions: COMBAT_REVIEW_DEFINITIONS,
+    loadActor: createCombatReviewActorLoader(factory, createMobReviewActor, mobReactionClips),
     initial: { a: `human:${loadout}`, b: body } });
   const captures = new Map<string, Capture>();
   const stop = controller.subscribe((snapshot) => {

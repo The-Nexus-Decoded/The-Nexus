@@ -237,12 +237,24 @@ export const REVIEWED_REACTION_PACKS: ReviewedReactionPacks = prepareReviewedRea
   // One file, nine clips, on the base four-view quadruped's 30 joints — the 24
   // canonical bones plus the six front toes, which carry 8.18 % of the body's skin
   // weight and are what keeps the forepaws out of the floor.
+  //
+  // quad-r9 supersedes quad-r4, which shipped contract defect D8: `GetUp` teleported
+  // the planted right REAR foot 154.91 mm horizontally in one 1/60 s frame and back
+  // again while never leaving the 4 mm contact band, and `BurnRecover` — which nobody
+  // had looked at — did the same at 150.30 mm and 61.45 mm. Both clips are re-authored:
+  // the hind pair is gathered earlier and folded deeper so it takes a real step, and the
+  // forepaw the animal actually stands up on is planted at the frame its own FK
+  // trajectory reaches the floor instead of being left free to skate. Measured on the
+  // shipped bytes with issue-458-motion-composer-v1/tools/measure-breachling-pack.mjs:
+  // every rear foot of every clip now reads 0.00 mm of in-band out-and-back, and the
+  // worst anywhere in the pack is 1.47 mm on a forepaw in `PoisonImpact`, which quad-r4
+  // also had.
   breachling: [
     {
       archetype: "breachling",
-      url: "/assets/weapon-lab/reactions/breachling-reactions-quad-r4.glb",
+      url: "/assets/weapon-lab/reactions/breachling-reactions-quad-r9.glb",
       bytes: 15_195_976,
-      sha256: "03c168b14e16f7df1df7304e12a1b1a335bfd190997c724219bcc683b0416cd4",
+      sha256: "0ef324b7d893fe24c6cf42f41803a8352fda97493e987294f07b3083ca7bf915",
       rigSourceSha256: "625055eef3c3a8cd755f343aedfd70e0ecb4310a953ad60b39430be455c2b9c0",
       jointCount: 30,
       clips: ["PoisonImpact", "PoisonLoop", "PoisonRecover", "BurnFlare", "BurnBurn", "BurnRecover",

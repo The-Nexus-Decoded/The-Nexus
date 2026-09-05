@@ -344,6 +344,7 @@ export class CombatReviewPanel {
       this.secondHit.hidden = true; this.secondHitKey = ""; this.historyKey = "";
       this.reactionPlan.textContent = snapshot.ready
         ? "No special reaction. An ordinary contact uses the directional flinch set; a special damage type or a heavy strike replaces it with an authored impact, held loop and recovery."
+          + this.reactionReach(snapshot.reaction)
         : "";
       return;
     }
@@ -360,6 +361,26 @@ export class CombatReviewPanel {
       + `, then recovery and back to the ready pose${cut}${absorbed}${preempted}`
       + ` · entering over ${snapshot.cue.blendSeconds.toFixed(3)} s (set default ${REACTION_SETS[active.setId].entryBlendSeconds.toFixed(3)} s)`
       + `, settling back over ${snapshot.cue.exitBlendSeconds.toFixed(3)} s (set default ${REACTION_SETS[active.setId].exitBlendSeconds.toFixed(3)} s).`;
+  }
+  /**
+   * Which authored sets this defender can actually reach, said out loud.
+   *
+   * A registered set the loaded body cannot play is the one failure a reviewer would
+   * otherwise read as "the feature does not work": the archetype has a pinned pack, but
+   * this particular body is not the rig it was authored on, so nothing installed and a
+   * special contact quietly falls back to the flinch picker.
+   */
+  private reactionReach(reaction: CombatReviewSnapshot["reaction"]): string {
+    if (!reaction.archetype) return "";
+    const names = (ids: readonly ReactionSetId[]) => ids.map((id) => REACTION_SETS[id].label.split(" — ")[0]).join(", ");
+    if (!reaction.registeredSets.length) return ` No reaction pack is registered for the ${reaction.archetype} archetype.`;
+    if (!reaction.playableSets.length) {
+      return ` The ${reaction.archetype} pack registers ${names(reaction.registeredSets)}, but this body does not carry its clips`
+        + " — it is not the rig that pack was authored on, so every special contact falls back to the flinch set.";
+    }
+    const missing = reaction.registeredSets.filter((id) => !reaction.playableSets.includes(id));
+    return ` Installed on this defender: ${names(reaction.playableSets)} (${reaction.archetype} archetype)`
+      + `${missing.length ? `; registered but not carried: ${names(missing)}` : ""}.`;
   }
   /**
    * The second-hit control and the record of what every hit actually did.

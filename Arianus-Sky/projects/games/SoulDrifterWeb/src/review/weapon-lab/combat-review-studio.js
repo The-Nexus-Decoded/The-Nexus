@@ -3,7 +3,7 @@ import { LOADOUTS } from "./human-review-catalog.js";
 import { MOB_CATALOG } from "./mobs-stage.ts";
 import { reviewedMobNote } from "./reviewed-mob-receipt.ts";
 import { reviewedWardenNote } from "./reviewed-warden-receipt.ts";
-import { createMobReviewActor } from "./mob-review-actor.ts";
+import { createMobReviewActor, createMobReactionClipLoader } from "./mob-review-actor.ts";
 import { CombatReviewController } from "./combat-review-controller.ts";
 import { CombatReviewPanel } from "./combat-review-panel.ts";
 import { ReviewContactSurface } from "./combat-review-contact.ts";
@@ -58,8 +58,16 @@ function humanCalibration(actor) {
   } };
 }
 
-/** Reuse the caller's immutable human cache; only returned actor instances are owned here. */
-export function createCombatReviewActorLoader(humanFactory, mobLoader = createMobReviewActor) {
+/**
+ * Reuse the caller's immutable human cache; only returned actor instances are owned here.
+ *
+ * `mobReactionClips` is the mob side of `humanFactory.reactionPackAvailable`: one
+ * fetch per archetype for this whole review session, handed to every mob actor the
+ * session builds. It is a parameter rather than a module global so a caller can
+ * withhold it, and so its cache dies with the loader that owns it.
+ */
+export function createCombatReviewActorLoader(humanFactory, mobLoader = createMobReviewActor,
+  mobReactionClips = createMobReactionClipLoader()) {
   return async ({ definition, instanceId, signal }) => {
     if (signal.aborted) throw new DOMException("Actor loading cancelled", "AbortError");
     if (definition.family === "human") {
@@ -81,7 +89,11 @@ export function createCombatReviewActorLoader(humanFactory, mobLoader = createMo
       return { actor, calibration: humanCalibration(actor),
         settleConstraints: () => actor.reviewTools.applyTwoHandIK(actor) };
     }
-    const actor = await mobLoader({ instanceId, definitionId: definition.id, signal });
+    // A special attack lands on the body here too, so the archetype pack is bound for
+    // every mob definition. Which archetype - and whether this body is the rig that
+    // archetype's pack was authored on - is settled inside, by the receipt.
+    const actor = await mobLoader({ instanceId, definitionId: definition.id, signal,
+      loadReactionClips: mobReactionClips ?? undefined });
     return { actor, calibration: {
       controls: () => actor.controls.map((control) => ({ ...control, value: actor.calibration().controls[control.id] ?? 0 })),
       set: (id, value) => actor.setControl(id, value), reset: () => actor.clearCalibration(),

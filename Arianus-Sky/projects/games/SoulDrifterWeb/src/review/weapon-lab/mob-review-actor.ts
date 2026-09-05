@@ -1,12 +1,18 @@
 import * as THREE from "three";
-import { MOB_CATALOG, MobsStage, type MobDefinition } from "./mobs-stage";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MOB_CATALOG, MobsStage, type MobDefinition, type MobReactionClipLoader,
+  type MobReactionPackStatus } from "./mobs-stage";
 import type { MobPoseControl } from "./mob-pose-overlay";
-import type { ReviewAction, ReviewActionSemantic, ReviewActorAdapter } from "./combat-review-types";
-import { REACTION_CONTRACT_CLIPS } from "./reaction-contract";
+import type { ReviewAction, ReviewActionSemantic, ReviewActorAdapter, ReviewActorFamily } from "./combat-review-types";
+import { REACTION_CONTRACT_CLIPS, reactionArchetypeForFamily, type ReactionArchetype } from "./reaction-contract";
+import { loadReactionPacksForFamily, reactionPackClips, type ReactionPackParser } from "./reaction-pack-loader";
+import { configureReviewAssetLoader } from "./review-asset-loader";
 
 export interface MobReviewActor extends ReviewActorAdapter {
   readonly definition: MobDefinition;
   readonly checksumVerified: boolean;
+  /** Which actions came from this body's archetype reaction pack, or why none did. */
+  readonly reactionPack: MobReactionPackStatus;
   readonly controls: readonly MobPoseControl[];
   setControl(id: string, value: number): void;
   calibration(): ReturnType<MobsStage["draft"]>;
@@ -18,6 +24,36 @@ export interface MobReviewActor extends ReviewActorAdapter {
 
 /** Contract reaction clip names, matched exactly rather than by regex. */
 const CONTRACT_REACTION_CLIPS = new Set<string>(REACTION_CONTRACT_CLIPS);
+
+/**
+ * One reaction-pack fetch per archetype for a whole review session.
+ *
+ * The packs are 15-22 MB each, both slots of a spar can carry the same archetype,
+ * and every actor reload would otherwise re-download the same pinned bytes. This
+ * mirrors the human factory, which fetches its pack once per factory and lets each
+ * actor install its own clip references. A rejected load is not cached, so a
+ * transient failure can be retried.
+ *
+ * `signal` fails a caller fast; it deliberately does NOT cancel the shared fetch,
+ * because one actor being replaced must not tear the pack out from under the other
+ * slot. Each caller re-checks its own signal after awaiting.
+ */
+export function createMobReactionClipLoader(options: { parser?: ReactionPackParser } = {}): MobReactionClipLoader {
+  const parser = options.parser ?? configureReviewAssetLoader(new GLTFLoader());
+  const cache = new Map<ReactionArchetype, Promise<readonly THREE.AnimationClip[]>>();
+  return (family: ReviewActorFamily, signal?: AbortSignal) => {
+    signal?.throwIfAborted();
+    const archetype = reactionArchetypeForFamily(family);
+    let pending = cache.get(archetype);
+    if (!pending) {
+      const load = loadReactionPacksForFamily(family, { parser }).then(reactionPackClips);
+      load.catch(() => { if (cache.get(archetype) === load) cache.delete(archetype); });
+      cache.set(archetype, load);
+      pending = load;
+    }
+    return pending;
+  };
+}
 
 function semantic(name: string): ReviewActionSemantic {
   // A pack clip is a reaction BY CONTRACT, not by regex - the same rule the human actor
@@ -47,6 +83,12 @@ export async function createMobReviewActor(options: {
   instanceId: string;
   definitionId: string;
   signal?: AbortSignal;
+  /**
+   * Opt-in, exactly like the human factory's `includeReactionPack`: omit it and this
+   * actor is the actor it has always been, with no contract reaction clip anywhere
+   * in its action list.
+   */
+  loadReactionClips?: MobReactionClipLoader;
 }): Promise<MobReviewActor> {
   if (!options.instanceId.trim()) throw new Error("A review actor requires a unique instance ID");
   const definition = MOB_CATALOG.find((entry) => entry.id === options.definitionId);
@@ -54,7 +96,7 @@ export async function createMobReviewActor(options: {
   if (options.signal?.aborted) throw new DOMException("Creature loading cancelled", "AbortError");
   const root = new THREE.Scene();
   root.name = options.instanceId;
-  const stage = new MobsStage(root);
+  const stage = new MobsStage(root, { loadReactionClips: options.loadReactionClips });
   const cancel = () => stage.dispose();
   options.signal?.addEventListener("abort", cancel, { once: true });
   try {
@@ -74,9 +116,14 @@ export async function createMobReviewActor(options: {
   try {
     for (const name of stage.actions()) {
       stage.setAction(name);
+      // A pack clip is authored, pinned and verified for integrity, but it is not one
+      // of this body's own source motions and no owner has signed its motion off:
+      // "draft", the same status the human actor gives its installed pack.
+      const fromPack = stage.reactionPack.installed.includes(name);
       actions.push(Object.freeze({ id: name, label: stage.actionLabel(name), clipName: name,
         durationSeconds: stage.snapshot()!.durationSeconds, semantic: semantic(name),
-        approvalStatus: definition.reviewedMotion?.actions.includes(name) ? "continuous-reviewed"
+        approvalStatus: fromPack ? "draft"
+          : definition.reviewedMotion?.actions.includes(name) ? "continuous-reviewed"
           : definition.reviewedMotion?.neutralHolds.includes(name) ? "pose-approved" : "source",
         rootPolicy: "authored-displacement", facing: "locked" }));
     }
@@ -99,7 +146,7 @@ export async function createMobReviewActor(options: {
   }
   return {
     instanceId: options.instanceId, definitionId: definition.id, definition, root, model,
-    checksumVerified: stage.checksumVerified, controls: stage.overlay!.controls,
+    checksumVerified: stage.checksumVerified, reactionPack: stage.reactionPack, controls: stage.overlay!.controls,
     actions: () => actions,
     sample,
     reset() { assertLive(); sample(stage.snapshot()!.currentClip, 0); },

@@ -7,7 +7,7 @@ import { ReviewContactSurface } from "./combat-review-contact";
 import { createReviewProjectiles, reviewProjectileBinding, type ReviewProjectiles } from "./combat-review-projectiles";
 import { validateReviewImpactSurface } from "./combat-review-impact-anchor";
 import { applyReactionHit, reactionArchetypeForFamily, reactionSetForContact, reactionTimelineEnd,
-  reactionTimelinePhases, retimeReactionPlan, REACTION_SETS,
+  reactionTimelinePhases, retimeReactionPlan, REACTION_CONTRACT_CLIPS, REACTION_SET_IDS, REACTION_SETS,
   type PlacedReactionPhase, type ReactionArchetype, type ReactionSetId, type ReactionTimeline } from "./reaction-contract";
 import { reactionSetDurations } from "./reaction-pack-loader";
 import { reactionSetInstalled, REVIEWED_REACTION_PACKS, type ReviewedReactionPacks } from "./reviewed-reaction-receipt";
@@ -94,6 +94,17 @@ export interface CombatReactionSnapshot {
   readonly effectSeconds: number;
   readonly timeline: ReactionTimeline | null;
   readonly phases: readonly PlacedReactionPhase[];
+  /** The defender's archetype, or null while a slot is still loading. */
+  readonly archetype: ReactionArchetype | null;
+  /** Sets the RECEIPT registers for that archetype. */
+  readonly registeredSets: readonly ReactionSetId[];
+  /**
+   * Sets this defender can actually play right now: registered AND carried by its own
+   * installed clips. A registered set missing here is a body that did not receive its
+   * archetype's pack, which is the difference between "no pack exists" and "this body
+   * is not the rig the pack was authored on" - and the reviewer has to be able to see it.
+   */
+  readonly playableSets: readonly ReactionSetId[];
 }
 export interface CombatSparRow {
   readonly actionId: string;
@@ -122,6 +133,8 @@ interface SlotState {
 const SLOTS: readonly CombatSlot[] = ["a", "b"];
 // A miss at the fitted spacing is retried closer, down to 0.7 m, then farther out for
 // leaping attacks that carry the attacker past a target at the fitted spacing.
+/** Clip names an archetype's reaction pack owns; never an ordinary flinch. */
+const PACK_CLIPS: ReadonlySet<string> = new Set(REACTION_CONTRACT_CLIPS);
 const SPAR_CLOSER_STEPS = [1.6, 1.4, 1.2, 1.0, 0.85, 0.7] as const;
 const SPAR_FARTHER_STEPS = [2.5, 3.0, 3.5, 4.0, 4.5] as const;
 const opposite = (slot: CombatSlot): CombatSlot => slot === "a" ? "b" : "a";
@@ -211,7 +224,7 @@ export class CombatReviewController {
         direction: this.contactDirection, severity: this.contactSeverity },
       reactionPolicy: this.reactionPolicy,
       reaction: { effectSeconds: this.effectSeconds, timeline: this.reactionTimeline,
-        phases: this.reactionPhases() },
+        phases: this.reactionPhases(), ...this.reactionAvailability() },
       spar: { running: this.spar.running, attackerDefinitionId: this.spar.attackerDefinitionId,
         defenderDefinitionId: this.spar.defenderDefinitionId, rows: this.spar.rows.map((row) => ({ ...row })) } };
   }
@@ -345,6 +358,15 @@ export class CombatReviewController {
    */
   private archetypeOf(slot: SlotState): ReactionArchetype {
     return reactionArchetypeForFamily(this.definition(slot.definitionId).family);
+  }
+  /** What the defender's archetype registers, and what its loaded body can actually play. */
+  private reactionAvailability(): Pick<CombatReactionSnapshot, "archetype" | "registeredSets" | "playableSets"> {
+    const defenderSlot = this.slots[opposite(this.attacker)];
+    if (defenderSlot.status !== "ready") return { archetype: null, registeredSets: [], playableSets: [] };
+    const archetype = this.archetypeOf(defenderSlot);
+    return { archetype,
+      registeredSets: REACTION_SET_IDS.filter((setId) => reactionSetInstalled(this.reactionRegistry, archetype, setId)),
+      playableSets: REACTION_SET_IDS.filter((setId) => this.reactionDurations(defenderSlot, setId) !== null) };
   }
   /**
    * Clip durations for a set, read off the defender's own installed actions — but
@@ -536,7 +558,11 @@ export class CombatReviewController {
       value.selected = { action: available.find((action) => action.semantic === "attack" || action.semantic === "cast")?.id ?? first,
         ready: available.find((action) => action.semantic === "idle")?.id
           ?? available.find((action) => action.semantic !== "death")?.id ?? first,
-        reaction: available.find((action) => action.semantic === "reaction")?.id ?? "",
+        // An installed pack clip is reachable only through a measured special contact,
+        // so it must never be the resting default: a body standing in ProneHold or
+        // BurnBurn before anything has hit it would be a lie about its own state.
+        reaction: available.find((action) => action.semantic === "reaction" && !PACK_CLIPS.has(action.id))?.id
+          ?? available.find((action) => action.semantic === "reaction")?.id ?? "",
         death: available.find((action) => action.semantic === "death")?.id ?? "" };
       value.handle = loaded; value.status = "ready"; value.error = null;
       this.root.add(loaded.actor.root); this.placeActors();

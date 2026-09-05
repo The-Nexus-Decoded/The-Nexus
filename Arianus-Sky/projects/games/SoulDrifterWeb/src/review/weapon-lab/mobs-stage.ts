@@ -16,6 +16,9 @@ import { configureReviewAssetLoader, fetchPinnedReviewAsset } from "./review-ass
 import { REVIEWED_FOURVIEW_MOB_RECEIPTS, REVIEWED_MOB_RECEIPTS, type ReviewedMobReceipt } from "./reviewed-mob-receipt";
 import { REVIEWED_FOURVIEW_WARDEN_RECEIPTS, type ReviewedWardenReceipt } from "./reviewed-warden-receipt";
 import { FOURVIEW_DEFINITION_SUFFIX } from "./composer-pack-lookup";
+import { assertReactionClipsBind, skinnedBoneNames } from "./reaction-pack-loader";
+import { reactionArchetypeForFamily, reactionPackClipLabel } from "./reaction-contract";
+import { REACTION_RIG_LINEAGE } from "./reviewed-reaction-receipt";
 
 export interface MobDefinition {
   id: string;
@@ -125,11 +128,59 @@ export function mobCalibrationKey(definition: MobDefinition, clip: string): stri
   return `${definition.family}/${definition.id}/${definition.sha256}/${clip}/unarmed-articulation-v1`;
 }
 
+/**
+ * Loads one archetype's pinned reaction clips for a review body. The lab hands the
+ * stage this rather than a pack list, so the fetch, the checksum and the cache stay
+ * with whoever owns the review session.
+ */
+export type MobReactionClipLoader =
+  (family: MobDefinition["family"], signal?: AbortSignal) => Promise<readonly THREE.AnimationClip[]>;
+
+/** Why a body did not receive its archetype's pack, in the words the reviewer needs. */
+export interface MobReactionPackStatus {
+  readonly installed: readonly string[];
+  readonly blockedReason: string | null;
+}
+const NO_REACTION_PACK: MobReactionPackStatus = Object.freeze({ installed: Object.freeze([]), blockedReason: null });
+
 class PinnedMobLoader extends GLTFLoader {
   checksumVerified = false;
-  constructor(private definition: MobDefinition, private signal: AbortSignal) {
+  reactionPack: MobReactionPackStatus = NO_REACTION_PACK;
+  constructor(private definition: MobDefinition, private signal: AbortSignal,
+    private loadReactionClips?: MobReactionClipLoader) {
     super();
     configureReviewAssetLoader(this);
+  }
+  /**
+   * A pack is authored on ONE body per archetype and pinned to its checksum, so
+   * only that body may receive it. A sibling variant with the same family carries a
+   * different bind — the Oathbreaker Warden differs from the Wayfarer by up to 0.229
+   * in a quaternion component, the Stalker Breachling is missing the front toes
+   * outright — and playing the pack there would be another rig's motion, not this
+   * one's. Refusing by lineage costs no download; `assertReactionClipsBind` below is
+   * then the runtime proof that the pinned rig is the one actually parsed.
+   */
+  private async installReactionPack(gltf: { scene: THREE.Object3D; animations: THREE.AnimationClip[] }): Promise<void> {
+    if (!this.loadReactionClips) return;
+    const archetype = reactionArchetypeForFamily(this.definition.family);
+    const lineage = REACTION_RIG_LINEAGE[archetype];
+    if (this.definition.sha256 !== lineage.sha256 || this.definition.url !== lineage.bodyUrl) {
+      this.reactionPack = Object.freeze({ installed: Object.freeze([]),
+        blockedReason: `The ${archetype} reaction pack is authored on ${lineage.bodyUrl}; ${this.definition.label}`
+          + ` loads ${this.definition.url}, whose rig is a sibling and not the pinned one. That is a per-variant build, not this registration.` });
+      return;
+    }
+    const clips = await this.loadReactionClips(this.definition.family, this.signal);
+    this.signal.throwIfAborted();
+    const own = new Set(gltf.animations.map((clip) => clip.name));
+    for (const clip of clips) {
+      if (own.has(clip.name)) throw new Error(`Reaction clip ${clip.name} collides with a ${this.definition.label} source clip.`);
+    }
+    // Every bone the pack animates must exist on the body about to play it. The
+    // receipt pins the rig by checksum; this is the proof on the parsed bytes.
+    assertReactionClipsBind(clips, skinnedBoneNames(gltf.scene));
+    gltf.animations = [...gltf.animations, ...clips];
+    this.reactionPack = Object.freeze({ installed: Object.freeze(clips.map((clip) => clip.name)), blockedReason: null });
   }
   override async loadAsync(url: string) {
     if (url !== this.definition.runtimeUrl) throw new Error(`Unexpected mob asset: ${url}`);
@@ -163,7 +214,13 @@ class PinnedMobLoader extends GLTFLoader {
     }
     const verified = await fetchPinnedReviewAsset(this.definition, { signal: this.signal, requireChecksum: !!intake });
     this.checksumVerified = verified.checksumVerified;
-    return this.parseAsync(verified.bytes, verified.resourcePath);
+    const gltf = await this.parseAsync(verified.bytes, verified.resourcePath);
+    // The pack rides in on the parsed source, so the shared dungeon runtime builds
+    // its clip actions, its grounding reference and its snapshot action list for a
+    // reaction clip by exactly the same code that handles the body's own Idle. The
+    // dungeon never reaches this loader, so no gameplay actor gains a reaction clip.
+    await this.installReactionPack(gltf);
+    return gltf;
   }
 }
 
@@ -172,6 +229,8 @@ export class MobsStage {
   overlay: ReturnType<typeof createMobPoseOverlay> | null = null;
   ready = false;
   checksumVerified = false;
+  /** Which of this body's actions came from its archetype's reaction pack, and why none did. */
+  reactionPack: MobReactionPackStatus = NO_REACTION_PACK;
   private runtime: RuntimeAdapter | null = null;
   private stageRoot: THREE.Scene | null = null;
   private abort: AbortController | null = null;
@@ -184,7 +243,11 @@ export class MobsStage {
   private loop = true;
   private playing = true;
 
-  constructor(private scene: THREE.Scene) {}
+  /**
+   * `loadReactionClips` is opt-in and review-only: without it this stage is byte for
+   * byte the stage it has always been, and no body sees a contract reaction clip.
+   */
+  constructor(private scene: THREE.Scene, private options: { loadReactionClips?: MobReactionClipLoader } = {}) {}
 
   async select(id: string): Promise<boolean> {
     const definition = MOB_CATALOG.find((entry) => entry.id === id);
@@ -197,7 +260,7 @@ export class MobsStage {
     this.scene.add(stageRoot);
     this.stageRoot = stageRoot;
     this.abort = new AbortController();
-    const loader = new PinnedMobLoader(definition, this.abort.signal);
+    const loader = new PinnedMobLoader(definition, this.abort.signal, this.options.loadReactionClips);
     // Typed canonical layout supplies the runtime contract; only an explicit
     // review placement is active. No dungeon geometry, gameplay, or AI is run.
     const source = buildBreachV2Layout(4182, "wayfarer");
@@ -265,6 +328,7 @@ export class MobsStage {
       adapter.hooks(this.overlay);
       adapter.playback({ speed: this.speed, loop: this.loop });
       this.checksumVerified = loader.checksumVerified;
+      this.reactionPack = loader.reactionPack;
       this.ready = true;
       this.setAction(adapter.snapshot()?.actionNames.includes("CombatIdle") ? "CombatIdle" : this.actions()[0]!);
       // Let the shared Warden controller complete its existing three-frame
@@ -288,6 +352,10 @@ export class MobsStage {
   actor() { return this.runtime?.actor() ?? null; }
   actions() { return this.snapshot()?.actionNames ?? []; }
   actionLabel(name: string) {
+    // A pack clip is named by the contract, not by the body's own intake receipt:
+    // it is neither one of this creature's revised source motions nor an
+    // unrevised one, so both of those labels would misdescribe it.
+    if (this.reactionPack.installed.includes(name)) return reactionPackClipLabel(name);
     const label = name === "RecieveHit" ? "Receive hit" : name.replace(/([a-z])([A-Z])/g, "$1 $2");
     const revised = this.definition?.reviewedMotion;
     const reviewLabel = revised?.actions.includes(name)
@@ -410,6 +478,9 @@ export class MobsStage {
     this.effectTarget = null;
     this.stageRoot?.removeFromParent(); this.stageRoot = null;
     this.checksumVerified = false;
+    // The mixer, its clip actions and the pack's place in the action list go with
+    // the runtime above; the body no longer offers a reaction clip after this.
+    this.reactionPack = NO_REACTION_PACK;
   }
   dispose() { this.clear(); this.drafts.clear(); }
 }

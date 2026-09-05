@@ -655,7 +655,7 @@ log.
 | `humanoid` | `humanoid-reactions-burn-r2.glb` | 3,403,688 | `246b46a6867b499961908cd5977335206df593d90be0c7f5f15f43cdb224030f` | same | 65 |
 | `humanoid` | `humanoid-reactions-kd-r14.glb` | 3,442,812 | `c40fa8ab8615fbc2c81418645942e9192c2679f49f35b6cf0353e252afa8eb34` | same | 65 |
 | `warden` | `warden-reactions-r3.glb` | 22,228,284 | `ac58bc6ff929821a4585a661c4297ad85dca4890ad212c997d603e359b744662` | `wayfarer-cinderbound-warden-fourview-v12.glb` | 18 |
-| `breachling` | `breachling-reactions-quad-r4.glb` | 15,195,976 | `03c168b14e16f7df1df7304e12a1b1a335bfd190997c724219bcc683b0416cd4` | `breachling-base-fourview-composer-v8.glb` | 30 |
+| `breachling` | `breachling-reactions-quad-r9.glb` | 15,195,976 | `0ef324b7d893fe24c6cf42f41803a8352fda97493e987294f07b3083ca7bf915` | `breachling-base-fourview-composer-v8.glb` | 30 |
 
 What "carries the rig" means here is exact, not approximate: each pack's own skin
 was compared joint for joint against the body GLB named beside it, and the maximum
@@ -683,16 +683,16 @@ flinch picker instead of half-playing another rig's motion. The lab-side loader 
 addressed the same way - `loadReactionPacksForFamily(family, ...)` - so no call
 site spells out an archetype.
 
-**Still open.** Mob review actors do not yet install their pack's clips: the
-Breachling and Warden stages play their own body's animation set through the shared
-dungeon runtime, so the registration above is reachable by the contract and the
-loader but not yet by a Warden or Breachling actor on the stage. That wiring, and
-the per-variant builds the measured correction in section 5.1 calls for, are the
-next pieces.
+**Reachable as of 2026-09-04.** Mob review actors now install their pack's clips -
+see D6 below for how, and for the end-to-end measurement. What remains open here is
+the per-variant builds the measured correction in section 5.1 calls for: a pack is
+authored on ONE body per archetype (`REACTION_RIG_LINEAGE`), so the four-view
+Wayfarer Warden and the four-view base Breachling receive theirs, and every sibling
+body is refused by lineage rather than handed another rig's motion.
 
 ---
 
-## 9. Archetype reaction sets: shipped, pinned, and NOT yet reachable
+## 9. Archetype reaction sets: shipped, pinned, and what three skeptics found
 
 The warden and breachling nine-clip sets are authored, pinned and independently
 verified for integrity - hashes, byte lengths, joint names and index order all
@@ -715,6 +715,71 @@ blocker remains open: until mob actors install pack clips, these two packs are
 inert.** The test that was offered as proof of archetype resolution is a fixture,
 not the live path.
 
+> **CLOSED 2026-09-04. The remaining blocker is wired, and the proof is a measured
+> contact rather than a constructed action list.**
+>
+> **Where the clips are installed, and why there.** `MobsStage.actions()` reads
+> `actionNames` off an adapter snapshot, so the clips have to live in the mob
+> adapter, not in the review actor. They are merged into the parsed source inside the
+> review-only `PinnedMobLoader`, immediately after `fetchPinnedReviewAsset` has
+> enforced the body's byte length and SHA-256. The shared dungeon runtime then builds
+> a reaction clip's `clipAction`, its floor-reference grounding offset and its place
+> in `actionNames` with exactly the code that handles the body's own `Idle` - no
+> second animation path, and no gameplay actor gains a clip, because the dungeon
+> never constructs this loader. `MobsStage` is opt-in
+> (`new MobsStage(scene, { loadReactionClips })`); the solo Motion Studio stage
+> passes nothing and is unchanged.
+>
+> **Which body may receive a pack.** A pack is authored on one rig and pinned to its
+> checksum, so `REACTION_RIG_LINEAGE` is the gate: the four-view Wayfarer Warden
+> (`79b84201...`) and the four-view base Breachling (`625055ee...`) receive theirs,
+> and a sibling is refused before a byte is downloaded, with the reason recorded on
+> the actor and shown in the panel. That is not a shortcut around the bone check -
+> `assertReactionClipsBind` still runs on the PARSED skin of the body about to play
+> the clips, and it is what refuses a pack handed to the wrong rig (measured: the
+> quadruped nine on the Warden body throws on 26 missing nodes).
+>
+> **Two consequences that are behaviour changes, not bookkeeping.** An installed pack
+> clip is never the resting default reaction any more - sorted action names put
+> `BurnBurn` ahead of `RecieveHit`, and a body standing in a burning loop before
+> anything hit it would be a lie about its own state - so `CombatReviewController`
+> picks the first non-pack reaction. And a Breachling or Warden defender now reaches
+> the shared knockdown from any heavy melee, which moves rows in
+> `tests/fixtures/combatReviewBreachlingMatrix.json` for `breachling-base-4v` as
+> defender; that fixture needs re-recording.
+>
+> **Measured end to end through `CombatReviewController`, with both bodies built by
+> the lab's own `createCombatReviewActorLoader` on pinned bytes**
+> (`tests/combatReviewArchetypeReactions.test.ts`):
+>
+> | defender | attack | spacing | defender facing | measured contact | flight after release | set | phases | authored s |
+> |---|---|---|---|---|---|---|---|---|
+> | `warden-wayfarer-4v` | Breachling `SpitAttack` | 3.0 m | 90 deg | 0.7077 s, `damageType: "poison"` | 0.2577 s | poison | PoisonImpact / PoisonLoop / PoisonRecover | 1.1 / 3.6 / 2.4 |
+> | `breachling-base-4v` | Breachling `SpitAttack` | 1.75 m (fitted) | 0 deg | 0.5188 s, `damageType: "poison"` | 0.0688 s | poison | PoisonImpact / PoisonLoop / PoisonRecover | 0.95 / 2.4 / 1.7 |
+> | `warden-wayfarer-4v` | Breachling `LungeAttack` | 1.6 m | 0 deg | 0.4003 s, heavy melee | n/a | knockdown | Knockdown / ProneHold / GetUp | 1.4 / 3.2 / 3 |
+>
+> Plan totals are the archetype's own: 7.100 s held 3.600 s for the Warden's poison,
+> 5.050 s held 2.400 s for the Breachling's - not the humanoid pack's 0.85 / 2.8 /
+> 1.6. Every duration is read off the ACTOR's installed action list, so a pack that
+> did not install cannot produce them. The set is scheduled as three real tracks
+> (`defender-reaction-0-impact` / `-1-loop` / `-2-recover`) entered at the measured
+> contact time on poison's own 0.105 s blend, and sampling the sequence inside the
+> hold reaches `PoisonLoop` on the defender.
+>
+> **Why the Warden needed a quarter turn.** The spit is a fixed ballistic flight with
+> no target tracking, so lining a body up under it is the reviewer's job. Measured
+> centreline clearance to the Wayfarer's skin, 91 samples over the flight: square on,
+> it misses by 0.137-0.205 m at every spacing from 0.85 m to 4 m - it passes between
+> the legs - and turned 90 degrees it reaches 0.001-0.011 m, inside the 0.008 m
+> contact tolerance. A contact on the window's OPENING sample is rejected by the
+> test, so neither poison row is two bodies that were already touching.
+>
+> **What this does not fix, and what it made urgent.** D8 went live here. The
+> Breachling pack was committed on the grounds that it was unreachable, and this
+> change made it reachable: its `GetUp` teleported a planted rear foot 154.91 mm in
+> one frame, and that clip now plays on a Breachling defender. Nothing in THIS entry
+> re-authored it; D8 below did, and the pinned pack is now `quad-r9`.
+
 **D7 - the poison entry blend was derived from a transition the runtime forbids.
 FIXED here.** The floor took the wider of a guard entry and a preempting entry.
 Poison is the lowest precedence and `reactionSetPreempts` requires strictly
@@ -728,5 +793,188 @@ module-load guard now derives independently.
 154.9 mm horizontally in one 1/60 s frame, and 145.1 mm back two frames later,
 while the foot stays inside the 4 mm contact band throughout and then locks dead
 still. The same rig's shipped reviewed body has zero rear-foot events of this kind
-across all sixteen of its clips. **This pack should not be relied on until that is
-re-authored**, and it is committed only because it is currently unreachable.
+across all sixteen of its clips.
+
+> **CLOSED 2026-09-05, revision `quad-r9`, by making the step a real step - and the
+> reviewer had found half of it.** The pinned pack is now
+> `breachling-reactions-quad-r9.glb`, 15,195,976 bytes,
+> `0ef324b7d893fe24c6cf42f41803a8352fda97493e987294f07b3083ca7bf915`, both hashed on
+> the placed file on disk after the final build. `quad-r4` is left beside it.
+>
+> **The sentence "and it is committed only because it is currently unreachable" is
+> struck.** It was true when it was written and it stopped being true in D6 above,
+> which is what made this urgent. It is not the reason the pack ships now: the pack
+> ships now because the clip is fixed.
+>
+> **What D8 named, and the second one it did not.** Re-measuring all nine clips with
+> the same metric found the identical signature in `BurnRecover`, which nobody had
+> looked at: the right rear foot moving 150.30 mm in one frame and back, and the left
+> rear foot 61.45 mm, both inside the 4 mm band, both followed by a hind pair that
+> holds bit-still for 0.45-0.47 s. `GetUp` and `BurnRecover` are the same clip shape -
+> a body unfolding off its flank onto four legs - so it is one defect in two places.
+>
+> **The metric, restated so the numbers below are checkable.** For every skin vertex
+> that carries a MAJORITY of its weight on one foot's bones, and for every pair of
+> consecutive 60 Hz frames in which that vertex is within 4 mm of its own region's
+> floor plane on BOTH frames, take the horizontal distance it moved. `worst in-band
+> frame` is the largest such step anywhere in the clip. `out-and-back` is the subset
+> of those steps that come back - within four frames the vertex is again within 35 %
+> of the step of where it started, never having left the band - which is the D8
+> signature as opposed to an animal that is honestly sliding. `in-band drag` is the
+> worst accumulation over one unbroken contact run. Read back off the shipped GLB's
+> own exported keyframes with `issue-458-motion-composer-v1/tools/measure-breachling-pack.mjs`,
+> in millimetres on the 1.025 m runtime body.
+>
+> **What changed in the authoring. It is a weight shift with real steps in it, not a
+> tighter plant or a wider band - the band is the same 4 mm in both columns.**
+>
+> 1. *The paw the animal stands up on is planted at the frame it lands, not left
+>    free.* In both clips the down-side forepaw was pure FK until the very end, so the
+>    one limb carrying the whole body was solved with no floor constraint on it and it
+>    skated - measured on the previous candidate at 453.90 mm (`GetUp`) and 467.62 mm
+>    (`BurnRecover`) of unbroken in-band drag. The plant time is not a preference: built
+>    with that chain free for the whole clip and read with
+>    `tools/breachling-lowest-region.mjs`, `BurnRecover`'s right forepaw descends
+>    176 mm (0.367 s) -> 139 (0.467) -> 78 (0.533) -> 32 (0.567) -> 0 (0.600) and is the
+>    lowest thing on the body from 0.600 s onward, so the plant is at 0.60 s. `GetUp`'s
+>    own free-FK trace, built and read the same way, is 31 mm (0.467 s) -> 26 (0.533) ->
+>    19 (0.567) -> 6 (0.600) -> 0 (0.633), lowest on the body from 0.633 s, so its plant
+>    is at 0.62 s. A plant here is not a freeze - the anchor is the
+>    chain's own neutral stance footprint, so the paw arrives where it will stand and the
+>    lever-up is the body travelling over a fixed contact patch, which is what takes that
+>    elbow through 106.5 -> 133 deg instead of holding one shape.
+> 2. *The hind pair is gathered earlier and folded deeper, so each hind foot is in the
+>    AIR when its own handover happens.* `GetUp`'s left hind gather moved from
+>    [1.00, 1.26, 1.46] to [0.72, 0.94, 1.46] and from 14 deg to 18 deg of fold; the
+>    left foreleg's carry moved from [0.40, 0.70, 1.36] at 34 deg to
+>    [0.30, 0.74, 1.20] at 52 deg. The hind feet now spend 102-103 of 133 frames off the
+>    floor and land once, at 419.6 mm and 353.3 mm of clearance.
+> 3. *A step was authored on the standing forepaw first, measured, and DROPPED rather
+>    than tuned.* Recorded by the pass that tried it: it bought nothing the plant does
+>    not - `GetUp`'s front right reads 7.31 mm of worst in-band frame either way, which
+>    is what the shipped `quad-r9` reads above - and it cost a 22-28 deg one-frame pose
+>    jump on `front_upper.R` /
+>    `front_lower.R` at every landing time tried, because a swing is solved by putting
+>    the WRIST on target and a plant by putting the CONTACT PATCH on its anchor, and the
+>    paw's skin is co-driven by the forearm. A step from the stance footprint back to
+>    the stance footprint is decoration.
+> 4. *The `stand` spasm ease is now a parameter, because the two clips measure
+>    opposite.* It defaults to `'smooth'`, which `BurnRecover`'s front-left paw needs
+>    (worst in-band frame 15.53 mm against `'out'`'s 44.38), and `getUp` shadows it with
+>    `'out'`, which takes that clip's front-right paw from a 1.33 mm out-and-back to
+>    0.00 and its in-band drag from 83.09 mm to 55.99.
+> 5. *`BurnRecover`'s right-forepaw handover is 0.12 s, and the comment in the source
+>    says out loud that this is a one-frame minimum.* Swept on one-clip builds, frontR
+>    worst frame / out-and-back: 0.11 s 21.01 / 3.30 **gate fail**, 0.12 s 0.89 / 0.00,
+>    0.125 s 4.15 / 3.30, 0.13 s 14.39 / 3.30, 0.14 s 39.47 / 3.30, 0.16 s 4.15 / 3.30,
+>    0.24 s (the previous value) 21.77 / 3.30. It is taken because the neighbourhood has
+>    no cliff - every other passing value is between 4 and 40 mm, where the clip already
+>    was - and because it is the only value that removes the last out-and-back in the
+>    pack. Values below it do not degrade silently; they fail the clip's own 16 deg
+>    pose-jump gate at build time.
+> 6. *The pose-jump gate on both clips is 16 deg, not the 34 that let D8 through.* It is
+>    the only mechanical check that could have caught this at build time. `GetUp`'s worst
+>    authored bone step is now 15.06 deg on `front_hand.R` and `BurnRecover`'s 15.16 deg
+>    on the same bone, so 16 is tight against the motion that is actually there.
+>
+> **Every clip, every foot, `quad-r4` -> `quad-r9`.** Seven of the nine are untouched
+> and read identically, which is the point of listing them: the change is confined to
+> the two clips that carried the defect.
+>
+> | clip | foot | worst in-band frame mm | out-and-back mm | in-band drag mm | clearance mm | contact frames | |
+> |---|---|---|---|---|---|---|---|
+> | `PoisonImpact` | front L | 3.00 → 3.00 | 0.27 → 0.27 | 17.74 → 17.74 | 0.0 → 0.0 | 58/58 → 58/58 | unchanged |
+> | `PoisonImpact` | front R | 15.42 → 15.42 | 1.47 → 1.47 | 67.51 → 67.51 | 0.0 → 0.0 | 58/58 → 58/58 | unchanged |
+> | `PoisonImpact` | rear L | 0.00 → 0.00 | 0.00 → 0.00 | 0.00 → 0.00 | 0.0 → 0.0 | 58/58 → 58/58 | unchanged |
+> | `PoisonImpact` | rear R | 0.00 → 0.00 | 0.00 → 0.00 | 0.00 → 0.00 | 0.0 → 0.0 | 58/58 → 58/58 | unchanged |
+> | `PoisonLoop` | front L | 1.00 → 1.00 | 0.00 → 0.00 | 20.60 → 20.60 | 288.7 → 288.7 | 86/145 → 86/145 | unchanged |
+> | `PoisonLoop` | front R | 5.30 → 5.30 | 0.00 → 0.00 | 69.26 → 69.26 | 0.1 → 0.1 | 145/145 → 145/145 | unchanged |
+> | `PoisonLoop` | rear L | 0.00 → 0.00 | 0.00 → 0.00 | 0.00 → 0.00 | 0.0 → 0.0 | 145/145 → 145/145 | unchanged |
+> | `PoisonLoop` | rear R | 0.00 → 0.00 | 0.00 → 0.00 | 0.01 → 0.01 | 0.0 → 0.0 | 145/145 → 145/145 | unchanged |
+> | `PoisonRecover` | front L | 0.75 → 0.75 | 0.01 → 0.01 | 15.45 → 15.45 | 0.0 → 0.0 | 103/103 → 103/103 | unchanged |
+> | `PoisonRecover` | front R | 1.45 → 1.45 | 0.02 → 0.02 | 27.80 → 27.80 | 0.0 → 0.0 | 103/103 → 103/103 | unchanged |
+> | `PoisonRecover` | rear L | 0.00 → 0.00 | 0.00 → 0.00 | 0.00 → 0.00 | 0.0 → 0.0 | 103/103 → 103/103 | unchanged |
+> | `PoisonRecover` | rear R | 0.00 → 0.00 | 0.00 → 0.00 | 0.00 → 0.00 | 0.0 → 0.0 | 103/103 → 103/103 | unchanged |
+> | `BurnFlare` | front L | 68.29 → 68.29 | 0.00 → 0.00 | 1246.41 → 1246.41 | 112.6 → 112.6 | 45/55 → 45/55 | unchanged |
+> | `BurnFlare` | front R | 20.15 → 20.15 | 0.00 → 0.00 | 35.26 → 35.26 | 255.7 → 255.7 | 4/55 → 4/55 | unchanged |
+> | `BurnFlare` | rear L | 0.00 → 0.00 | 0.00 → 0.00 | 0.00 → 0.00 | 339.4 → 339.4 | 7/55 → 7/55 | unchanged |
+> | `BurnFlare` | rear R | 27.74 → 27.74 | 0.00 → 0.00 | 51.35 → 51.35 | 492.7 → 492.7 | 11/55 → 11/55 | unchanged |
+> | `BurnBurn` | front L | 18.42 → 18.42 | 0.00 → 0.00 | 506.14 → 506.14 | 436.2 → 436.2 | 101/157 → 101/157 | unchanged |
+> | `BurnBurn` | front R | 33.84 → 33.84 | 0.00 → 0.00 | 95.82 → 95.82 | 755.3 → 755.3 | 4/157 → 4/157 | unchanged |
+> | `BurnBurn` | rear L | 9.23 → 9.23 | 0.00 → 0.00 | 33.86 → 33.86 | 449.9 → 449.9 | 5/157 → 5/157 | unchanged |
+> | `BurnBurn` | rear R | 7.30 → 7.30 | 0.00 → 0.00 | 28.71 → 28.71 | 670.2 → 670.2 | 5/157 → 5/157 | unchanged |
+> | `BurnRecover` | front L | 44.38 → 15.53 | 0.00 → 0.00 | 1103.84 → 59.15 | 204.7 → 370.8 | 93/121 → 45/121 | **re-authored** |
+> | `BurnRecover` | front R | 1.27 → 0.89 | 0.00 → 0.00 | 1.30 → 1.63 | 260.1 → 201.1 | 37/121 → 4/121 | **re-authored** |
+> | `BurnRecover` | rear L | 62.70 → 0.00 | 61.45 → 0.00 | 138.54 → 0.00 | 381.4 → 380.6 | 39/121 → 30/121 | **re-authored** |
+> | `BurnRecover` | rear R | 150.30 → 0.19 | 150.30 → 0.00 | 301.00 → 0.19 | 525.1 → 524.4 | 37/121 → 31/121 | **re-authored** |
+> | `Knockdown` | front L | 66.00 → 66.00 | 0.00 → 0.00 | 780.94 → 780.94 | 307.9 → 307.9 | 18/61 → 18/61 | unchanged |
+> | `Knockdown` | front R | 11.99 → 11.99 | 0.77 → 0.77 | 194.29 → 194.29 | 145.5 → 145.5 | 29/61 → 29/61 | unchanged |
+> | `Knockdown` | rear L | 66.99 → 66.99 | 0.00 → 0.00 | 66.99 → 66.99 | 477.3 → 477.3 | 8/61 → 8/61 | unchanged |
+> | `Knockdown` | rear R | 54.77 → 54.77 | 0.00 → 0.00 | 186.37 → 186.37 | 353.3 → 353.3 | 13/61 → 13/61 | unchanged |
+> | `ProneHold` | front L | 11.64 → 11.64 | 0.00 → 0.00 | 149.38 → 149.38 | 122.5 → 122.5 | 18/133 → 18/133 | unchanged |
+> | `ProneHold` | front R | 16.42 → 16.42 | 0.00 → 0.00 | 385.69 → 385.69 | 144.3 → 144.3 | 72/133 → 72/133 | unchanged |
+> | `ProneHold` | rear L | 3.92 → 3.92 | 0.00 → 0.00 | 8.74 → 8.74 | 159.0 → 159.0 | 4/133 → 4/133 | unchanged |
+> | `ProneHold` | rear R | 9.50 → 9.50 | 0.00 → 0.00 | 54.92 → 54.92 | 136.3 → 136.3 | 7/133 → 7/133 | unchanged |
+> | `GetUp` | front L | 40.99 → 7.70 | 0.00 → 0.00 | 1155.52 → 9.30 | 250.1 → 438.8 | 94/133 → 39/133 | **re-authored** |
+> | `GetUp` | front R | 9.50 → 7.31 | 0.00 → 0.00 | 55.99 → 55.99 | 190.0 → 30.6 | 16/133 → 14/133 | **re-authored** |
+> | `GetUp` | rear L | 69.35 → 0.15 | 0.00 → 0.00 | 75.87 → 0.15 | 419.6 → 419.6 | 38/133 → 31/133 | **re-authored** |
+> | `GetUp` | rear R | 154.91 → 0.16 | 154.91 → 0.00 | 312.56 → 0.17 | 433.8 → 353.3 | 38/133 → 30/133 | **re-authored** |
+>
+> **The dead-still lock, the other half of D8's sentence.** Longest unbroken run in
+> which every bone of that leg turns by less than 0.01 deg between consecutive keys -
+> measured per leg, because a whole-body reading hides it, and as an angle rather than
+> a bit-identity test because held floats drift by an ULP. Seconds, front L / front R /
+> rear L / rear R:
+>
+> | clip | front L | front R | rear L | rear R |
+> |---|---|---|---|---|
+> | `PoisonImpact` | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 |
+> | `PoisonLoop` | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 |
+> | `PoisonRecover` | 0.0167 → 0.0167 | 0.0167 → 0.0167 | 0.0167 → 0.0167 | 0.0167 → 0.0167 |
+> | `BurnFlare` | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 |
+> | `BurnBurn` | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 |
+> | `BurnRecover` | 0.5667 → 0.1333 | 0.5667 → 0.1333 | 0.4667 → 0.0333 | 0.4500 → 0.0333 |
+> | `Knockdown` | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 |
+> | `ProneHold` | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 | 0.0000 → 0.0000 |
+> | `GetUp` | 0.6000 → 0.1667 | 0.6000 → 0.1667 | 0.4667 → 0.0333 | 0.4500 → 0.0333 |
+>
+> **Seams, over the joints that actually move.** All 30 joints of this rig move in
+> every clip, so the "moving joints" restriction excludes nothing here and the worst
+> bone is a real one rather than a frozen sampler reading itself (defect D2). Unchanged
+> from `quad-r4` - this revision touched neither the loop closures nor the handovers:
+>
+> | set | join | worst joint | deg | root mm |
+> |---|---|---|---|---|
+> | poison | `PoisonImpact`[end] -> `PoisonLoop`[0] | `tail.005` | 0.3630 | 0.038 |
+> | poison | `PoisonLoop`[end] -> `PoisonLoop`[0] | `front_toe2L` | **0.0000** | 0.000 |
+> | poison | `PoisonLoop`[0] -> `PoisonRecover`[0] | `tail.005` | 0.3630 | 0.038 |
+> | burning | `BurnFlare`[end] -> `BurnBurn`[0] | `tail.005` | 0.3409 | 0.000 |
+> | burning | `BurnBurn`[end] -> `BurnBurn`[0] | `head` | **0.0000** | 0.000 |
+> | burning | `BurnBurn`[0] -> `BurnRecover`[0] | `tail.005` | 0.3409 | 0.000 |
+> | knockdown | `Knockdown`[end] -> `ProneHold`[0] | `tail.005` | 0.1863 | 0.000 |
+> | knockdown | `ProneHold`[end] -> `ProneHold`[0] | `rear_footR` | **0.0000** | 0.000 |
+> | knockdown | `ProneHold`[0] -> `GetUp`[0] | `tail.005` | 0.1863 | 0.000 |
+>
+> The three loop rows are 0.0000 deg over all 30 joints and 0.000 mm of root, by
+> construction and not by tolerance.
+>
+> **Gates.** All nine clips built with `pass: true` and an empty failure list -
+> floor tolerance 0.004, `maxJoint` 176, per-clip pose-jump, ik-clamped, foot-slide and
+> collision, zero collisions on every clip. The candidate is the source rig byte for
+> byte with nine animations appended (`sourceBinaryExact` and `sceneJsonExact` both
+> true), so the 30-joint canonical quadruped skeleton is unchanged and
+> `assertReactionClipsBind` has the same skin to bind against. The build is
+> deterministic: rebuilt from the same sources it reproduces its predecessor's sha256
+> exactly.
+>
+> **Two things this does NOT claim.**
+> `BurnFlare`'s front-left paw still reads a 68.29 mm worst in-band frame and 1246.41 mm
+> of in-band drag, and `Knockdown`'s front-left 66.00 / 780.94. Those are one-way travel
+> with a 0.00 out-and-back - a body being knocked backwards with a paw on the floor, the
+> same shape as the reviewed body's own `LungeAttack` (227.39 mm worst frame, 0.00
+> out-and-back) - and this revision did not touch them. Whether an impact should drag a
+> forepaw that far is a separate question from D8 and is not being answered here.
+> And the pack is not at the reviewed body's standard on the out-and-back metric: the
+> body reads 0.00-0.02 mm across all sixteen of its clips, while `PoisonImpact`'s front
+> right still reads 1.47 mm and `Knockdown`'s 0.77, both carried over unchanged from
+> `quad-r4`. Every REAR foot of every clip is now 0.00.

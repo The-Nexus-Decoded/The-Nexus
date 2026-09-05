@@ -66,10 +66,10 @@ describe("The reaction pack receipt is an allowlist, not a directory listing", (
     expect(reactionPackForClip(humanoid, "NotAClip")).toBeNull();
     // Each archetype's clip resolves inside its own archetype, never across.
     expect(reactionPackForClip(warden, "ProneHold")!.url).toContain("warden-reactions-r3");
-    expect(reactionPackForClip(breachling, "BurnBurn")!.url).toContain("breachling-reactions-quad-r4");
+    expect(reactionPackForClip(breachling, "BurnBurn")!.url).toContain("breachling-reactions-quad-r9");
     expect(reviewedReactionNote(humanoid)).toMatch(/9 clips across 3 pinned files/);
     expect(reviewedReactionNote(warden)).toMatch(/9 clips across 1 pinned file \(warden-reactions-r3\.glb\)/);
-    expect(reviewedReactionNote(breachling)).toMatch(/9 clips across 1 pinned file \(breachling-reactions-quad-r4\.glb\)/);
+    expect(reviewedReactionNote(breachling)).toMatch(/9 clips across 1 pinned file \(breachling-reactions-quad-r9\.glb\)/);
   });
 
   it("pins a different rig per archetype, and rejects a pack pinned against the wrong one", () => {
@@ -217,7 +217,7 @@ describe("Selection is by archetype: each body reaches its own pack", () => {
     const cases: readonly (readonly [ReactionArchetype, "human" | "warden" | "breachling", string, number])[] = [
       ["humanoid", "human", "humanoid-reactions-", 65],
       ["warden", "warden", "warden-reactions-r3.glb", 18],
-      ["breachling", "breachling", "breachling-reactions-quad-r4.glb", 30],
+      ["breachling", "breachling", "breachling-reactions-quad-r9.glb", 30],
     ];
     for (const [archetype, family, file, joints] of cases) {
       // The family is all an actor knows about itself; the archetype follows from it.

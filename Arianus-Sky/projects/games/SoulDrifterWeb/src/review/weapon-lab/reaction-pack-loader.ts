@@ -17,18 +17,23 @@ export interface ReactionPackParser {
 }
 
 /**
- * Bone names of the skin a parsed pack carries, or null when the parse produced no
- * skinned mesh to count. The union over every skinned mesh is the skeleton the
- * receipt pins, which is what makes 65 / 18 / 30 an archetype property rather than
- * a constant.
+ * Bone names of the skin under `root`: the union over every skinned mesh, which is
+ * the skeleton a receipt pins. Used both to count a pack's own joints — what makes
+ * 65 / 18 / 30 an archetype property rather than a constant — and to name the bones
+ * a body offers `assertReactionClipsBind`.
  */
-function packJointNames(scene: THREE.Object3D | undefined): Set<string> | null {
-  if (!scene) return null;
+export function skinnedBoneNames(root: THREE.Object3D | undefined): Set<string> {
   const names = new Set<string>();
-  scene.traverse((object) => {
+  root?.traverse((object) => {
     const skinned = object as THREE.SkinnedMesh;
     if (skinned.isSkinnedMesh && skinned.skeleton) for (const bone of skinned.skeleton.bones) names.add(bone.name);
   });
+  return names;
+}
+
+/** The same union, or null when the parse produced no skinned mesh to count. */
+function packJointNames(scene: THREE.Object3D | undefined): Set<string> | null {
+  const names = skinnedBoneNames(scene);
   return names.size ? names : null;
 }
 

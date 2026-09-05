@@ -58,7 +58,8 @@ describe("Combat Review studio composition", () => {
       controls: [{ id: "jaw", label: "Jaw", group: "Head", min: -20, max: 20, step: 1 }],
       calibration: () => ({ controls: { jaw: 3 } }), setControl: vi.fn(), clearCalibration: vi.fn(),
     }));
-    const loader = createCombatReviewActorLoader(factory, mobLoader);
+    const mobReactionClips = vi.fn(async () => []);
+    const loader = createCombatReviewActorLoader(factory, mobLoader, mobReactionClips);
     for (const definition of COMBAT_REVIEW_DEFINITIONS) {
       if (definition.id === ENVIRONMENT_REVIEW_DEFINITION.id) continue; // separate source-catalog contract below
       const abort = new AbortController();
@@ -69,7 +70,13 @@ describe("Combat Review studio composition", () => {
         expect(factory.create).toHaveBeenLastCalledWith({ instanceId: definition.id,
           loadoutId: definition.id.slice(6), mode: "equipment", includeSourceResponses: true, includeReactionPack: false });
         expect(definition.note).toContain("unverified equipment suitability");
-      } else { expect(handle.calibration.controls()[0].value).toBe(3); handle.calibration.set("jaw", 4);
+      } else {
+        // The mob half of the same contract: a special attack lands on the body, so
+        // every mob definition is offered its archetype's pack and the receipt, not
+        // the call site, decides whether this body is the rig it was authored on.
+        expect(mobLoader).toHaveBeenLastCalledWith({ instanceId: definition.id, definitionId: definition.id,
+          signal: abort.signal, loadReactionClips: mobReactionClips });
+        expect(handle.calibration.controls()[0].value).toBe(3); handle.calibration.set("jaw", 4);
         expect(handle.actor.setControl).toHaveBeenCalledWith("jaw", 4); }
       handle.actor.dispose();
     }
