@@ -40,6 +40,7 @@ import {
   CREATOR_STATION_CHOREOGRAPHY,
   cueDurationMs,
   cueEnvelope,
+  cueRegion,
   easeInOutCubic,
   easeOutQuad,
   gazeDriftYaw,
@@ -47,9 +48,12 @@ import {
   holdEnvelope,
   meanAbsoluteRgbDifference,
   meanRgb,
+  nodPitchDegrees,
   scaleGazeAngles,
   stationGazeLimits,
+  type CreationRegion,
   type CreatorCue,
+  type CreatorCuePart,
   type CreatorGazeAngles,
   type CreatorStationChoreography,
   type RgbMean,
@@ -219,18 +223,22 @@ export class CreatorAdditivePose {
 
 const CREATOR_CUE_BONES = {
   head: boneNameVariants("mixamorig:Head", "Head"),
+  neck: boneNameVariants("mixamorig:Neck", "Neck"),
   spine1: boneNameVariants("mixamorig:Spine1", "Spine1"),
   leftShoulder: boneNameVariants("mixamorig:LeftShoulder", "LeftShoulder"),
   rightShoulder: boneNameVariants("mixamorig:RightShoulder", "RightShoulder"),
   hips: boneNameVariants("mixamorig:Hips", "Hips"),
 } as const;
 type CreatorCueBone = keyof typeof CREATOR_CUE_BONES;
+/** Read, never written: the crown, which sizes the pixel gate's crop to the head on screen. */
+const CREATOR_CUE_HEAD_TOP = boneNameVariants("mixamorig:HeadTop_End", "HeadTop_End");
 // Bone-local axes of the upright mixamorig spine and head: X ear-to-ear (a positive
 // turn nods down), Y up the bone, Z forward. The shoulders rotate about their own Z.
 const CREATOR_CUE_AXIS_X = new THREE.Vector3(1, 0, 0);
 const CREATOR_CUE_AXIS_Y = new THREE.Vector3(0, 1, 0);
 const CREATOR_CUE_AXIS_Z = new THREE.Vector3(0, 0, 1);
 const CREATOR_CUE_SCRATCH = new THREE.Quaternion();
+const CREATOR_CUE_SCRATCH_VECTOR = new THREE.Vector3();
 /** The settle amplitude follows a station change over this long, so body <-> face never pops. */
 const CREATOR_SETTLE_AMPLITUDE_SECONDS = 0.3;
 
@@ -243,18 +251,23 @@ const CREATOR_SETTLE_AMPLITUDE_SECONDS = 0.3;
  */
 export class CreatorCuePlayer {
   private readonly bones = new Map<CreatorCueBone, THREE.Object3D>();
+  private headTopBone: THREE.Object3D | null = null;
   private readonly startedAt = new Map<Exclude<CreatorCue, "settle">, number>();
+  /** The station's reach (`CreatorStationChoreography.nodReach`), latched by each nod as it starts. */
+  private nodReachTarget = 0;
+  private nodReach = 0;
   private settleFrom = 0;
   private settleTo = 0;
   private settleStartedAt = 0;
   private settleAmplitude = 0;
   private settleAmplitudeTarget = 0;
 
-  /** Resolves the cue bones on the model; returns how many of the five were found. */
+  /** Resolves the cue bones on the model; returns how many of the six were found. */
   public bind(model: THREE.Object3D, additivePose: CreatorAdditivePose): number {
     this.release();
     model.traverse((node) => {
       const name = node.name.toLowerCase();
+      if (!this.headTopBone && CREATOR_CUE_HEAD_TOP.has(name)) this.headTopBone = node;
       for (const bone of Object.keys(CREATOR_CUE_BONES) as CreatorCueBone[]) {
         if (!CREATOR_CUE_BONES[bone].has(name) || this.bones.has(bone)) continue;
         additivePose.register(node);
@@ -266,7 +279,35 @@ export class CreatorCuePlayer {
 
   public release(): void {
     this.bones.clear();
+    this.headTopBone = null;
     this.cancel();
+  }
+
+  /**
+   * World-space centre of the part a cue moves, for placing the pixel gate's crop: the
+   * head between its base and crown, the shoulders between the two shoulder joints, the
+   * hips at the hip joint. Null until the rig has bound.
+   */
+  public partCentre(part: CreatorCuePart, target: THREE.Vector3): THREE.Vector3 | null {
+    if (part === "hips") {
+      const hips = this.bones.get("hips");
+      return hips ? hips.getWorldPosition(target) : null;
+    }
+    const [first, second] = part === "head"
+      ? [this.bones.get("head"), this.headTopBone]
+      : [this.bones.get("leftShoulder"), this.bones.get("rightShoulder")];
+    if (!first || !second) return null;
+    first.getWorldPosition(target);
+    return target.add(second.getWorldPosition(CREATOR_CUE_SCRATCH_VECTOR)).multiplyScalar(0.5);
+  }
+
+  /** World-space base and crown of the head, whose distance on screen sizes the gate's crop. */
+  public headSpan(base: THREE.Vector3, crown: THREE.Vector3): boolean {
+    const head = this.bones.get("head");
+    if (!head || !this.headTopBone) return false;
+    head.getWorldPosition(base);
+    this.headTopBone.getWorldPosition(crown);
+    return true;
   }
 
   /** Drops every cue in flight; the next `apply` writes nothing. */
@@ -277,7 +318,13 @@ export class CreatorCuePlayer {
     this.settleAmplitude = 0;
   }
 
+  /** The station's nod reach; a nod already in flight keeps the reach it started with. */
+  public setNodReach(reach: number): void {
+    this.nodReachTarget = reach;
+  }
+
   public play(cue: CreatorCue, now: number): void {
+    if (cue === "nod") this.nodReach = this.nodReachTarget;
     if (cue === "settle") {
       // Alternate sides from wherever the last shift left the figure.
       this.settleFrom = this.settleValue(now);
@@ -316,14 +363,17 @@ export class CreatorCuePlayer {
     const shake = this.envelope("shake", now);
     const brace = this.envelope("brace", now);
     const settle = this.settleValue(now) * this.settleAmplitude;
+    const nodPitch = nodPitchDegrees(this.nodReach);
     const head = this.bones.get("head");
     if (head && (nod !== 0 || shake !== 0)) {
       this.rotate(head, CREATOR_CUE_AXIS_Y, shake * CREATOR_CUE_AMPLITUDE.shakeYawDegrees);
-      this.rotate(head, CREATOR_CUE_AXIS_X, nod * CREATOR_CUE_AMPLITUDE.nodPitchDegrees);
+      this.rotate(head, CREATOR_CUE_AXIS_X, nod * nodPitch.head);
     }
+    const neck = this.bones.get("neck");
+    if (neck && nod !== 0) this.rotate(neck, CREATOR_CUE_AXIS_X, nod * nodPitch.neck);
     const spine1 = this.bones.get("spine1");
-    if (spine1 && (brace !== 0 || settle !== 0)) {
-      this.rotate(spine1, CREATOR_CUE_AXIS_X, brace * CREATOR_CUE_AMPLITUDE.braceSpinePitchDegrees);
+    if (spine1 && (nod !== 0 || brace !== 0 || settle !== 0)) {
+      this.rotate(spine1, CREATOR_CUE_AXIS_X, nod * nodPitch.spine + brace * CREATOR_CUE_AMPLITUDE.braceSpinePitchDegrees);
       // Counter-roll: a positive turn about the forward axis leans the torso toward -X
       // while the hips slide toward +X, so the head stays over the feet.
       this.rotate(spine1, CREATOR_CUE_AXIS_Z, settle * CREATOR_CUE_AMPLITUDE.settleSpineRollDegrees);
@@ -423,6 +473,10 @@ export const CREATION_SKIN_ENV_INTENSITY = 0.35;
 export const CREATION_CAMERA_TWEEN_MS = 720;
 /** `sampleRegion` keeps the last read of this many distinct regions to diff against. */
 const CREATOR_REGION_SAMPLE_SLOTS = 8;
+const CREATOR_REGION_CENTRE = new THREE.Vector3();
+const CREATOR_REGION_HEAD_BASE = new THREE.Vector3();
+const CREATOR_REGION_HEAD_CROWN = new THREE.Vector3();
+const CREATOR_REGION_NDC = new THREE.Vector3();
 
 /** What `sampleRegion` reads back for one crop. */
 export interface CreationRegionSample extends RgbMean {
@@ -794,6 +848,7 @@ export class CreationAvatarPreview {
     this.onLoadFailure = options.onLoadFailure;
     // Until a station speaks, the figure behaves as it does on the body station.
     this.cues.setSettleAmplitude(this.gazeProfile.settle, performance.now());
+    this.cues.setNodReach(this.gazeProfile.nodReach);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1128,6 +1183,7 @@ export class CreationAvatarPreview {
     const now = performance.now();
     this.gazeProfile = profile;
     this.cues.setSettleAmplitude(profile.settle, now);
+    this.cues.setNodReach(profile.nodReach);
     this.lastSettleAt = now;
   }
 
@@ -1187,7 +1243,7 @@ export class CreationAvatarPreview {
    * face inside the crop, not the crop's colour), which is why the gate reads `diff`.
    * Null before the first frame has sized the canvas.
    */
-  public sampleRegion(region: { x: number; y: number; w: number; h: number }): CreationRegionSample | null {
+  public sampleRegion(region: CreationRegion): CreationRegionSample | null {
     if (this.disposed || this.cssWidth === 0 || this.cssHeight === 0) return null;
     this.renderer.render(this.scene, this.camera);
     const gl = this.renderer.getContext();
@@ -1212,6 +1268,27 @@ export class CreationAvatarPreview {
     }
     const diff = previous && previous.length === pixels.length ? meanAbsoluteRgbDifference(previous, pixels) : null;
     return { ...meanRgb(pixels), pixels: width * height, diff };
+  }
+
+  /**
+   * The crop the pixel gate samples over a part the cues move, at the current camera:
+   * centred on the part's projected centre and sized to the head on screen (the design's
+   * 200 px where the head is at least that tall, `cueRegionSize` otherwise). Null until
+   * the rig and canvas are up. Read after a frame; the projection is the last one drawn.
+   */
+  public cueRegion(part: CreatorCuePart): CreationRegion | null {
+    if (this.disposed || this.cssWidth === 0 || this.cssHeight === 0) return null;
+    const centre = this.cues.partCentre(part, CREATOR_REGION_CENTRE);
+    if (!centre || !this.cues.headSpan(CREATOR_REGION_HEAD_BASE, CREATOR_REGION_HEAD_CROWN)) return null;
+    const base = this.toCanvasPixels(CREATOR_REGION_HEAD_BASE);
+    const crown = this.toCanvasPixels(CREATOR_REGION_HEAD_CROWN);
+    return cueRegion(this.toCanvasPixels(centre), Math.hypot(crown.x - base.x, crown.y - base.y));
+  }
+
+  /** A world point to CSS pixels from the canvas's top-left, through the camera as last drawn. */
+  private toCanvasPixels(world: THREE.Vector3): { x: number; y: number } {
+    const ndc = CREATOR_REGION_NDC.copy(world).project(this.camera);
+    return { x: ((ndc.x + 1) / 2) * this.cssWidth, y: ((1 - ndc.y) / 2) * this.cssHeight };
   }
 
   private settleReaction(): void {
@@ -1382,7 +1459,7 @@ export class CreationAvatarPreview {
     this.gaze.set(0, 0);
   }
 
-  /** Head, Spine1, both shoulders and Hips for the cues; they share the additive pose with breath and gaze. */
+  /** Head, Neck, Spine1, both shoulders and Hips for the cues; they share the additive pose with breath and gaze. */
   private captureCueJoints(model: THREE.Object3D): void {
     const wanted = Object.keys(CREATOR_CUE_BONES).length;
     const bound = this.cues.bind(model, this.additivePose);

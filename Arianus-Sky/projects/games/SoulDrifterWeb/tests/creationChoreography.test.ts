@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AWAKEN_CLIP_CAP_MS,
   CREATOR_CUE_AMPLITUDE,
+  CREATOR_CUE_REGION_HEADS,
+  CREATOR_CUE_REGION_PX,
   CREATOR_CUE_TIMING,
   CREATOR_GAZE_DRIFT,
   CREATOR_GAZE_OVERRIDE_CAP,
@@ -11,12 +13,15 @@ import {
   awakenTimeline,
   cueDurationMs,
   cueEnvelope,
+  cueRegion,
+  cueRegionSize,
   gazeDriftYaw,
   gazeTargetFromPointer,
   holdEnvelope,
   meanAbsoluteRgbDifference,
   meanRgb,
   memoryListenDelayMs,
+  nodPitchDegrees,
   resolveWithin,
   scaleGazeAngles,
   stationGazeLimits,
@@ -121,6 +126,30 @@ describe("creator station gaze scale", () => {
   });
 });
 
+describe("creator nod reach", () => {
+  it("gives the nod its reach only where the camera frames the whole body", () => {
+    const fullBody: CreatorStation[] = ["race", "body", "calling"];
+    for (const station of Object.keys(CREATOR_STATION_CHOREOGRAPHY) as CreatorStation[]) {
+      expect(CREATOR_STATION_CHOREOGRAPHY[station].nodReach, station).toBe(fullBody.includes(station) ? 1 : 0);
+    }
+  });
+
+  it("keeps the design's head-only seven degrees at reach zero and brings the neck and chest in at one", () => {
+    expect(nodPitchDegrees(0)).toEqual({ head: CREATOR_CUE_AMPLITUDE.nodPitchDegrees, neck: 0, spine: 0 });
+    const { headPitchDegrees, neckPitchDegrees, spinePitchDegrees } = CREATOR_CUE_AMPLITUDE.nodReach;
+    expect(nodPitchDegrees(1)).toEqual({
+      head: CREATOR_CUE_AMPLITUDE.nodPitchDegrees + headPitchDegrees,
+      neck: neckPitchDegrees,
+      spine: spinePitchDegrees,
+    });
+    expect(nodPitchDegrees(0.5).neck).toBeCloseTo(neckPitchDegrees / 2, 9);
+    // Out-of-range reaches clamp; NaN is no reach.
+    expect(nodPitchDegrees(4)).toEqual(nodPitchDegrees(1));
+    expect(nodPitchDegrees(-1)).toEqual(nodPitchDegrees(0));
+    expect(nodPitchDegrees(Number.NaN)).toEqual(nodPitchDegrees(0));
+  });
+});
+
 describe("creator cue envelopes", () => {
   it("nods: rises to one, returns to zero and stays there", () => {
     const { riseMs, returnMs } = CREATOR_CUE_TIMING.nod;
@@ -205,7 +234,9 @@ describe("creator cue player on a real mixer", () => {
     spine1: THREE.Object3D;
     leftShoulder: THREE.Object3D;
     rightShoulder: THREE.Object3D;
+    neck: THREE.Object3D;
     head: THREE.Object3D;
+    headTop: THREE.Object3D;
   }
   const HELD_HEAD = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.1);
   const HIPS_REST = new THREE.Vector3(0.0048, 0, -0.056);
@@ -229,8 +260,9 @@ describe("creator cue player on a real mixer", () => {
     const rightShoulder = bone("mixamorig:RightShoulder", -0.038, 0.074, 0, spine2);
     const neck = bone("mixamorig:Neck", 0, 0.085, 0, spine2);
     const head = bone("mixamorig:Head", 0, 0.04, 0.014, neck);
+    const headTop = bone("mixamorig:HeadTop_End", 0, 0.2, 0, head);
     head.quaternion.copy(HELD_HEAD);
-    return { root, hips, spine1, leftShoulder, rightShoulder, head };
+    return { root, hips, spine1, leftShoulder, rightShoulder, neck, head, headTop };
   }
 
   /** The stabilised idle: every track the cues touch holds one constant value, like the creator's. */
@@ -241,6 +273,7 @@ describe("creator cue player on a real mixer", () => {
     return new THREE.AnimationClip("idle", 1, [
       new THREE.VectorKeyframeTrack("mixamorigHips.position", [0, 1], [...HIPS_REST.toArray(), ...HIPS_REST.toArray()]),
       q("mixamorigHips", identity),
+      q("mixamorigNeck", identity),
       q("mixamorigSpine1", identity),
       q("mixamorigLeftShoulder", identity),
       q("mixamorigRightShoulder", identity),
@@ -274,10 +307,29 @@ describe("creator cue player on a real mixer", () => {
   const headOffsetDeg = (head: THREE.Object3D): number => THREE.MathUtils.radToDeg(head.quaternion.angleTo(HELD_HEAD));
   const angleDeg = (bone: THREE.Object3D): number => THREE.MathUtils.radToDeg(bone.quaternion.angleTo(new THREE.Quaternion()));
 
-  it("binds all five cue bones through the runtime's sanitized names", () => {
+  it("binds all six cue bones through the runtime's sanitized names", () => {
     const h = harness();
-    expect(h.bound).toBe(5);
-    expect(h.pose.size).toBe(5);
+    expect(h.bound).toBe(6);
+    expect(h.pose.size).toBe(6);
+  });
+
+  it("places the pixel gate's crop on the head, the shoulders and the hips in world space", () => {
+    const h = harness();
+    h.frames(1);
+    const world = (node: THREE.Object3D) => node.getWorldPosition(new THREE.Vector3());
+    const centre = (part: "head" | "shoulders" | "hips") => h.cues.partCentre(part, new THREE.Vector3());
+    const midpoint = (a: THREE.Object3D, b: THREE.Object3D) => world(a).add(world(b)).multiplyScalar(0.5);
+    expect(centre("head")!.distanceTo(midpoint(h.head, h.headTop))).toBeCloseTo(0, 9);
+    expect(centre("shoulders")!.distanceTo(midpoint(h.leftShoulder, h.rightShoulder))).toBeCloseTo(0, 9);
+    expect(centre("hips")!.distanceTo(world(h.hips))).toBeCloseTo(0, 9);
+    const base = new THREE.Vector3();
+    const crown = new THREE.Vector3();
+    expect(h.cues.headSpan(base, crown)).toBe(true);
+    expect(base.distanceTo(world(h.head))).toBeCloseTo(0, 9);
+    expect(crown.distanceTo(world(h.headTop))).toBeCloseTo(0, 9);
+    h.cues.release();
+    expect(centre("head")).toBeNull();
+    expect(h.cues.headSpan(base, crown)).toBe(false);
   });
 
   it("nods the head down by seven degrees and leaves it exactly where the mixer holds it", () => {
@@ -288,6 +340,9 @@ describe("creator cue player on a real mixer", () => {
     const peakFrames = Math.round(CREATOR_CUE_TIMING.nod.riseMs / (1000 / 60));
     h.frames(peakFrames);
     expect(headOffsetDeg(h.head)).toBeCloseTo(CREATOR_CUE_AMPLITUDE.nodPitchDegrees, 1);
+    // At the default reach the head nods alone.
+    expect(angleDeg(h.neck)).toBeCloseTo(0, 6);
+    expect(angleDeg(h.spine1)).toBeCloseTo(0, 6);
     // Forward (+Z) tilts down at the peak.
     const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(h.head.quaternion);
     const heldForward = new THREE.Vector3(0, 0, 1).applyQuaternion(HELD_HEAD);
@@ -302,6 +357,38 @@ describe("creator cue player on a real mixer", () => {
       residue.push(headOffsetDeg(h.head));
     }
     expect(Math.max(...residue)).toBeCloseTo(0, 6);
+  });
+
+  it("carries a full-reach nod from the neck and chest, latched as the nod starts, and lets all of it go", () => {
+    const h = harness();
+    const peakFrames = Math.round(CREATOR_CUE_TIMING.nod.riseMs / (1000 / 60));
+    const full = nodPitchDegrees(1);
+    h.cues.setNodReach(1);
+    h.cues.play("nod", h.now());
+    // The station moving on mid-nod (the name station binds, then the camera pulls back)
+    // does not change the nod in flight.
+    h.cues.setNodReach(0);
+    h.frames(peakFrames);
+    expect(headOffsetDeg(h.head)).toBeCloseTo(full.head, 1);
+    expect(angleDeg(h.neck)).toBeCloseTo(full.neck, 1);
+    expect(angleDeg(h.spine1)).toBeCloseTo(full.spine, 1);
+    // Every joint pitches the same way: forward (+Z) tilts down.
+    for (const node of [h.head, h.neck, h.spine1]) {
+      const rest = node === h.head ? HELD_HEAD : new THREE.Quaternion();
+      const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(node.quaternion);
+      const restForward = new THREE.Vector3(0, 0, 1).applyQuaternion(rest);
+      expect(forward.y).toBeLessThan(restForward.y);
+    }
+    h.frames(Math.ceil(cueDurationMs("nod") / (1000 / 60)) + 2);
+    expect(headOffsetDeg(h.head)).toBeCloseTo(0, 6);
+    expect(angleDeg(h.neck)).toBeCloseTo(0, 6);
+    expect(angleDeg(h.spine1)).toBeCloseTo(0, 6);
+    // The next nod takes the reach the station holds now.
+    h.cues.play("nod", h.now());
+    h.frames(peakFrames);
+    expect(headOffsetDeg(h.head)).toBeCloseTo(CREATOR_CUE_AMPLITUDE.nodPitchDegrees, 1);
+    expect(angleDeg(h.neck)).toBeCloseTo(0, 6);
+    expect(angleDeg(h.spine1)).toBeCloseTo(0, 6);
   });
 
   it("shakes the head about its up axis and squares the shoulders on a brace", () => {
@@ -548,6 +635,19 @@ describe("pixel gate statistics", () => {
     expect(Math.min(diff.r, diff.g, diff.b)).toBeGreaterThanOrEqual(6);
     expect(meanAbsoluteRgbDifference(before, before)).toEqual({ r: 0, g: 0, b: 0 });
     expect(meanAbsoluteRgbDifference(new Uint8Array(0), new Uint8Array(0))).toEqual({ r: 0, g: 0, b: 0 });
+  });
+
+  it("sizes the gate's crop to the head on screen below the design's 200 px", () => {
+    // Head-to-chest stop at 1440x900: the head is taller than the crop.
+    expect(cueRegionSize(243.4)).toBe(CREATOR_CUE_REGION_PX);
+    // Full-body stop at 1440x900 and at 390x844.
+    expect(cueRegionSize(93)).toBe(Math.round(93 * CREATOR_CUE_REGION_HEADS));
+    expect(cueRegionSize(87.2)).toBe(Math.round(87.2 * CREATOR_CUE_REGION_HEADS));
+    expect(cueRegionSize(0)).toBe(CREATOR_CUE_REGION_PX);
+    expect(cueRegionSize(Number.NaN)).toBe(CREATOR_CUE_REGION_PX);
+    expect(cueRegionSize(0.1)).toBe(1);
+    expect(cueRegion({ x: 465.5, y: 80.2 }, 93)).toEqual({ x: 405, y: 20, w: 121, h: 121 });
+    expect(cueRegion({ x: 509, y: 176 }, 300)).toEqual({ x: 409, y: 76, w: 200, h: 200 });
   });
 
   it("is symmetric and refuses crops of different sizes", () => {

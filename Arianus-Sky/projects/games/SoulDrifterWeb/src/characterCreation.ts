@@ -304,15 +304,20 @@ export class CharacterCreation {
     if (import.meta.env.DEV) {
       // Hands the live preview to the QA harness and to manual checks such as
       // `__souldrifterCreationPreview.playReaction("listen")` in DevTools, and the
-      // pixel gate behind every cue: `sampleRegion` reads a crop back from the drawing
-      // buffer and reports how far it moved per pixel since its last sample (`diff`),
-      // so a cue that does not move it cannot ship.
+      // pixel gate behind every cue: `cueRegion` places the crop over the head, the
+      // shoulders or the hips at the current camera, and `sampleRegion` reads it back
+      // from the drawing buffer and reports how far it moved per pixel since its last
+      // sample (`diff`), so a cue that does not move it cannot ship.
       const debugWindow = window as Window & {
         __souldrifterCreationPreview?: CreationAvatarPreview | null;
-        __SOULDRIFTER_CREATOR_DEBUG__?: { sampleRegion: CreationAvatarPreview["sampleRegion"] };
+        __SOULDRIFTER_CREATOR_DEBUG__?: {
+          cueRegion: CreationAvatarPreview["cueRegion"];
+          sampleRegion: CreationAvatarPreview["sampleRegion"];
+        };
       };
       debugWindow.__souldrifterCreationPreview = this.appearancePreview;
       debugWindow.__SOULDRIFTER_CREATOR_DEBUG__ ??= {
+        cueRegion: (part) => this.appearancePreview?.cueRegion(part) ?? null,
         sampleRegion: (region) => this.appearancePreview?.sampleRegion(region) ?? null,
       };
     }
