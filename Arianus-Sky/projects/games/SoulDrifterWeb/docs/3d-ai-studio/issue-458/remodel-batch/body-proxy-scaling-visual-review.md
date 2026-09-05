@@ -148,3 +148,37 @@ nor fixed it; it stopped the oversized proxy from hiding it.
 - `ProLongbow__StandingDeathForward01` is unreachable with bow gear through the
   browser UI (it exists only in catalog mode, where `attachments` is empty). It
   was checked CPU-side instead.
+
+---
+
+# CLOSED — owner visual sign-off, 2026-09-05
+
+Lord Xar reviewed the fix in the Motion Forge in a real browser and signed it
+off. The open item this document was created to track is closed.
+
+Reviewed at `codex/458-pre-codex-fixes-validation`, served from a frozen
+`git archive` snapshot on port 5198 rather than the live worktree, because a
+concurrent session was committing to that worktree throughout. Bow loadout,
+quiver + harness + arrow all mounted.
+
+That closes the visual gap on:
+
+- the collision proxies scaling with the body
+- every socket seat spending body-relative units, mounted as well as held
+- the quiver sling routing on the torso instead of standing off it
+- the greatsword back mount resting on the back instead of hanging clear
+
+## Still open, unchanged by this sign-off
+
+- Residual weapon-through-body on the worst attack clips — staff downward 53 mm,
+  mace underarm 51 mm, bow close strike 120 mm. Real geometry; an animation
+  decision, not a constant.
+- Off-hand weapons are never body-checked: `ARTIFACT_CLEARANCE_POLICIES` has no
+  `offhand` key.
+- `weaponHandContactMetrics` still uses an absolute 0.024 m digit-contact
+  tolerance. Same latent class of bug, gates nothing today.
+- Clothing/body separation for the selectable 1.5-2.0 m range. Height scaling is
+  already exact (0.00 mm at 1.5 and 2.0 m); SHAPE is not — 6.3 mm feminine,
+  5.5 mm heavy, 46.2 mm dwarf. The sling is procedurally routed around hard-coded
+  torso waypoints, which does not survive four builds x N races without a
+  waypoint table per body. Wants a design phase.
