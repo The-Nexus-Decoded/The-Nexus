@@ -58,7 +58,7 @@ const TRIPO_MATERIAL_NAME = "tripo_079291c6_872f_4a79_8d7e_51aedb0891a6";
 
 function approvedFollicleHair(url: string, strength = 0.24): THREE.Group {
   const hair = new THREE.Group();
-  hair.name = "SK_Hair_Cropped";
+  hair.name = "SK_Hair_Cropped_Straight";
   hair.userData[HUMAN_SCALP_FOLLICLE_MASK_STATUS_KEY] = "LOCAL_AUTHORING_VALIDATED";
   hair.userData[HUMAN_SCALP_FOLLICLE_MASK_URL_KEY] = url;
   hair.userData[HUMAN_SCALP_FOLLICLE_MASK_SHA256_KEY] = "A".repeat(64);
@@ -86,13 +86,13 @@ describe("character-creator modular appearance contract", () => {
     const model = new THREE.Group();
     const provider = approvedProvider();
     const cropped = new THREE.Group();
-    cropped.name = "SK_Hair_Cropped";
+    cropped.name = "SK_Hair_Cropped_Straight";
     const stubble = new THREE.Group();
     stubble.name = "SK_FacialHair_Stubble";
     provider.add(cropped, stubble);
 
     const rejectedLegacyHair = new THREE.Group();
-    rejectedLegacyHair.name = "SK_Hair_Long";
+    rejectedLegacyHair.name = "SK_Hair_Long_Straight";
     model.add(provider, rejectedLegacyHair);
 
     const face = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
@@ -108,6 +108,11 @@ describe("character-creator modular appearance contract", () => {
 
     expect(inspectCreationPreviewAvailability(model)).toEqual({
       faceTypes: ["foundation", "soft-round", "angular-high-cheek", "broad-strong"],
+      hairTextures: ["straight"],
+      hairStylesByTexture: {
+        straight: ["shaved-buzzed", "cropped"],
+        curly: ["shaved-buzzed"],
+      },
       hairStyles: ["shaved-buzzed", "cropped"],
       facialHair: ["none", "stubble"],
       ageMorphsAvailable: true,
@@ -128,14 +133,14 @@ describe("character-creator modular appearance contract", () => {
     const source = new THREE.Group();
     source.userData.souldrifterApprovalStatus = "LOCAL_AUTHORING_VALIDATED";
     const cropped = new THREE.Group();
-    cropped.name = "SK_Hair_Cropped";
+    cropped.name = "SK_Hair_Cropped_Straight";
     const sourceHead = new THREE.Bone();
     sourceHead.name = "mixamorigHead";
     const fullBeard = new THREE.SkinnedMesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
     fullBeard.name = "SK_FacialHair_FullBeard";
     fullBeard.bind(new THREE.Skeleton([sourceHead], [new THREE.Matrix4()]));
     const rejected = new THREE.Group();
-    rejected.name = "SK_Hair_Long";
+    rejected.name = "SK_Hair_Long_Straight";
     rejected.userData.souldrifterApprovalStatus = "REJECTED";
     source.add(sourceHead, cropped, fullBeard);
     const rejectedRoot = new THREE.Group();
@@ -150,7 +155,7 @@ describe("character-creator modular appearance contract", () => {
       faceType: "angular-high-cheek",
     });
 
-    expect(hydration.attachedModules).toEqual(["SK_Hair_Cropped", "SK_FacialHair_FullBeard"]);
+    expect(hydration.attachedModules).toEqual(["SK_Hair_Cropped_Straight", "SK_FacialHair_FullBeard"]);
     expect(result).toMatchObject({
       hair: "applied",
       facialHair: "applied",
@@ -167,7 +172,7 @@ describe("character-creator modular appearance contract", () => {
     const model = new THREE.Group();
     const provider = approvedProvider();
     const cropped = new THREE.Group();
-    cropped.name = "SK_Hair_Cropped";
+    cropped.name = "SK_Hair_Cropped_Straight";
     const material = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       map: new THREE.Texture(),
@@ -506,12 +511,12 @@ describe("character-creator modular appearance contract", () => {
 
   it("keeps color and greying controls disabled until visible canonical hair exists", () => {
     expect(appearanceDependentControls(
-      { hairStyle: "shaved-buzzed", facialHair: "none" },
-      { hairStyles: ["shaved-buzzed"], facialHair: ["none"] },
+      { hairStyle: "shaved-buzzed", hairTexture: "straight", facialHair: "none" },
+      { hairStyles: ["shaved-buzzed"], facialHair: ["none"] } as never,
     )).toEqual({ hairColor: false, hairGreying: false, facialHairGreying: false });
     expect(appearanceDependentControls(
-      { hairStyle: "long", facialHair: "stubble" },
-      { hairStyles: ["shaved-buzzed", "long"], facialHair: ["none", "stubble"] },
+      { hairStyle: "long", hairTexture: "straight", facialHair: "stubble" },
+      { hairStyles: ["shaved-buzzed", "long"], facialHair: ["none", "stubble"] } as never,
     )).toEqual({ hairColor: true, hairGreying: true, facialHairGreying: true });
   });
 

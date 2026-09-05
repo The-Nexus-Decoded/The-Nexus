@@ -45,6 +45,9 @@ async function assertAppearancePanel(page, expectedPanel) {
         "button[data-body-type], button[data-face-type], button[data-facial-hair], #appearance-age, #appearance-hair-greying, #appearance-facial-greying",
       )),
       // "rendered" means visible: the face section keeps its controls in the DOM while hidden
+      hairTextures: [...document.querySelectorAll("button[data-hair-texture]")]
+        .filter((button) => !button.closest("section")?.hidden)
+        .map((button) => button.dataset.hairTexture),
       hairStyles: [...document.querySelectorAll("button[data-hair-style]")]
         .filter((button) => !button.closest("section")?.hidden)
         .map((button) => button.dataset.hairStyle),
@@ -57,7 +60,9 @@ async function assertAppearancePanel(page, expectedPanel) {
   if (state.bodyTabSelected !== !facePanel || state.faceTabSelected !== facePanel) failures.push("workflow tab selection");
   if (state.skinControlsHidden !== !facePanel) failures.push("face-control visibility");
   if (state.deadControlsPresent) failures.push("a withheld appearance control was rendered");
-  if (facePanel && !state.hairStyles.includes("parted")) failures.push("the validated parted hair style is not offered");
+  if (facePanel && !state.hairStyles.includes("parted")) failures.push("the validated parted hair style is not offered under the straight texture");
+  if (facePanel && !(state.hairTextures.includes("straight") && state.hairTextures.includes("curly"))) failures.push("the validated hair textures are not offered");
+  if (!facePanel && state.hairTextures.length > 0) failures.push("hair texture controls rendered on the body panel");
   if (!facePanel && state.hairStyles.length > 0) failures.push("hair controls rendered on the body panel");
   if (!state.previewLabel.includes(facePanel ? "Close-up preview of your face" : "Full-body preview of the returned body")) failures.push("preview framing label");
   if (!state.nextLabel.includes(facePanel ? "Choose calling" : "Continue to face & features")) failures.push("forward action label");
@@ -328,7 +333,8 @@ try {
       appearanceAutoRotateDefaultsOff: !mobile.appearance.bodyPanel.autoRotateChecked && !mobile.appearance.facePanel.autoRotateChecked,
       appearanceNoDeadControls: !mobile.appearance.bodyPanel.deadControlsPresent && !mobile.appearance.facePanel.deadControlsPresent,
       appearanceReadySelections: Boolean(mobile.appearance.selectedSkin),
-      appearanceHairOffered: mobile.appearance.facePanel.hairStyles.includes("parted") && mobile.appearance.facePanel.hairStyles.includes("shaved-buzzed"),
+      appearanceHairOffered: mobile.appearance.facePanel.hairStyles.includes("parted") && mobile.appearance.facePanel.hairStyles.includes("shaved-buzzed")
+        && mobile.appearance.facePanel.hairTextures.includes("straight") && mobile.appearance.facePanel.hairTextures.includes("curly"),
       mobileImprintUnblocked: mobile.imprint.modalState.hudVisibility === "hidden",
       passiveBuffVisible: /passive/i.test(mobile.imprint.perkState.buffLabel),
       classActionVisible: mobile.imprint.perkState.skillName === "Grave-Iron Discipline",

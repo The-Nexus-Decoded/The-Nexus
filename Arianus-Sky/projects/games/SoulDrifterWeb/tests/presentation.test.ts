@@ -76,7 +76,7 @@ describe("actor presentation boundaries", () => {
   it("fails closed instead of showing unapproved or legacy modular hair geometry", () => {
     const model = new THREE.Group();
     const unapprovedHair = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
-    unapprovedHair.name = "SK_Hair_Long";
+    unapprovedHair.name = "SK_Hair_Long_Straight";
     const legacyHair = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
     legacyHair.name = "SK_SilverHairClump_01";
     const legacyBeard = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
@@ -96,7 +96,7 @@ describe("actor presentation boundaries", () => {
 
     expect(result.hair).toBe("missing-provider-asset");
     expect(result.facialHair).toBe("missing-provider-asset");
-    expect(result.missingProviderAssets).toEqual(["SK_Hair_Long", "SK_FacialHair_FullBeard"]);
+    expect(result.missingProviderAssets).toEqual(["SK_Hair_Long_Straight", "SK_FacialHair_FullBeard"]);
     expect(unapprovedHair.visible).toBe(false);
     expect(legacyHair.visible).toBe(false);
     expect(legacyBeard.visible).toBe(false);
@@ -114,7 +114,7 @@ describe("actor presentation boundaries", () => {
       mesh.userData[MODULAR_APPEARANCE_PROVIDER_STATUS_KEY] = MODULAR_APPEARANCE_PROVIDER_APPROVED;
       return mesh;
     };
-    const hair = approvedModule("SK_Hair_Cropped");
+    const hair = approvedModule("SK_Hair_Cropped_Straight");
     const beard = approvedModule("SK_FacialHair_ShortBeard");
     const browMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
     browMaterial.name = "Brow_Tint";
@@ -189,7 +189,7 @@ describe("actor presentation boundaries", () => {
       new THREE.BoxGeometry(),
       [hairMaterial, scalpMaterial, legacyHairMaterial, unknownMaterial],
     );
-    hair.name = "SK_Hair_CurlyCoiled";
+    hair.name = "SK_Hair_Cropped_Curly";
     hair.userData[MODULAR_APPEARANCE_PROVIDER_STATUS_KEY] = MODULAR_APPEARANCE_PROVIDER_APPROVED;
 
     const skinMaterial = new THREE.MeshStandardMaterial({ color: 0x684338, map: silverScalpMap });
@@ -199,7 +199,8 @@ describe("actor presentation boundaries", () => {
     model.add(hair, head);
 
     const result = applyModularAppearance(model, {
-      hairStyle: "curly-coiled",
+      hairStyle: "cropped",
+      hairTexture: "curly",
       raceId: "human",
       facialHair: "none",
       hairColor: "copper-red",
@@ -250,7 +251,7 @@ describe("actor presentation boundaries", () => {
       return { model, skinMaterial, silverScalpMap };
     };
 
-    const legacy = createModel("SK_Hair_TiedBack");
+    const legacy = createModel("SK_Hair_TiedBack_Straight");
     applyModularAppearance(legacy.model, {
       hairStyle: "tied-back",
       raceId: "human",

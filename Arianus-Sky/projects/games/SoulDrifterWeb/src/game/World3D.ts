@@ -1223,6 +1223,7 @@ export class World3D {
     });
     if (appearance) applyModularAppearance(model, {
       hairStyle: appearance.hairStyle ?? "shaved-buzzed",
+      hairTexture: appearance.hairTexture,
       raceId: id === "player"
         ? this.profile.raceId as "human" | "elf" | "dwarf" | "halfling"
         : "human",

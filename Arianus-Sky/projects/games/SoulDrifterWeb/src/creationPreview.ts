@@ -5,6 +5,7 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
   SKIN_TONES,
   type CanonicalHairStyleId,
+  type CanonicalHairTextureId,
   type FaceTypeId,
   type FacialHairId,
   type HairColorId,
@@ -474,7 +475,13 @@ export interface CreationLightState {
   under: number;
 }
 
-export const CREATION_LIGHT_BASE = Object.freeze({ hemisphere: 0.7, key: 26, fill: 6, rim: 18, under: 5 });
+/**
+ * Measured on the face stop, not eyeballed: with rim 18 and under 5 the Well's teal put as much
+ * light on the face as the warm key, so Deep skin came back grey-green (cheek 46/57/53, more green
+ * than red). The teal stays as an accent at a third of that, the key carries the face, and the
+ * hemisphere is a warm sky so every tone keeps its hue.
+ */
+export const CREATION_LIGHT_BASE = Object.freeze({ hemisphere: 0.45, key: 28, fill: 5, rim: 6.5, under: 2.4 });
 export const CREATION_RIM_DEFAULT = 0x6de6dc;
 /** Base-colour-only skin with KHR specular 1.6 turns to plastic above this. */
 export const CREATION_SKIN_ENV_INTENSITY = 0.35;
@@ -523,6 +530,7 @@ interface CreationPreviewFraming {
 
 export interface CreationPreviewAppearance {
   hairStyle: HairStyleId;
+  hairTexture?: CanonicalHairTextureId;
   skinTone: SkinToneId;
   raceId: string;
   facialHair?: FacialHairId;
@@ -535,6 +543,8 @@ export interface CreationPreviewAppearance {
 
 export interface CreationPreviewAvailability {
   faceTypes: readonly FaceTypeId[];
+  hairTextures: readonly CanonicalHairTextureId[];
+  hairStylesByTexture: Readonly<Record<CanonicalHairTextureId, readonly CanonicalHairStyleId[]>>;
   hairStyles: readonly CanonicalHairStyleId[];
   facialHair: readonly FacialHairId[];
   ageMorphsAvailable: boolean;
@@ -543,6 +553,11 @@ export interface CreationPreviewAvailability {
 
 export const EMPTY_CREATION_PREVIEW_AVAILABILITY: CreationPreviewAvailability = Object.freeze({
   faceTypes: Object.freeze(["foundation"] as FaceTypeId[]),
+  hairTextures: Object.freeze(["straight"] as CanonicalHairTextureId[]),
+  hairStylesByTexture: Object.freeze({
+    straight: Object.freeze(["shaved-buzzed"] as CanonicalHairStyleId[]),
+    curly: Object.freeze(["shaved-buzzed"] as CanonicalHairStyleId[]),
+  }),
   hairStyles: Object.freeze(["shaved-buzzed"] as CanonicalHairStyleId[]),
   facialHair: Object.freeze(["none"] as FacialHairId[]),
   ageMorphsAvailable: false,
@@ -866,7 +881,7 @@ export class CreationAvatarPreview {
     this.rotationPivot.rotation.y = this.yaw;
     this.scene.add(this.rotationPivot);
 
-    this.scene.add(new THREE.HemisphereLight(0xbfd9d4, 0x1c1611, CREATION_LIGHT_BASE.hemisphere));
+    this.scene.add(new THREE.HemisphereLight(0xd8c7b4, 0x1c1611, CREATION_LIGHT_BASE.hemisphere));
     this.keyLight = new THREE.PointLight(0xffd1b7, CREATION_LIGHT_BASE.key, 24, 2);
     this.keyLight.position.set(-1.6, 3.1, 2.4);
     this.rimLight = new THREE.PointLight(CREATION_RIM_DEFAULT, CREATION_LIGHT_BASE.rim, 18, 2);
@@ -1668,6 +1683,7 @@ export class CreationAvatarPreview {
     });
     applyModularAppearance(this.model, {
       hairStyle: this.appearance.hairStyle,
+      hairTexture: this.appearance.hairTexture,
       raceId: (this.appearance.raceId || "human") as "human" | "elf" | "dwarf" | "halfling",
       facialHair: this.appearance.facialHair ?? "none",
       hairColor: this.appearance.hairColor,

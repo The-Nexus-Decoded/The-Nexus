@@ -4,6 +4,7 @@ import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 
 import type {
   CanonicalHairStyleId,
+  CanonicalHairTextureId,
   FaceTypeId,
   FacialHairId,
 } from "./character";
@@ -31,14 +32,34 @@ export const HUMAN_FACE_MORPH_BY_TYPE: Readonly<Record<Exclude<FaceTypeId, "foun
 
 export const HUMAN_DIALOGUE_MORPH_NAMES = DIALOGUE_FACIAL_MORPH_NAMES;
 
-export const HUMAN_HAIR_MODULE_NAMES: Readonly<Record<Exclude<CanonicalHairStyleId, "shaved-buzzed">, string>> = {
+export type HumanHairStyleWithModule = Exclude<CanonicalHairStyleId, "shaved-buzzed">;
+export const HUMAN_HAIR_STYLE_MODULE_BASE: Readonly<Record<HumanHairStyleWithModule, string>> = {
   cropped: "SK_Hair_Cropped",
   parted: "SK_Hair_Parted",
-  "curly-coiled": "SK_Hair_CurlyCoiled",
   long: "SK_Hair_Long",
   "tied-back": "SK_Hair_TiedBack",
   braided: "SK_Hair_Braided",
 };
+export const HUMAN_HAIR_TEXTURE_MODULE_SUFFIX: Readonly<Record<CanonicalHairTextureId, string>> = {
+  straight: "Straight",
+  curly: "Curly",
+};
+export const HUMAN_HAIR_TEXTURE_IDS = Object.keys(HUMAN_HAIR_TEXTURE_MODULE_SUFFIX) as readonly CanonicalHairTextureId[];
+export const HUMAN_HAIR_STYLE_IDS_WITH_MODULE = Object.keys(HUMAN_HAIR_STYLE_MODULE_BASE) as readonly HumanHairStyleWithModule[];
+
+/** A style is authored once per texture: `SK_Hair_<Style>_<Texture>`. Shaved has no module. */
+export function humanHairModuleName(style: CanonicalHairStyleId, texture: CanonicalHairTextureId): string | undefined {
+  if (style === "shaved-buzzed") return undefined;
+  return `${HUMAN_HAIR_STYLE_MODULE_BASE[style]}_${HUMAN_HAIR_TEXTURE_MODULE_SUFFIX[texture]}`;
+}
+
+/** Every style x texture module the contract can carry, keyed `<style>/<texture>`. */
+export const HUMAN_HAIR_MODULE_NAMES: Readonly<Record<string, string>> = Object.freeze(Object.fromEntries(
+  HUMAN_HAIR_STYLE_IDS_WITH_MODULE.flatMap((style) => HUMAN_HAIR_TEXTURE_IDS.map((texture) => [
+    `${style}/${texture}`,
+    humanHairModuleName(style, texture) as string,
+  ])),
+));
 
 export const HUMAN_FACIAL_HAIR_MODULE_NAMES: Readonly<Record<Exclude<FacialHairId, "none">, string>> = {
   stubble: "SK_FacialHair_Stubble",
@@ -54,6 +75,11 @@ const APPEARANCE_HYDRATION_KEY = "souldrifterCanonicalAppearanceHydrated";
 
 export interface HumanAppearanceAvailability {
   faceTypes: readonly FaceTypeId[];
+  /** Textures with at least one validated style module; straight alone when the pack has none. */
+  hairTextures: readonly CanonicalHairTextureId[];
+  /** Per texture, the styles the loaded pack can actually show. Shaved is under every texture. */
+  hairStylesByTexture: Readonly<Record<CanonicalHairTextureId, readonly CanonicalHairStyleId[]>>;
+  /** Union across textures, for consumers that only ask "is this style showable at all". */
   hairStyles: readonly CanonicalHairStyleId[];
   facialHair: readonly FacialHairId[];
   ageMorphsAvailable: boolean;
@@ -123,9 +149,17 @@ export function inspectHumanAppearanceAvailability(model: THREE.Object3D): Human
       if (morphs.has(morph)) faceTypes.push(id);
     }
   }
+  const hairStylesByTexture = {} as Record<CanonicalHairTextureId, readonly CanonicalHairStyleId[]>;
+  for (const texture of HUMAN_HAIR_TEXTURE_IDS) {
+    hairStylesByTexture[texture] = ["shaved-buzzed", ...HUMAN_HAIR_STYLE_IDS_WITH_MODULE.filter((style) => (
+      hasValidatedNamedModule(model, humanHairModuleName(style, texture) as string)
+    ))];
+  }
+  const texturesWithModules = HUMAN_HAIR_TEXTURE_IDS.filter((texture) => hairStylesByTexture[texture].length > 1);
+  const hairTextures: CanonicalHairTextureId[] = texturesWithModules.length > 0 ? texturesWithModules : ["straight"];
   const hairStyles: CanonicalHairStyleId[] = ["shaved-buzzed"];
-  for (const [id, name] of Object.entries(HUMAN_HAIR_MODULE_NAMES) as [Exclude<CanonicalHairStyleId, "shaved-buzzed">, string][]) {
-    if (hasValidatedNamedModule(model, name)) hairStyles.push(id);
+  for (const style of HUMAN_HAIR_STYLE_IDS_WITH_MODULE) {
+    if (HUMAN_HAIR_TEXTURE_IDS.some((texture) => hairStylesByTexture[texture].includes(style))) hairStyles.push(style);
   }
   const facialHair: FacialHairId[] = ["none"];
   for (const [id, name] of Object.entries(HUMAN_FACIAL_HAIR_MODULE_NAMES) as [Exclude<FacialHairId, "none">, string][]) {
@@ -133,6 +167,8 @@ export function inspectHumanAppearanceAvailability(model: THREE.Object3D): Human
   }
   return {
     faceTypes,
+    hairTextures,
+    hairStylesByTexture,
     hairStyles,
     facialHair,
     ageMorphsAvailable: ready && morphs.has("Age_Middle") && morphs.has("Age_Elder"),

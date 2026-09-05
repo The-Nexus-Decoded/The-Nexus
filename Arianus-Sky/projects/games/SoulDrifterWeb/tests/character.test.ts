@@ -8,6 +8,7 @@ import {
   FACIAL_HAIR_STYLES,
   HAIR_COLORS,
   HAIR_STYLES,
+  HAIR_TEXTURES,
   MEMORY_QUESTIONS,
   RACES,
   raceCallingBonus,
@@ -59,13 +60,26 @@ describe("character weaving", () => {
     }
   });
 
+  it("resolves the legacy curly-coiled style to cropped under the coily texture", () => {
+    expect(resolveCharacterAppearance({ hairStyle: "curly-coiled", skinTone: "deep" })).toMatchObject({
+      hairStyle: "cropped",
+      hairTexture: "curly",
+    });
+    expect(resolveCharacterAppearance({ hairStyle: "parted", skinTone: "light" })).toMatchObject({
+      hairStyle: "parted",
+      hairTexture: "straight",
+    });
+    expect(resolveCharacterAppearance({ hairStyle: "parted", hairTexture: "curly", skinTone: "light" }).hairTexture).toBe("curly");
+  });
+
   it("normalizes the current Human pilot body and modular head contract", () => {
     const human = deriveCharacter(completeDraft("human", "warrior"));
     expect(BODY_TYPES.map((body) => body.id)).toEqual(["foundation"]);
     expect(FACE_TYPES.map((face) => face.id)).toEqual(["foundation"]);
     expect(HAIR_STYLES.map((style) => style.id)).toEqual([
-      "shaved-buzzed", "cropped", "parted", "curly-coiled", "long", "tied-back", "braided",
+      "shaved-buzzed", "cropped", "parted", "long", "tied-back", "braided",
     ]);
+    expect(HAIR_TEXTURES.map((texture) => texture.id)).toEqual(["straight", "curly"]);
     expect(FACIAL_HAIR_STYLES.map((style) => style.id)).toEqual([
       "none", "stubble", "moustache", "goatee", "short-beard", "full-beard",
     ]);
@@ -99,6 +113,7 @@ describe("character weaving", () => {
 
     expect(resolved).toEqual({
       hairStyle: "long",
+      hairTexture: "straight",
       skinTone: "deep",
       facialHair: "short-beard",
       hairColor: "auburn",

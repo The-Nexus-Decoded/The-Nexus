@@ -6,6 +6,7 @@ import {
   type FaceTypeId,
   type FacialHairId,
   type HairColorId,
+  type CanonicalHairTextureId,
   type HairStyleSelectionId,
   type SkinToneId,
 } from "./character";
@@ -13,7 +14,7 @@ import {
   applyHumanFaceType,
   hasValidatedAppearanceAncestor,
   HUMAN_FACIAL_HAIR_MODULE_NAMES,
-  HUMAN_HAIR_MODULE_NAMES,
+  humanHairModuleName,
 } from "./humanAppearanceAssembly";
 
 export interface PointerHitCandidate<TTile> {
@@ -218,6 +219,7 @@ export type HumanoidRaceId = "human" | "elf" | "dwarf" | "halfling";
 
 export interface ModularAppearance {
   hairStyle: HairStyleSelectionId;
+  hairTexture?: CanonicalHairTextureId;
   raceId: HumanoidRaceId;
   faceType?: FaceTypeId;
   facialHair?: FacialHairId;
@@ -606,10 +608,8 @@ export function raceAvatarShape(raceId: string): { width: number; depth: number 
   return RACE_AVATAR_SHAPES[raceId as HumanoidRaceId] ?? RACE_AVATAR_SHAPES.human;
 }
 
-const HAIR_MODULE_NAMES = {
-  "shaved-buzzed": "SK_Hair_Buzzed",
-  ...HUMAN_HAIR_MODULE_NAMES,
-} as const;
+/** Shaved is the scalp itself; a legacy pack may still carry a buzzed module, which is honoured if validated. */
+const SHAVED_HAIR_MODULE_NAME = "SK_Hair_Buzzed";
 
 const FACIAL_HAIR_MODULE_NAMES = HUMAN_FACIAL_HAIR_MODULE_NAMES;
 
@@ -629,7 +629,7 @@ function findApprovedModule(model: THREE.Object3D, name: string): THREE.Object3D
 
 function hideAppearanceModules(model: THREE.Object3D): void {
   model.traverse((child) => {
-    if (/^SK_Hair_(?:Buzzed|Cropped|Parted|CurlyCoiled|Long|TiedBack|Braided)$/i.test(child.name)
+    if (/^SK_Hair_(?:Buzzed|CurlyCoiled|(?:Cropped|Parted|Long|TiedBack|Braided)(?:_(?:Straight|Curly))?)$/i.test(child.name)
       || /^SK_HairScalp$/i.test(child.name)
       || /^SK_SilverHairClump/i.test(child.name)
       || /^SK_FacialHair_(?:Stubble|Moustache|Goatee|ShortBeard|FullBeard)$/i.test(child.name)
@@ -774,7 +774,7 @@ export function applyModularAppearance(
   });
 
   const missingProviderAssets: string[] = [];
-  const hairName = HAIR_MODULE_NAMES[resolved.hairStyle];
+  const hairName = humanHairModuleName(resolved.hairStyle, resolved.hairTexture) ?? SHAVED_HAIR_MODULE_NAME;
   const hairModule = findApprovedModule(model, hairName);
   let hair: ModularAssetApplication = "applied";
   if (hairModule) hairModule.visible = true;

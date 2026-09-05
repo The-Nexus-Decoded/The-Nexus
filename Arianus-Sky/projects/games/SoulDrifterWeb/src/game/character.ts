@@ -80,8 +80,11 @@ export interface CharacterDraft {
   answers: Record<string, string>;
 }
 
-export type CanonicalHairStyleId = "shaved-buzzed" | "cropped" | "parted" | "curly-coiled" | "long" | "tied-back" | "braided";
-export type LegacyHairStyleId = "shaved" | "silver-sweep";
+/** How the hair grows. A style is authored under a texture; "shaved-buzzed" is the same scalp under every texture. */
+export type CanonicalHairTextureId = "straight" | "curly";
+export type CanonicalHairStyleId = "shaved-buzzed" | "cropped" | "parted" | "long" | "tied-back" | "braided";
+/** "curly-coiled" was a style id before texture existed; it resolves to cropped under the curly texture. */
+export type LegacyHairStyleId = "shaved" | "silver-sweep" | "curly-coiled";
 /** UI/save compatibility input; runtime and persisted profiles resolve to CanonicalHairStyleId. */
 export type HairStyleId = CanonicalHairStyleId | LegacyHairStyleId;
 export type HairStyleSelectionId = HairStyleId;
@@ -94,6 +97,8 @@ export type FaceTypeId = "foundation" | "soft-round" | "angular-high-cheek" | "b
 export interface CharacterAppearance {
   /** Legacy aliases are accepted only at the save/draft boundary and resolve to a canonical family. */
   hairStyle: HairStyleSelectionId;
+  /** Absent in saves made before texture existed; resolves to straight, or curly for the legacy curly-coiled style. */
+  hairTexture?: CanonicalHairTextureId;
   skinTone: SkinToneId;
   facialHair?: FacialHairId;
   hairColor?: HairColorId;
@@ -107,6 +112,7 @@ export interface CharacterAppearance {
 
 export interface ResolvedCharacterAppearance {
   hairStyle: CanonicalHairStyleId;
+  hairTexture: CanonicalHairTextureId;
   skinTone: SkinToneId;
   facialHair: FacialHairId;
   hairColor: HairColorId;
@@ -123,8 +129,10 @@ export const SKIN_TONES: Readonly<Record<SkinToneId, { name: string; color: numb
   golden: { name: "Golden", color: 0xbb8060 },
   olive: { name: "Olive", color: 0x96705c },
   copper: { name: "Copper", color: 0xb87556 },
-  umber: { name: "Brown", color: 0x765044 },
-  deep: { name: "Deep", color: 0x4a302a },
+  // Brown and Deep carry real red-orange chroma; the old swatches had green ~= blue and could
+  // only ever multiply the map down to a grey-brown, never to dark skin.
+  umber: { name: "Brown", color: 0x7d5236 },
+  deep: { name: "Deep", color: 0x5b3826 },
 };
 
 export const HAIR_COLORS: Readonly<Record<HairColorId, { name: string; color: number }>> = {
@@ -148,11 +156,15 @@ export const FACE_TYPES: ReadonlyArray<{ id: FaceTypeId; name: string; descripti
   { id: "foundation", name: "Foundation face", description: "The first modular Human head; additional faces remain a later asset pass." },
 ];
 
+export const HAIR_TEXTURES: ReadonlyArray<{ id: CanonicalHairTextureId; name: string; description: string }> = [
+  { id: "straight", name: "Straight", description: "Strands lie flat and follow the comb." },
+  { id: "curly", name: "Curly", description: "Tight natural curls and coils with full, even coverage." },
+];
+
 export const HAIR_STYLES: ReadonlyArray<{ id: CanonicalHairStyleId; name: string; description: string }> = [
   { id: "shaved-buzzed", name: "Shaved or buzzed", description: "Clean close crown with visible scalp and no helmet-like shell." },
-  { id: "cropped", name: "Cropped", description: "Short layered cut kept clear of ears, collar, and brow." },
+  { id: "cropped", name: "Cropped", description: "Short cut kept clear of ears, collar, and brow; a close natural under curly hair." },
   { id: "parted", name: "Parted", description: "Controlled side part with readable strand flow." },
-  { id: "curly-coiled", name: "Curly or coiled", description: "Compact natural coils with full scalp coverage." },
   { id: "long", name: "Long", description: "Shoulder-length silhouette with face and weapon clearance." },
   { id: "tied-back", name: "Tied back", description: "Secured tail or bun kept clear of the neck seam and back sockets." },
   { id: "braided", name: "Braided", description: "Readable restrained braids suitable for game runtime." },
@@ -176,7 +188,14 @@ function normalizedAppearanceControl(value: unknown, fallback = 0): number {
 function canonicalHairStyle(value: unknown): CanonicalHairStyleId {
   if (value === "shaved") return "shaved-buzzed";
   if (value === "silver-sweep") return "long";
+  if (value === "curly-coiled") return "cropped";
   return HAIR_STYLES.some((style) => style.id === value) ? value as CanonicalHairStyleId : "shaved-buzzed";
+}
+
+function canonicalHairTexture(value: unknown, legacyStyle: unknown): CanonicalHairTextureId {
+  if (HAIR_TEXTURES.some((texture) => texture.id === value)) return value as CanonicalHairTextureId;
+  // saves from before texture existed: the one coily cut was a style of its own
+  return legacyStyle === "curly-coiled" ? "curly" : "straight";
 }
 
 function canonicalFaceType(value: unknown): FaceTypeId {
@@ -201,6 +220,7 @@ export function resolveCharacterAppearance(
     : "dark-brown";
   return {
     hairStyle: canonicalHairStyle(appearance?.hairStyle),
+    hairTexture: canonicalHairTexture(appearance?.hairTexture, appearance?.hairStyle),
     skinTone,
     facialHair,
     hairColor,
@@ -628,6 +648,7 @@ export function normalizeLegacyCharacterProfile(profile: CharacterProfile): Char
   const appearance = resolveCharacterAppearance(legacyAppearance);
   const usedAppearanceDefault = !legacyAppearance
     || legacyAppearance.hairStyle !== appearance.hairStyle
+    || legacyAppearance.hairTexture !== appearance.hairTexture
     || legacyAppearance.skinTone !== appearance.skinTone
     || legacyAppearance.facialHair !== appearance.facialHair
     || legacyAppearance.hairColor !== appearance.hairColor

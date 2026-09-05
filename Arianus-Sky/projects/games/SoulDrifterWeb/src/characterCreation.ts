@@ -10,6 +10,7 @@ import {
   resolveCharacterAppearance,
   HAIR_COLORS,
   HAIR_STYLES,
+  HAIR_TEXTURES,
   SKIN_TONES,
   STAT_KEYS,
   STAT_LABELS,
@@ -126,12 +127,20 @@ export function appearanceControlPercent(value: number): number {
   return Math.round(Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0)) * 100);
 }
 
+/** The styles the loaded pack can show under a texture; shaved is under every texture. */
+export function hairStylesUnderTexture(
+  availability: Pick<CreationPreviewAvailability, "hairStyles" | "hairStylesByTexture">,
+  texture: ResolvedCharacterAppearance["hairTexture"],
+): readonly ResolvedCharacterAppearance["hairStyle"][] {
+  return availability.hairStylesByTexture?.[texture] ?? availability.hairStyles;
+}
+
 export function appearanceDependentControls(
-  appearance: Pick<ResolvedCharacterAppearance, "hairStyle" | "facialHair">,
-  availability: Pick<CreationPreviewAvailability, "hairStyles" | "facialHair">,
+  appearance: Pick<ResolvedCharacterAppearance, "hairStyle" | "hairTexture" | "facialHair">,
+  availability: Pick<CreationPreviewAvailability, "hairStyles" | "hairStylesByTexture" | "facialHair">,
 ): { hairColor: boolean; hairGreying: boolean; facialHairGreying: boolean } {
   const hairReady = appearance.hairStyle !== "shaved-buzzed"
-    && availability.hairStyles.includes(appearance.hairStyle);
+    && hairStylesUnderTexture(availability, appearance.hairTexture).includes(appearance.hairStyle);
   const facialHairReady = appearance.facialHair !== "none"
     && availability.facialHair.includes(appearance.facialHair);
   return {
@@ -149,7 +158,7 @@ export function isCreatorAppearanceSelectionAvailable(
   appearance: ResolvedCharacterAppearance,
   availability: CreationPreviewAvailability,
 ): boolean {
-  return availability.hairStyles.includes(appearance.hairStyle)
+  return hairStylesUnderTexture(availability, appearance.hairTexture).includes(appearance.hairStyle)
     && availability.faceTypes.includes(appearance.faceType)
     && availability.facialHair.includes(appearance.facialHair)
     && (appearance.age === 0 || availability.ageMorphsAvailable);
@@ -647,7 +656,14 @@ export class CharacterCreation {
           </div>
         </section>
         <section data-appearance-section="face" ${facePanel ? "" : "hidden"}>
-          <h3>Hair</h3>
+          <h3>Hair texture</h3>
+          <div class="appearance-options appearance-options--hair-texture">
+            ${this.availableHairTextures().map((texture) => `
+              <button class="appearance-option ${this.selectedHairTexture() === texture.id ? "is-selected" : ""}" data-hair-texture="${texture.id}" type="button" aria-pressed="${this.selectedHairTexture() === texture.id}" title="${texture.description}">
+                <strong>${texture.name}</strong>
+              </button>`).join("")}
+          </div>
+          <h3>Hair style</h3>
           <div class="appearance-options appearance-options--hair">
             ${this.availableHairStyles().map((style) => `
               <button class="appearance-option ${this.selectedHairStyle() === style.id ? "is-selected" : ""}" data-hair-style="${style.id}" type="button" aria-pressed="${this.selectedHairStyle() === style.id}" title="${style.description}">
@@ -687,6 +703,17 @@ export class CharacterCreation {
         if (panel !== "body" && panel !== "face") return;
         this.switchAppearancePanel(panel);
       });
+    });
+    this.bindGazeHover("button[data-hair-texture]");
+    this.bindChoices("button[data-hair-texture]", "hairTexture", (id) => {
+      this.draft.appearance.hairTexture = id as CharacterDraft["appearance"]["hairTexture"];
+      // a style that does not exist under the new texture falls back to the shave, honestly
+      const style = resolveCharacterAppearance(this.draft.appearance);
+      if (!hairStylesUnderTexture(this.appearanceAvailability, style.hairTexture).includes(style.hairStyle)) {
+        this.draft.appearance.hairStyle = "shaved-buzzed";
+      }
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+      this.render();
     });
     this.bindGazeHover("button[data-hair-style]");
     this.bindChoices("button[data-hair-style]", "hairStyle", (id) => {
@@ -1057,9 +1084,19 @@ export class CharacterCreation {
     });
   }
 
-  /** Only styles the loaded, locally validated appearance pack can actually show. */
+  /** Textures the loaded, locally validated appearance pack has at least one style for. */
+  private availableHairTextures(): ReadonlyArray<(typeof HAIR_TEXTURES)[number]> {
+    return HAIR_TEXTURES.filter((texture) => this.appearanceAvailability.hairTextures.includes(texture.id));
+  }
+
+  /** Only styles the pack can actually show under the selected texture. */
   private availableHairStyles(): ReadonlyArray<(typeof HAIR_STYLES)[number]> {
-    return HAIR_STYLES.filter((style) => this.appearanceAvailability.hairStyles.includes(style.id));
+    const under = hairStylesUnderTexture(this.appearanceAvailability, this.selectedHairTexture());
+    return HAIR_STYLES.filter((style) => under.includes(style.id));
+  }
+
+  private selectedHairTexture(): ResolvedCharacterAppearance["hairTexture"] {
+    return resolveCharacterAppearance(this.draft.appearance).hairTexture;
   }
 
   private selectedHairStyle(): string {
@@ -1067,10 +1104,15 @@ export class CharacterCreation {
   }
 
   private withheldHairNote(): string {
-    const withheld = HAIR_STYLES.length - this.availableHairStyles().length;
-    if (this.appearanceAvailability === EMPTY_CREATION_PREVIEW_AVAILABILITY) return "Hair styles appear once the body has loaded.";
-    if (withheld === 0) return "Every canonical style has passed review.";
-    return `${withheld} more ${withheld === 1 ? "style is" : "styles are"} withheld until their assets pass review.`;
+    if (this.appearanceAvailability === EMPTY_CREATION_PREVIEW_AVAILABILITY) return "Hair textures and styles appear once the body has loaded.";
+    const texture = HAIR_TEXTURES.find((entry) => entry.id === this.selectedHairTexture())?.name ?? "this texture";
+    const withheldStyles = HAIR_STYLES.length - this.availableHairStyles().length;
+    const withheldTextures = HAIR_TEXTURES.length - this.availableHairTextures().length;
+    const parts: string[] = [];
+    if (withheldStyles > 0) parts.push(`${withheldStyles} more ${withheldStyles === 1 ? "style is" : "styles are"} withheld under ${texture}`);
+    if (withheldTextures > 0) parts.push(`${withheldTextures} ${withheldTextures === 1 ? "texture is" : "textures are"} withheld`);
+    if (parts.length === 0) return "Every canonical texture and style has passed review.";
+    return `${parts.join("; ")} until their assets pass review.`;
   }
 
   private updateAppearanceAvailability(availability: CreationPreviewAvailability): void {
