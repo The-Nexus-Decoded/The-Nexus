@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import {
   appearanceAgeStage,
+  creatorViewOffset,
   appearanceControlPercent,
   appearanceDependentControls,
   isCreatorAppearanceSelectionAvailable,
@@ -794,5 +795,18 @@ describe("creator wheel zoom", () => {
     expect(creationZoomedStop(station, face, -2).position.distanceTo(station.position)).toBeCloseTo(0, 6);
     // the inputs are not mutated
     expect(station.position.z).toBe(2);
+  });
+});
+
+describe("creator view offset", () => {
+  it("centres the figure in the stage the folio leaves open at every desktop width", () => {
+    expect(creatorViewOffset(1440, 440, false)).toBeCloseTo(440 / 1440 / 2, 6);
+    expect(creatorViewOffset(1920, 520, false)).toBeCloseTo(520 / 1920 / 2, 6);
+    // a 900 px window with a 46% folio used to get 0 and hid the figure behind the folio
+    expect(creatorViewOffset(900, 414, false)).toBeCloseTo(0.23, 6);
+    expect(creatorViewOffset(900, 414, true)).toBe(0);
+    expect(creatorViewOffset(390, 390, false)).toBe(0);
+    expect(creatorViewOffset(1440, 0, false)).toBe(0);
+    expect(creatorViewOffset(1000, 900, false)).toBe(0.3);
   });
 });

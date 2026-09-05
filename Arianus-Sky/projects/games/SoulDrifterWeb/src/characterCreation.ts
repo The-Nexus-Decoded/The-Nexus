@@ -89,8 +89,15 @@ export function creatorNameLight(nameLength: number): Pick<CreationLightState, "
 }
 
 /** Desktop stands the figure left of centre, clear of the folio; phones keep it centred. */
-export function creatorViewOffset(viewportWidth: number, uiHidden: boolean): number {
-  return uiHidden || viewportWidth <= 1079 ? 0 : 0.14;
+/**
+ * Horizontal camera offset that keeps the figure in the open part of the stage:
+ * half the folio's share of the viewport, so the figure sits centred in what
+ * the folio leaves visible at every desktop width. Zero when the UI is hidden
+ * and on phones, where the folio sits below the stage instead of beside it.
+ */
+export function creatorViewOffset(viewportWidth: number, folioWidth: number, uiHidden: boolean): number {
+  if (uiHidden || viewportWidth <= 820 || folioWidth <= 0 || viewportWidth <= 0) return 0;
+  return Math.min(0.3, folioWidth / viewportWidth / 2);
 }
 
 interface CreationHistoryState {
@@ -363,7 +370,8 @@ export class CharacterCreation {
         ? { ...presentation.light, ...creatorNameLight(this.draft.name.trim().length) }
         : facePanel ? { ...presentation.light, under: 1.3 } : presentation.light;
       preview.setLightState(light);
-      preview.setViewOffset(creatorViewOffset(window.innerWidth, this.uiHidden));
+      const folio = this.stage.closest<HTMLElement>(".creation-main");
+      preview.setViewOffset(creatorViewOffset(window.innerWidth, folio?.getBoundingClientRect().width ?? 0, this.uiHidden));
       preview.setStationChoreography(CREATOR_STATION_CHOREOGRAPHY[this.choreographyStation()]);
     }
     this.previewControls.hidden = this.step !== "appearance";
