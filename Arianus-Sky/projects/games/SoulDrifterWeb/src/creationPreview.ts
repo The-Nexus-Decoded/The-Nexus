@@ -18,6 +18,7 @@ import {
   cloneActorMaterial,
   isActorSkinSurface,
   raceAvatarShape,
+  skinToneMaterialColor,
 } from "./game/presentation";
 import {
   hydrateHumanAppearanceModules,
@@ -1558,7 +1559,7 @@ export class CreationAvatarPreview {
 
   private applyAppearance(): void {
     if (!this.model) return;
-    const skin = new THREE.Color(this.currentSkinColor());
+    const skinTone = this.currentSkinColor();
     this.model.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -1566,7 +1567,7 @@ export class CreationAvatarPreview {
           const base = material.userData.authoredColor as THREE.Color | undefined;
           if (material instanceof THREE.MeshStandardMaterial && base
             && isActorSkinSurface(`${child.name} ${material.name}`)) {
-            material.color.copy(base).lerp(skin, 0.62);
+            skinToneMaterialColor(base, skinTone, material.color);
           }
         });
       }

@@ -26,9 +26,10 @@ import {
   type CreationPreviewReaction,
 } from "../src/creationPreview";
 import { HUMAN_FOUNDATION_MODEL_PATH } from "../src/game/avatarIdentity";
-import { resolveCharacterAppearance } from "../src/game/character";
+import { resolveCharacterAppearance, SKIN_TONES } from "../src/game/character";
 import {
   applyModularAppearance,
+  skinToneMaterialColor,
   HUMAN_SCALP_FOLLICLE_MASK_SHA256_KEY,
   HUMAN_SCALP_FOLLICLE_MASK_SOURCE_HEAD_SHA256_KEY,
   HUMAN_SCALP_FOLLICLE_MASK_STATUS_KEY,
@@ -808,5 +809,29 @@ describe("creator view offset", () => {
     expect(creatorViewOffset(390, 390, false)).toBe(0);
     expect(creatorViewOffset(1440, 0, false)).toBe(0);
     expect(creatorViewOffset(1000, 900, false)).toBe(0.3);
+  });
+});
+
+describe("skin tone material colour", () => {
+  const luma = (c: THREE.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+  it("orders the palette from light to deep on the authored fair skin", () => {
+    const base = new THREE.Color(0xffffff);
+    const light = skinToneMaterialColor(base, SKIN_TONES.light.color);
+    const fair = skinToneMaterialColor(base, SKIN_TONES.ashen.color);
+    const brown = skinToneMaterialColor(base, SKIN_TONES.umber.color);
+    const deep = skinToneMaterialColor(base, SKIN_TONES.deep.color);
+    expect(fair.getHex()).toBe(0xffffff);
+    expect(luma(light)).toBeGreaterThan(luma(fair));
+    expect(luma(brown)).toBeLessThan(luma(fair) * 0.6);
+    expect(luma(deep)).toBeLessThan(luma(brown));
+    // deep must read deep: well under a third of the fair skin's reflectance
+    expect(luma(deep)).toBeLessThan(luma(fair) * 0.33);
+  });
+  it("writes into the given target, keeps the map's own base, and never blows out", () => {
+    const base = new THREE.Color(0.8, 0.7, 0.6);
+    const target = new THREE.Color();
+    expect(skinToneMaterialColor(base, SKIN_TONES.light.color, target)).toBe(target);
+    expect(base.r).toBeCloseTo(0.8, 6);
+    expect(Math.max(target.r, target.g, target.b)).toBeLessThanOrEqual(0.8 * 1.25 + 1e-6);
   });
 });

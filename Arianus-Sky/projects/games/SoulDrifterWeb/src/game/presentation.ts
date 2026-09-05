@@ -48,6 +48,28 @@ function isGroundingAttackTarget(target: string): boolean {
 }
 
 /** Foundation pilot keeps its skin under provider-authored names. */
+/** The fair skin the foundation texture was painted as; every tone is scaled relative to it. */
+const SKIN_TONE_REFERENCE = new THREE.Color(SKIN_TONES.ashen.color);
+const SKIN_TONE_FACTOR_MIN = 0.1;
+const SKIN_TONE_FACTOR_MAX = 1.25;
+
+/**
+ * The material colour that makes an authored skin read as `tone`. The old 62%
+ * blend toward the tone on a white base could only ever multiply the fair
+ * texture down to a medium tan, so "Deep" looked fair. Scaling the authored
+ * colour by tone / reference (in linear light) moves the texture's mean
+ * reflectance onto the tone itself and keeps every pore and shadow of the map.
+ */
+export function skinToneMaterialColor(base: THREE.Color, tone: number, target = new THREE.Color()): THREE.Color {
+  const wanted = new THREE.Color(tone);
+  const clampFactor = (value: number) => Math.min(SKIN_TONE_FACTOR_MAX, Math.max(SKIN_TONE_FACTOR_MIN, value));
+  return target.setRGB(
+    base.r * clampFactor(wanted.r / SKIN_TONE_REFERENCE.r),
+    base.g * clampFactor(wanted.g / SKIN_TONE_REFERENCE.g),
+    base.b * clampFactor(wanted.b / SKIN_TONE_REFERENCE.b),
+  );
+}
+
 export function isActorSkinSurface(name: string): boolean {
   return /skin|face|ear|nose|brow|jaw|head|humanfoundation_body|tripo_079291c6/i.test(name);
 }
@@ -63,7 +85,7 @@ export function cloneActorMaterial(
 
   if (preserveAuthoredPalette) {
     if (skinTone !== undefined && isActorSkinSurface(`${source.name} ${material.name}`)) {
-      material.color.lerp(new THREE.Color(skinTone), 0.62);
+      skinToneMaterialColor(material.color, skinTone, material.color);
       material.roughness = Math.max(material.roughness, 0.5);
     }
     return material;
