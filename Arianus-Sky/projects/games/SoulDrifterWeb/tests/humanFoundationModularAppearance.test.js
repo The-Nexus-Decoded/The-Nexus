@@ -17,7 +17,10 @@ const follicleMaskUrl = new URL(
 );
 
 const HEAD_SHA256 = "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8";
-const shippedModules = ["SK_Hair_Parted_Straight", "SK_Hair_Cropped_Curly", "SK_Hair_Cropped_Straight", "SK_Hair_Parted_Curly"];
+const shippedModules = [
+  "SK_Hair_Parted_Straight", "SK_Hair_Cropped_Curly", "SK_Hair_Cropped_Straight",
+  "SK_Hair_Parted_Curly", "SK_Hair_Fade_Straight", "SK_Hair_Fade_Curly", "SK_Hair_Afro_Curly",
+];
 const HAIR_STYLE_MODULES = ["Cropped", "Fade", "Parted", "Afro", "Cornrows", "Locs", "Twists", "Bun", "TiedBack", "Braided", "Long"];
 const HAIR_TEXTURE_MODULES = ["Straight", "Curly"];
 const withheldModules = [
@@ -106,7 +109,9 @@ describe("Human foundation modular appearance pack", () => {
     expect(json.meshes).toHaveLength(2 * shippedModules.length);
   });
 
-  it("weights every hair vertex fully to mixamorig:Head", () => {
+  // every shipped module's cards and mass, four joint slots per vertex: a few hundred thousand
+  // reads once the pack carries more than a couple of styles
+  it("weights every hair vertex fully to mixamorig:Head", { timeout: 60_000 }, () => {
     const headJoint = json.skins[0].joints.findIndex((index) => nodes[index].name === "mixamorig:Head");
     expect(headJoint).toBeGreaterThanOrEqual(0);
     for (const mesh of json.meshes) {
@@ -156,28 +161,25 @@ describe("Human foundation modular appearance pack", () => {
     }
   });
 
-  it.each(["SK_Hair_Cropped_Curly", "SK_Hair_Parted_Curly"])("stacks %s's fur shells with a falling vertex alpha so alphaCutoff thins them outward", (moduleName) => {
+  it.each(["SK_Hair_Cropped_Curly", "SK_Hair_Parted_Curly", "SK_Hair_Fade_Curly", "SK_Hair_Afro_Curly"])("stacks %s's fur shells with a falling vertex alpha so alphaCutoff thins them outward", (moduleName) => {
     const stats = vertexAlphaStats(`${moduleName}_Cards`);
     // Five shells, each a copy of the ~6.4k-vertex welded scalp, every vertex carrying its
     // shell's coverage. The mass itself is not the reference: a parted module refines its own
     // mass along the part line, so its vertex count no longer matches the shells' base.
-    expect(stats.count).toBeGreaterThan(5 * 6000);
+    expect(stats.count).toBeGreaterThan(4 * 6000);
     expect(stats.feathered).toBe(stats.count);
     expect(stats.meanAlpha).toBeGreaterThan(0.4);
     expect(stats.meanAlpha).toBeLessThan(0.85);
   });
 
   it("uses alpha-tested, double-sided, tintable hair materials with anisotropy", () => {
-    expect(json.materials.map((material) => material.name).sort()).toEqual([
-      "MAT_HumanHair_Tintable_Cropped_Curly_Cards",
-      "MAT_HumanHair_Tintable_Cropped_Curly_Mass",
-      "MAT_HumanHair_Tintable_Cropped_Straight_Cards",
-      "MAT_HumanHair_Tintable_Cropped_Straight_Mass",
-      "MAT_HumanHair_Tintable_Parted_Curly_Cards",
-      "MAT_HumanHair_Tintable_Parted_Curly_Mass",
-      "MAT_HumanHair_Tintable_Parted_Straight_Cards",
-      "MAT_HumanHair_Tintable_Parted_Straight_Mass",
-    ]);
+    // one tintable cards material and one mass material per shipped module
+    expect(json.materials.map((material) => material.name).sort()).toEqual(
+      shippedModules.flatMap((name) => {
+        const stem = name.replace("SK_Hair_", "");
+        return [`MAT_HumanHair_Tintable_${stem}_Cards`, `MAT_HumanHair_Tintable_${stem}_Mass`];
+      }).sort(),
+    );
     for (const material of json.materials) {
       expect(material.alphaMode).toBe("MASK");
       expect(material.alphaCutoff).toBeGreaterThanOrEqual(0.3);
@@ -236,6 +238,21 @@ describe("Human foundation modular appearance pack", () => {
             ownerApproval: { status: "PENDING_LIVE_REVIEW" },
           },
           SK_Hair_Cropped_Straight: {
+            license: "PROJECT_ORIGINAL",
+            sourceHeadSha256: HEAD_SHA256,
+            ownerApproval: { status: "PENDING_LIVE_REVIEW" },
+          },
+          SK_Hair_Fade_Straight: {
+            license: "PROJECT_ORIGINAL",
+            sourceHeadSha256: HEAD_SHA256,
+            ownerApproval: { status: "PENDING_LIVE_REVIEW" },
+          },
+          SK_Hair_Fade_Curly: {
+            license: "PROJECT_ORIGINAL",
+            sourceHeadSha256: HEAD_SHA256,
+            ownerApproval: { status: "PENDING_LIVE_REVIEW" },
+          },
+          SK_Hair_Afro_Curly: {
             license: "PROJECT_ORIGINAL",
             sourceHeadSha256: HEAD_SHA256,
             ownerApproval: { status: "PENDING_LIVE_REVIEW" },

@@ -636,24 +636,24 @@
           "evidence": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/silhouette-gate-draft11/owner-contact-sheet.png"
         },
         "gateScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_silhouette_gate.py",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
           "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
         },
         "buildScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack4_build.py",
-          "sha256": "EE48490FABACC53F5DBFCA5E13B4BD37046F37B637B1440A07ABB2F43DD1E47D"
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "sha256": "B4FE91D9160EA601CD977D1EE7B827E209CEC681C77FF5459E3196F55BDC5C66"
         },
         "postScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack_post.py",
-          "sha256": "7B47A1BED96A84682D604C19D76BFCCA897D4DC372B911B8A9407BAAA574F0D2"
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "sha256": "2F69757C2D7E34EF06BBB9D742E0D0A982D387C83EEC2BECDE86C59F011BA704"
         },
         "atlas": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-parted-cards-atlas.png",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cards-atlas.png",
           "sha256": "992F1186FE7D5A4BD2976C19F477AD42405FB9FF0274EC8F7AABE70216E58235",
-          "generator": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_atlas_build.py"
+          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_atlas_build.py"
         },
         "capTile": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-parted-cap-tile.png",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cap-tile.png",
           "sha256": "EA6540A13899F40B3F9218B84300D354CF74A01B2A377F050EB71468A126BBD5"
         },
         "follicleMask": {
@@ -677,8 +677,8 @@
         },
         "runtimeMaterial": "MAT_HumanHair_Tintable_Parted_Straight (cards + mass), alphaMode MASK, doubleSided, KHR_materials_anisotropy, KHR_materials_specular, souldrifterTintChannel HAIR",
         "evidence": {
-          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10",
-          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\owner-contact-sheet.png"
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet.png"
         },
         "silhouetteVsDraft11": {
           "01-front": {
@@ -741,24 +741,24 @@
           "status": "PENDING_LIVE_REVIEW"
         },
         "gateScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_silhouette_gate.py",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
           "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
         },
         "buildScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack4_build.py",
-          "sha256": "EE48490FABACC53F5DBFCA5E13B4BD37046F37B637B1440A07ABB2F43DD1E47D"
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "sha256": "B4FE91D9160EA601CD977D1EE7B827E209CEC681C77FF5459E3196F55BDC5C66"
         },
         "postScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack_post.py",
-          "sha256": "7B47A1BED96A84682D604C19D76BFCCA897D4DC372B911B8A9407BAAA574F0D2"
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "sha256": "2F69757C2D7E34EF06BBB9D742E0D0A982D387C83EEC2BECDE86C59F011BA704"
         },
         "atlas": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-coily-shell-tile.png",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-shell-tile.png",
           "sha256": "2A2677250FD2BCC01C0EE625643B9C22794B03EF8195E08C8361028E4B2FA47F",
-          "generator": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_coily_atlas.py"
+          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_coily_atlas.py"
         },
         "capTile": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-coily-cap-tile.png",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-cap-tile.png",
           "sha256": "52B275BA76F1083EE89943CD0C3C50D36707ACC6A00ADBFA523F051AC04F8BD0"
         },
         "follicleMask": {
@@ -782,8 +782,8 @@
         },
         "runtimeMaterial": "MAT_HumanHair_Tintable_Cropped_Curly (shells + mass), alphaMode MASK, doubleSided, KHR_materials_anisotropy, KHR_materials_specular, souldrifterTintChannel HAIR; shells cut by texture alpha x COLOR_0 alpha at alphaCutoff",
         "evidence": {
-          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10",
-          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\owner-contact-sheet-coily.png"
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-coily.png"
         }
       },
       "SK_Hair_Cropped_Straight": {
@@ -795,24 +795,24 @@
           "status": "PENDING_LIVE_REVIEW"
         },
         "gateScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_silhouette_gate.py",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
           "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
         },
         "buildScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack4_build.py",
-          "sha256": "EE48490FABACC53F5DBFCA5E13B4BD37046F37B637B1440A07ABB2F43DD1E47D"
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "sha256": "B4FE91D9160EA601CD977D1EE7B827E209CEC681C77FF5459E3196F55BDC5C66"
         },
         "postScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack_post.py",
-          "sha256": "7B47A1BED96A84682D604C19D76BFCCA897D4DC372B911B8A9407BAAA574F0D2"
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "sha256": "2F69757C2D7E34EF06BBB9D742E0D0A982D387C83EEC2BECDE86C59F011BA704"
         },
         "atlas": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-parted-cards-atlas.png",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cards-atlas.png",
           "sha256": "992F1186FE7D5A4BD2976C19F477AD42405FB9FF0274EC8F7AABE70216E58235",
-          "generator": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_atlas_build.py"
+          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_atlas_build.py"
         },
         "capTile": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-parted-cap-tile.png",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cap-tile.png",
           "sha256": "EA6540A13899F40B3F9218B84300D354CF74A01B2A377F050EB71468A126BBD5"
         },
         "follicleMask": {
@@ -836,8 +836,8 @@
         },
         "runtimeMaterial": "MAT_HumanHair_Tintable_Cropped_Straight (cards + mass), alphaMode MASK, doubleSided, KHR_materials_anisotropy, KHR_materials_specular, souldrifterTintChannel HAIR",
         "evidence": {
-          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10",
-          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\owner-contact-sheet-cropped.png"
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-cropped.png"
         }
       },
       "SK_Hair_Parted_Curly": {
@@ -849,24 +849,24 @@
           "status": "PENDING_LIVE_REVIEW"
         },
         "gateScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_silhouette_gate.py",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
           "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
         },
         "buildScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack4_build.py",
-          "sha256": "EE48490FABACC53F5DBFCA5E13B4BD37046F37B637B1440A07ABB2F43DD1E47D"
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "sha256": "B4FE91D9160EA601CD977D1EE7B827E209CEC681C77FF5459E3196F55BDC5C66"
         },
         "postScript": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack_post.py",
-          "sha256": "7B47A1BED96A84682D604C19D76BFCCA897D4DC372B911B8A9407BAAA574F0D2"
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "sha256": "2F69757C2D7E34EF06BBB9D742E0D0A982D387C83EEC2BECDE86C59F011BA704"
         },
         "atlas": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-coily-shell-tile.png",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-shell-tile.png",
           "sha256": "2A2677250FD2BCC01C0EE625643B9C22794B03EF8195E08C8361028E4B2FA47F",
-          "generator": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_coily_atlas.py"
+          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_coily_atlas.py"
         },
         "capTile": {
-          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-coily-cap-tile.png",
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-cap-tile.png",
           "sha256": "52B275BA76F1083EE89943CD0C3C50D36707ACC6A00ADBFA523F051AC04F8BD0"
         },
         "follicleMask": {
@@ -890,8 +890,170 @@
         },
         "runtimeMaterial": "MAT_HumanHair_Tintable_Parted_Curly (shells + mass), alphaMode MASK, doubleSided, KHR_materials_anisotropy, KHR_materials_specular, souldrifterTintChannel HAIR",
         "evidence": {
-          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10",
-          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\owner-contact-sheet-parted-curly.png"
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-parted-curly.png"
+        }
+      },
+      "SK_Hair_Fade_Straight": {
+        "route": "PROJECT_AUTHORED_EXACT_HEAD_TAPERED_VOLUME_CARDS",
+        "sourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+        "license": "PROJECT_ORIGINAL",
+        "geometryPolicy": "TAPERED_LIFT_OVER_WELDED_SCALP_PLUS_TOP_ONLY_CARDS_SKINNED_TO_HEAD",
+        "ownerApproval": {
+          "status": "PENDING_LIVE_REVIEW"
+        },
+        "gateScript": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
+          "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
+        },
+        "buildScript": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "sha256": "B4FE91D9160EA601CD977D1EE7B827E209CEC681C77FF5459E3196F55BDC5C66"
+        },
+        "postScript": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "sha256": "2F69757C2D7E34EF06BBB9D742E0D0A982D387C83EEC2BECDE86C59F011BA704"
+        },
+        "atlas": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cards-atlas.png",
+          "sha256": "992F1186FE7D5A4BD2976C19F477AD42405FB9FF0274EC8F7AABE70216E58235",
+          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_atlas_build.py"
+        },
+        "capTile": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cap-tile.png",
+          "sha256": "EA6540A13899F40B3F9218B84300D354CF74A01B2A377F050EB71468A126BBD5"
+        },
+        "follicleMask": {
+          "url": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+          "sha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+          "undercoatStrength": 0.3,
+          "uvSet": "UVMap"
+        },
+        "build": "SK_Hair_Fade_Straight: mass 6447 verts, cards 13978 verts",
+        "meshes": {
+          "SK_Hair_Fade_Straight_Cards": {
+            "vertices": 13978,
+            "triangles": 12604,
+            "material": "MAT_HumanHair_Tintable_Fade_Straight_Cards"
+          },
+          "SK_Hair_Fade_Straight_Mass": {
+            "vertices": 6482,
+            "triangles": 12560,
+            "material": "MAT_HumanHair_Tintable_Fade_Straight_Mass"
+          }
+        },
+        "runtimeMaterial": "MAT_HumanHair_Tintable_Fade_Straight (cards + mass), alphaMode MASK, doubleSided, souldrifterTintChannel HAIR",
+        "evidence": {
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-fade.png"
+        }
+      },
+      "SK_Hair_Fade_Curly": {
+        "route": "PROJECT_AUTHORED_EXACT_HEAD_TAPERED_COIL_SHELLS",
+        "sourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+        "license": "PROJECT_ORIGINAL",
+        "geometryPolicy": "TAPERED_LIFT_OVER_WELDED_SCALP_PLUS_FOUR_ALPHA_CUT_FUR_SHELLS_SKINNED_TO_HEAD",
+        "ownerApproval": {
+          "status": "PENDING_LIVE_REVIEW"
+        },
+        "gateScript": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
+          "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
+        },
+        "buildScript": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "sha256": "B4FE91D9160EA601CD977D1EE7B827E209CEC681C77FF5459E3196F55BDC5C66"
+        },
+        "postScript": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "sha256": "2F69757C2D7E34EF06BBB9D742E0D0A982D387C83EEC2BECDE86C59F011BA704"
+        },
+        "atlas": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-shell-tile.png",
+          "sha256": "2A2677250FD2BCC01C0EE625643B9C22794B03EF8195E08C8361028E4B2FA47F",
+          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_coily_atlas.py"
+        },
+        "capTile": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-cap-tile.png",
+          "sha256": "52B275BA76F1083EE89943CD0C3C50D36707ACC6A00ADBFA523F051AC04F8BD0"
+        },
+        "follicleMask": {
+          "url": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+          "sha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+          "undercoatStrength": 0.3,
+          "uvSet": "UVMap"
+        },
+        "build": "SK_Hair_Fade_Curly: mass 6447 verts, 4 shells, 25788 shell verts",
+        "meshes": {
+          "SK_Hair_Fade_Curly_Cards": {
+            "vertices": 25915,
+            "triangles": 50240,
+            "material": "MAT_HumanHair_Tintable_Fade_Curly_Cards"
+          },
+          "SK_Hair_Fade_Curly_Mass": {
+            "vertices": 6456,
+            "triangles": 12560,
+            "material": "MAT_HumanHair_Tintable_Fade_Curly_Mass"
+          }
+        },
+        "runtimeMaterial": "MAT_HumanHair_Tintable_Fade_Curly (shells + mass), alphaMode MASK, doubleSided, souldrifterTintChannel HAIR",
+        "evidence": {
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-fade-curly.png"
+        }
+      },
+      "SK_Hair_Afro_Curly": {
+        "route": "PROJECT_AUTHORED_EXACT_HEAD_RADIAL_STANDOFF_COIL_SHELLS",
+        "sourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+        "license": "PROJECT_ORIGINAL",
+        "geometryPolicy": "CONSTANT_RADIAL_STANDOFF_ABOUT_THE_SKULL_PLUS_FIVE_ALPHA_CUT_FUR_SHELLS_SKINNED_TO_HEAD",
+        "ownerApproval": {
+          "status": "PENDING_LIVE_REVIEW"
+        },
+        "gateScript": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
+          "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
+        },
+        "buildScript": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "sha256": "B4FE91D9160EA601CD977D1EE7B827E209CEC681C77FF5459E3196F55BDC5C66"
+        },
+        "postScript": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "sha256": "2F69757C2D7E34EF06BBB9D742E0D0A982D387C83EEC2BECDE86C59F011BA704"
+        },
+        "atlas": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-shell-tile.png",
+          "sha256": "2A2677250FD2BCC01C0EE625643B9C22794B03EF8195E08C8361028E4B2FA47F",
+          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_coily_atlas.py"
+        },
+        "capTile": {
+          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-cap-tile.png",
+          "sha256": "52B275BA76F1083EE89943CD0C3C50D36707ACC6A00ADBFA523F051AC04F8BD0"
+        },
+        "follicleMask": {
+          "url": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+          "sha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+          "undercoatStrength": 0.3,
+          "uvSet": "UVMap"
+        },
+        "build": "SK_Hair_Afro_Curly: mass 6447 verts, 5 shells, 32235 shell verts",
+        "meshes": {
+          "SK_Hair_Afro_Curly_Cards": {
+            "vertices": 32408,
+            "triangles": 62800,
+            "material": "MAT_HumanHair_Tintable_Afro_Curly_Cards"
+          },
+          "SK_Hair_Afro_Curly_Mass": {
+            "vertices": 6484,
+            "triangles": 12560,
+            "material": "MAT_HumanHair_Tintable_Afro_Curly_Mass"
+          }
+        },
+        "runtimeMaterial": "MAT_HumanHair_Tintable_Afro_Curly (shells + mass), alphaMode MASK, doubleSided, souldrifterTintChannel HAIR",
+        "evidence": {
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-afro.png"
         }
       }
     }
@@ -905,7 +1067,10 @@
       "SK_Hair_Parted_Straight",
       "SK_Hair_Cropped_Curly",
       "SK_Hair_Cropped_Straight",
-      "SK_Hair_Parted_Curly"
+      "SK_Hair_Parted_Curly",
+      "SK_Hair_Fade_Straight",
+      "SK_Hair_Fade_Curly",
+      "SK_Hair_Afro_Curly"
     ],
     "requiredModuleNames": [
       "SK_Hair_Cropped_Straight",
@@ -937,10 +1102,7 @@
       "SK_FacialHair_FullBeard"
     ],
     "withheldModules": {
-      "SK_Hair_Fade_Straight": "no validated module authored for this style under this texture yet",
-      "SK_Hair_Fade_Curly": "no validated module authored for this style under this texture yet",
       "SK_Hair_Afro_Straight": "no validated module authored for this style under this texture yet",
-      "SK_Hair_Afro_Curly": "no validated module authored for this style under this texture yet",
       "SK_Hair_Cornrows_Straight": "no validated module authored for this style under this texture yet",
       "SK_Hair_Cornrows_Curly": "no validated module authored for this style under this texture yet",
       "SK_Hair_Locs_Straight": "no validated module authored for this style under this texture yet",
@@ -1109,6 +1271,96 @@
         "hair-parted-cap-tile"
       ],
       "headWeighted": true
+    },
+    "SK_Hair_Fade_Straight": {
+      "status": "LOCAL_AUTHORING_VALIDATED",
+      "children": [
+        "SK_Hair_Fade_Straight_Cards",
+        "SK_Hair_Fade_Straight_Mass"
+      ],
+      "meshes": {
+        "SK_Hair_Fade_Straight_Cards": {
+          "vertices": 13978,
+          "triangles": 12604,
+          "material": "MAT_HumanHair_Tintable_Fade_Straight_Cards"
+        },
+        "SK_Hair_Fade_Straight_Mass": {
+          "vertices": 6482,
+          "triangles": 12560,
+          "material": "MAT_HumanHair_Tintable_Fade_Straight_Mass"
+        }
+      },
+      "materials": [
+        "MAT_HumanHair_Tintable_Fade_Straight_Cards",
+        "MAT_HumanHair_Tintable_Fade_Straight_Mass"
+      ],
+      "images": [
+        "hair-coily-shell-tile",
+        "hair-coily-cap-tile",
+        "hair-parted-cards-atlas",
+        "hair-parted-cap-tile"
+      ],
+      "headWeighted": true
+    },
+    "SK_Hair_Fade_Curly": {
+      "status": "LOCAL_AUTHORING_VALIDATED",
+      "children": [
+        "SK_Hair_Fade_Curly_Cards",
+        "SK_Hair_Fade_Curly_Mass"
+      ],
+      "meshes": {
+        "SK_Hair_Fade_Curly_Cards": {
+          "vertices": 25915,
+          "triangles": 50240,
+          "material": "MAT_HumanHair_Tintable_Fade_Curly_Cards"
+        },
+        "SK_Hair_Fade_Curly_Mass": {
+          "vertices": 6456,
+          "triangles": 12560,
+          "material": "MAT_HumanHair_Tintable_Fade_Curly_Mass"
+        }
+      },
+      "materials": [
+        "MAT_HumanHair_Tintable_Fade_Curly_Cards",
+        "MAT_HumanHair_Tintable_Fade_Curly_Mass"
+      ],
+      "images": [
+        "hair-coily-shell-tile",
+        "hair-coily-cap-tile",
+        "hair-parted-cards-atlas",
+        "hair-parted-cap-tile"
+      ],
+      "headWeighted": true
+    },
+    "SK_Hair_Afro_Curly": {
+      "status": "LOCAL_AUTHORING_VALIDATED",
+      "children": [
+        "SK_Hair_Afro_Curly_Cards",
+        "SK_Hair_Afro_Curly_Mass"
+      ],
+      "meshes": {
+        "SK_Hair_Afro_Curly_Cards": {
+          "vertices": 32408,
+          "triangles": 62800,
+          "material": "MAT_HumanHair_Tintable_Afro_Curly_Cards"
+        },
+        "SK_Hair_Afro_Curly_Mass": {
+          "vertices": 6484,
+          "triangles": 12560,
+          "material": "MAT_HumanHair_Tintable_Afro_Curly_Mass"
+        }
+      },
+      "materials": [
+        "MAT_HumanHair_Tintable_Afro_Curly_Cards",
+        "MAT_HumanHair_Tintable_Afro_Curly_Mass"
+      ],
+      "images": [
+        "hair-coily-shell-tile",
+        "hair-coily-cap-tile",
+        "hair-parted-cards-atlas",
+        "hair-parted-cap-tile"
+      ],
+      "headWeighted": true
     }
   },
   "validation": {
@@ -1135,10 +1387,13 @@
   },
   "freshImport": {
     "status": "PASS",
-    "meshCount": 8,
+    "meshCount": 14,
     "moduleNames": [
+      "SK_Hair_Afro_Curly",
       "SK_Hair_Cropped_Curly",
       "SK_Hair_Cropped_Straight",
+      "SK_Hair_Fade_Curly",
+      "SK_Hair_Fade_Straight",
       "SK_Hair_Parted_Curly",
       "SK_Hair_Parted_Straight"
     ],
@@ -1150,31 +1405,40 @@
     "approvalMetadataRoundTrips": true
   },
   "evidence": {
-    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10",
-    "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\owner-contact-sheet.png",
-    "ownerViews": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\owner-view",
-    "silhouettes": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\silhouette",
+    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d",
+    "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet.png",
+    "ownerViews": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-view",
+    "silhouettes": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\silhouette",
     "hairTint": "preview multiply (0.42, 0.27, 0.17); runtime tints from HAIR_COLORS",
     "renderer": "Blender 5.2.1 EEVEE, 1024 px, ortho 0.215",
     "modules": {
       "SK_Hair_Parted_Straight": {
-        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\owner-contact-sheet.png"
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet.png"
       },
       "SK_Hair_Cropped_Curly": {
-        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\owner-contact-sheet-coily.png"
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-coily.png"
       },
       "SK_Hair_Cropped_Straight": {
-        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\owner-contact-sheet-cropped.png"
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-cropped.png"
       },
       "SK_Hair_Parted_Curly": {
-        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v10\\owner-contact-sheet-parted-curly.png"
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-parted-curly.png"
+      },
+      "SK_Hair_Fade_Straight": {
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-fade.png"
+      },
+      "SK_Hair_Fade_Curly": {
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-fade-curly.png"
+      },
+      "SK_Hair_Afro_Curly": {
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v11d\\owner-contact-sheet-afro.png"
       }
     }
   },
   "output": {
     "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb\\public/assets/3d/characters/human-foundation-pilot\\human-foundation-pilot-modular-appearance.glb",
-    "bytes": 17162436,
-    "sha256": "E2F190B4B25272425E49D8C41AAC20AAC9A45440B24BBF6661D6301E413FE836"
+    "bytes": 25638880,
+    "sha256": "AD44BCC245A6499A857144966C1958D61C560FE9B4A3683F3585698383894711"
   },
   "runtimeNotes": [
     "Shaved-buzzed remains the zero-volume baseline and is not duplicated.",
