@@ -8,6 +8,8 @@ import { applyReactionHit, buildReactionPlan, reactionArchetypeForFamily, reacti
   reactionSetForContact, reactionSetPreempts, reactionTimelineEnd, reactionTimelinePhases,
   REACTION_CONTRACT_CLIPS, REACTION_MAX_HOLD_SECONDS, REACTION_SET_IDS,
   REACTION_SETS } from "../src/review/weapon-lab/reaction-contract";
+import { reactionSetInstalled, REVIEWED_REACTION_PACKS,
+  type ReviewedReactionPacks } from "../src/review/weapon-lab/reviewed-reaction-receipt";
 import { sampleReviewSequence } from "../src/review/weapon-lab/combat-review-timeline";
 
 // Authored durations, read off the shipped packs by tests/reactionPack.test.ts.
@@ -468,5 +470,106 @@ describe("Scrubbing reproduces exactly what playing reproduces", () => {
     expect(() => applyReactionHit(timeline,
       { setId: "knockdown", atSeconds: 2, effectSeconds: 0, durations: KNOCKDOWN }, "breachling"))
       .toThrow(/belongs to one archetype/);
+  });
+});
+
+/**
+ * Authored loop lengths per archetype, read off the shipped packs by
+ * tests/reactionPack.test.ts. The three poison loops are deliberately different
+ * lengths, which is what makes the quantised hold below name the archetype the
+ * plan actually resolved against rather than the one it was asked for.
+ */
+const ARCHETYPE_POISON = {
+  humanoid: { impact: 0.85, loop: 2.8, recover: 1.6 },
+  warden: { impact: 1.1, loop: 3.6, recover: 2.4 },
+  breachling: { impact: 0.95, loop: 2.4, recover: 1.7 },
+} as const;
+const archetypeDefinitions: readonly CombatActorDefinition[] = [
+  { id: "human-sword", label: "Human · sword", family: "human", note: "Equipment binding · review draft" },
+  { id: "boss", label: "Cinderbound Wayfarer", family: "warden", note: "Four-view body · reviewed motion" },
+  { id: "base", label: "Base Breachling", family: "breachling", note: "Four-view body · reviewed motion" },
+  { id: "spitter", label: "Base Breachling · attacker", family: "breachling", note: "Four-view body · reviewed motion" },
+];
+/** The defender carries the nine clips its own pack installs, at that pack's own durations. */
+function packedDefenderActions(family: "human" | "warden" | "breachling"): ReviewAction[] {
+  const archetype = family === "human" ? "humanoid" : family;
+  const durations = ARCHETYPE_POISON[archetype];
+  return [action("idle", "idle"), action("RecieveHit", "reaction", 0.8), action("Death", "death", 2),
+    action("PoisonImpact", "reaction", durations.impact), action("PoisonLoop", "reaction", durations.loop),
+    action("PoisonRecover", "reaction", durations.recover), action("BurnFlare", "reaction", 0.9),
+    action("BurnBurn", "reaction", 2.6), action("BurnRecover", "reaction", 2),
+    action("Knockdown", "reaction", 1), action("ProneHold", "reaction", 2.2), action("GetUp", "reaction", 2.2)];
+}
+const spitterActions = [action("idle", "idle"), action("SpitAttack", "attack", 1.2), action("RecieveHit", "reaction", 0.8)];
+/** Slot A is the defender under test; slot B spits at it. */
+function archetypeController(defenderId: string, registry?: ReviewedReactionPacks) {
+  const value = new CombatReviewController({
+    definitions: archetypeDefinitions, initial: { a: defenderId, b: "spitter" },
+    contactResolver: stubResolver("poison"),
+    loadActor: async (request) => {
+      const defender = request.definition.id !== "spitter";
+      const family = request.definition.family as "human" | "warden" | "breachling";
+      const actions = defender ? packedDefenderActions(family) : spitterActions;
+      const root = new THREE.Group(), model = new THREE.Group(), bone = new THREE.Bone();
+      root.add(model); model.add(bone);
+      return { actor: { instanceId: request.instanceId, definitionId: request.definition.id, root, model,
+        actions: () => actions,
+        sample: vi.fn((_id: string, seconds: number) => { bone.position.set(0, seconds, 0); model.updateMatrixWorld(true); }),
+        reset: vi.fn(), dispose: vi.fn() } } satisfies CombatActorHandle;
+    },
+    ...(registry ? { reactionRegistry: registry } : {}),
+  });
+  controllers.add(value);
+  return value;
+}
+async function poisonedDefender(defenderId: string, registry?: ReviewedReactionPacks) {
+  const value = archetypeController(defenderId, registry);
+  await value.enter(); value.setAttacker("b"); value.setAction("b", "action", "SpitAttack");
+  await value.resolveContact({ response: "reaction" });
+  return value;
+}
+
+describe("A plan resolves against the defender's own archetype, never the humanoid one by default", () => {
+  it("gives a Warden and a Breachling defender their own archetype and their own clip lengths", async () => {
+    // The archetype is read off the defender's catalog family, and the hold is
+    // quantised to THAT archetype's loop: 3.6 s for the Warden, 2.4 s for the
+    // Breachling, 2.8 s for the human. A humanoid fallback would read 2.8 for all three.
+    for (const [defenderId, archetype] of [["human-sword", "humanoid"], ["boss", "warden"], ["base", "breachling"]] as const) {
+      const value = await poisonedDefender(defenderId);
+      const snapshot = value.snapshot();
+      expect(snapshot.reaction.timeline!.archetype, defenderId).toBe(archetype);
+      const plan = snapshot.reaction.timeline!.plans[0]!;
+      expect(plan.setId, defenderId).toBe("poison");
+      expect(plan.archetype, defenderId).toBe(archetype);
+      expect(plan.holdSeconds, defenderId).toBeCloseTo(ARCHETYPE_POISON[archetype].loop, 9);
+      expect(plan.durationSeconds, defenderId).toBeCloseTo(
+        ARCHETYPE_POISON[archetype].impact + ARCHETYPE_POISON[archetype].loop + ARCHETYPE_POISON[archetype].recover, 9);
+      expect(snapshot.slots[0]!.selected.reaction, defenderId).toBe("PoisonImpact");
+      expect(snapshot.reaction.phases.map((phase) => phase.clipName), defenderId)
+        .toEqual(["PoisonImpact", "PoisonLoop", "PoisonRecover"]);
+      expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, archetype, "poison"), archetype).toBe(true);
+    }
+  });
+
+  it("hands a defender whose archetype has no pack back to the ordinary flinch picker", async () => {
+    // Same body, same installed clip names, same measured poison contact — the only
+    // difference is that no pack is registered for its archetype. The special set
+    // is then not reachable at all, rather than played from another rig's receipt.
+    const withheld = { humanoid: REVIEWED_REACTION_PACKS.humanoid } as ReviewedReactionPacks;
+    for (const defenderId of ["boss", "base"]) {
+      const value = await poisonedDefender(defenderId, withheld);
+      const snapshot = value.snapshot();
+      expect(snapshot.contact.status, defenderId).toBe("contact");
+      expect(snapshot.reaction.timeline, defenderId).toBeNull();
+      expect(snapshot.reaction.phases, defenderId).toEqual([]);
+      expect(REACTION_CONTRACT_CLIPS, defenderId).not.toContain(snapshot.slots[0]!.selected.reaction);
+      expect(snapshot.slots[0]!.selected.reaction, defenderId).toBe("RecieveHit");
+      expect(() => value.recordReactionHit({ setId: "poison", atSeconds: 1 }))
+        .toThrow(/No reaction is running/);
+    }
+    // The human, whose pack IS registered, still gets its set from the same registry.
+    const human = await poisonedDefender("human-sword", withheld);
+    expect(human.snapshot().reaction.timeline!.archetype).toBe("humanoid");
+    expect(human.snapshot().reaction.timeline!.plans[0]!.holdSeconds).toBeCloseTo(2.8, 9);
   });
 });

@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { REACTION_CONTRACT_CLIPS, REACTION_SETS } from "../src/review/weapon-lab/reaction-contract";
+import { REACTION_ARCHETYPES, REACTION_CONTRACT_CLIPS, REACTION_SET_IDS, REACTION_SETS,
+  type ReactionArchetype } from "../src/review/weapon-lab/reaction-contract";
 import { prepareReviewedReactionPacks, reactionPackForClip, reactionSetInstalled, reviewedReactionNote,
-  REVIEWED_REACTION_PACKS, type ReviewedReactionPack } from "../src/review/weapon-lab/reviewed-reaction-receipt";
-import { assertReactionClipsBind, loadReactionPacks, reactionPackClips,
+  REACTION_RIG_LINEAGE, REVIEWED_REACTION_PACKS, type ReviewedReactionPack } from "../src/review/weapon-lab/reviewed-reaction-receipt";
+import { assertReactionClipsBind, loadReactionPacks, loadReactionPacksForFamily, reactionPackClips,
   reactionSetDurations } from "../src/review/weapon-lab/reaction-pack-loader";
 import type { ReviewAction } from "../src/review/weapon-lab/combat-review-types";
 // @ts-expect-error Real public-source JS factory; image decoding alone is stubbed below.
@@ -35,27 +36,67 @@ function parser() {
   return loader;
 }
 const humanoid = REVIEWED_REACTION_PACKS.humanoid!;
-const valid = (): ReviewedReactionPack[] => humanoid.map((pack) => ({ ...pack, clips: [...pack.clips] }));
+const warden = REVIEWED_REACTION_PACKS.warden!;
+const breachling = REVIEWED_REACTION_PACKS.breachling!;
+const copy = (packs: readonly ReviewedReactionPack[]): ReviewedReactionPack[] =>
+  packs.map((pack) => ({ ...pack, clips: [...pack.clips] }));
+const valid = (): ReviewedReactionPack[] => copy(humanoid);
 
 afterEach(() => { vi.restoreAllMocks(); });
 
 describe("The reaction pack receipt is an allowlist, not a directory listing", () => {
-  it("registers the humanoid archetype only when its packs carry all nine contract clips", () => {
+  it("registers an archetype only when its packs carry all nine contract clips, however many files that is", () => {
     expect(REACTION_CONTRACT_CLIPS).toEqual(["PoisonImpact", "PoisonLoop", "PoisonRecover",
       "BurnFlare", "BurnBurn", "BurnRecover", "Knockdown", "ProneHold", "GetUp"]);
-    expect(humanoid.flatMap((pack) => pack.clips).sort()).toEqual([...REACTION_CONTRACT_CLIPS].sort());
-    expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "humanoid", "poison")).toBe(true);
-    expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "humanoid", "burning")).toBe(true);
-    expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "humanoid", "knockdown")).toBe(true);
-    // The other two archetypes are not registered yet, and say so rather than half-loading.
-    expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "warden", "poison")).toBe(false);
-    expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "warden", "burning")).toBe(false);
-    expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, "breachling", "knockdown")).toBe(false);
+    // All three archetypes are registered now, and the union rule is what admits
+    // each of them: three humanoid lanes, one Warden file, one Breachling file.
+    for (const archetype of REACTION_ARCHETYPES) {
+      const packs = REVIEWED_REACTION_PACKS[archetype]!;
+      expect(packs, archetype).toBeDefined();
+      expect(packs.flatMap((pack) => pack.clips).sort(), archetype).toEqual([...REACTION_CONTRACT_CLIPS].sort());
+      for (const setId of REACTION_SET_IDS) expect(reactionSetInstalled(REVIEWED_REACTION_PACKS, archetype, setId), `${archetype}/${setId}`).toBe(true);
+      for (const pack of packs) expect(pack.archetype, pack.url).toBe(archetype);
+    }
+    expect(humanoid).toHaveLength(3);
+    expect(warden).toHaveLength(1);
+    expect(breachling).toHaveLength(1);
     expect(reactionPackForClip(humanoid, "PoisonLoop")!.url).toContain("poison-r4");
     expect(reactionPackForClip(humanoid, "BurnBurn")!.url).toContain("burn-r2");
     expect(reactionPackForClip(humanoid, "ProneHold")!.url).toContain("kd-r14");
     expect(reactionPackForClip(humanoid, "NotAClip")).toBeNull();
+    // Each archetype's clip resolves inside its own archetype, never across.
+    expect(reactionPackForClip(warden, "ProneHold")!.url).toContain("warden-reactions-r3");
+    expect(reactionPackForClip(breachling, "BurnBurn")!.url).toContain("breachling-reactions-quad-r4");
     expect(reviewedReactionNote(humanoid)).toMatch(/9 clips across 3 pinned files/);
+    expect(reviewedReactionNote(warden)).toMatch(/9 clips across 1 pinned file \(warden-reactions-r3\.glb\)/);
+    expect(reviewedReactionNote(breachling)).toMatch(/9 clips across 1 pinned file \(breachling-reactions-quad-r4\.glb\)/);
+  });
+
+  it("pins a different rig per archetype, and rejects a pack pinned against the wrong one", () => {
+    // 65 / 18 / 30 are three skeletons, not one constant with exceptions.
+    expect(REACTION_ARCHETYPES.map((archetype) => REACTION_RIG_LINEAGE[archetype].jointCount)).toEqual([65, 18, 30]);
+    expect(new Set(REACTION_ARCHETYPES.map((archetype) => REACTION_RIG_LINEAGE[archetype].sha256)).size).toBe(3);
+    for (const archetype of REACTION_ARCHETYPES) {
+      const lineage = REACTION_RIG_LINEAGE[archetype];
+      for (const pack of REVIEWED_REACTION_PACKS[archetype]!) {
+        expect(pack.jointCount, pack.url).toBe(lineage.jointCount);
+        expect(pack.rigSourceSha256, pack.url).toBe(lineage.sha256);
+      }
+    }
+    // A Warden pack carrying the humanoid rig's checksum, or the humanoid rig's
+    // joint count, is a pack that cannot bind on the body it will be played on.
+    const foreignRig = copy(warden); foreignRig[0] = { ...foreignRig[0]!, rigSourceSha256: REACTION_RIG_LINEAGE.humanoid.sha256 };
+    expect(() => prepareReviewedReactionPacks({ warden: foreignRig }))
+      .toThrow(/pinned against the wrong rig; the warden pack carries .*wayfarer-cinderbound-warden-fourview-v12\.glb/);
+    const foreignCount = copy(warden); foreignCount[0] = { ...foreignCount[0]!, jointCount: 65 };
+    expect(() => prepareReviewedReactionPacks({ warden: foreignCount })).toThrow(/joint count 65 is not the 18-joint warden rig/);
+    const quadCount = copy(breachling); quadCount[0] = { ...quadCount[0]!, jointCount: 24 };
+    expect(() => prepareReviewedReactionPacks({ breachling: quadCount })).toThrow(/joint count 24 is not the 30-joint breachling rig/);
+    // And the humanoid rows are held to their own rig by the same check.
+    const humanRig = valid(); humanRig[0] = { ...humanRig[0]!, rigSourceSha256: REACTION_RIG_LINEAGE.warden.sha256 };
+    expect(() => prepareReviewedReactionPacks({ humanoid: humanRig })).toThrow(/pinned against the wrong rig; the humanoid pack carries/);
+    const humanCount = valid(); humanCount[1] = { ...humanCount[1]!, jointCount: 18 };
+    expect(() => prepareReviewedReactionPacks({ humanoid: humanCount })).toThrow(/joint count 18 is not the 65-joint humanoid rig/);
   });
 
   it("rejects a pack that is incomplete, mislocated, double-claimed or unpinned", () => {
@@ -84,17 +125,19 @@ describe("The reaction pack receipt is an allowlist, not a directory listing", (
     expect(() => prepareReviewedReactionPacks({ humanoid: boneless })).toThrow(/joint count/);
   });
 
-  it("pins the exact bytes and checksum that are on disk", async () => {
-    for (const pack of humanoid) {
-      const bytes = bytesOf(pack.url);
-      expect(bytes.byteLength).toBe(pack.bytes);
-      expect(await sha256(bytes)).toBe(pack.sha256);
+  it("pins the exact bytes and checksum that are on disk, for every archetype", async () => {
+    for (const archetype of REACTION_ARCHETYPES) {
+      for (const pack of REVIEWED_REACTION_PACKS[archetype]!) {
+        const bytes = bytesOf(pack.url);
+        expect(bytes.byteLength, pack.url).toBe(pack.bytes);
+        expect(await sha256(bytes), pack.url).toBe(pack.sha256);
+      }
+      // Each receipt claims to stand in for one rig; prove that is the shipped body.
+      const lineage = REACTION_RIG_LINEAGE[archetype];
+      expect(await sha256(bytesOf(lineage.bodyUrl)), lineage.bodyUrl).toBe(lineage.sha256);
+      expect(new Set(REVIEWED_REACTION_PACKS[archetype]!.map((pack) => pack.rigSourceSha256)).size, archetype).toBe(1);
     }
-    // The receipt claims to stand in for this rig; prove that is the shipped body.
-    expect(await sha256(bytesOf("/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb")))
-      .toBe(humanoid[0]!.rigSourceSha256);
-    expect(new Set(humanoid.map((pack) => pack.rigSourceSha256)).size).toBe(1);
-  });
+  }, 60_000);
 });
 
 describe("Loading a pack verifies the file before a clip is bound", () => {
@@ -133,8 +176,11 @@ describe("Loading a pack verifies the file before a clip is bound", () => {
     await expect(loadReactionPacks("humanoid", { parser: parser(), baseURI: BASE,
       registry: { humanoid: [{ ...humanoid[1]!, clips: ["BurnFlare", "BurnBurn"] }] } }))
       .rejects.toThrow(/unlisted BurnRecover/);
-    await expect(loadReactionPacks("warden", { parser: parser(), baseURI: BASE }))
+    // An archetype with no pack says so instead of falling back to another one's.
+    await expect(loadReactionPacks("warden", { parser: parser(), baseURI: BASE, registry: { humanoid } }))
       .rejects.toThrow(/No reviewed reaction pack is registered for the warden archetype/);
+    await expect(loadReactionPacksForFamily("breachling", { parser: parser(), baseURI: BASE, registry: { humanoid } }))
+      .rejects.toThrow(/No reviewed reaction pack is registered for the breachling archetype/);
     // A re-export that gained a clip is rejected, not silently installed beside
     // the library under a name nothing selects.
     const poison = Object.values(REACTION_SETS.poison.clips);
@@ -151,6 +197,100 @@ describe("Loading a pack verifies the file before a clip is bound", () => {
     await expect(loadReactionPacks("humanoid", { parser: lost, baseURI: BASE }))
       .rejects.toThrow(/missing PoisonRecover/);
     expect(fetchMock).toHaveBeenCalled();
+  }, 60_000);
+});
+
+describe("Selection is by archetype: each body reaches its own pack", () => {
+  /** Bone names of the skin a body GLB carries, which is what the receipt pins. */
+  async function bodyBones(url: string): Promise<string[]> {
+    const body = await parser().parseAsync(bytesOf(url).slice().buffer, "");
+    const names = new Set<string>();
+    body.scene.traverse((object) => {
+      const skinned = object as THREE.SkinnedMesh;
+      if (skinned.isSkinnedMesh && skinned.skeleton) for (const bone of skinned.skeleton.bones) names.add(bone.name);
+    });
+    return [...names];
+  }
+
+  it("loads the archetype's own file, on the archetype's own joint count", async () => {
+    serveFromDisk();
+    const cases: readonly (readonly [ReactionArchetype, "human" | "warden" | "breachling", string, number])[] = [
+      ["humanoid", "human", "humanoid-reactions-", 65],
+      ["warden", "warden", "warden-reactions-r3.glb", 18],
+      ["breachling", "breachling", "breachling-reactions-quad-r4.glb", 30],
+    ];
+    for (const [archetype, family, file, joints] of cases) {
+      // The family is all an actor knows about itself; the archetype follows from it.
+      const loaded = await loadReactionPacksForFamily(family, { parser: parser(), baseURI: BASE });
+      expect(loaded.every((entry) => entry.pack.archetype === archetype), archetype).toBe(true);
+      expect(loaded.every((entry) => entry.pack.url.includes(file)), archetype).toBe(true);
+      expect(loaded.every((entry) => entry.checksumVerified), archetype).toBe(true);
+      expect(new Set(loaded.map((entry) => entry.pack.jointCount)), archetype).toEqual(new Set([joints]));
+      const clips = reactionPackClips(loaded);
+      expect(clips.map((clip) => clip.name).sort(), archetype).toEqual([...REACTION_CONTRACT_CLIPS].sort());
+      // The parsed skin, not the receipt's own claim about it.
+      const skin = await bodyBones(REACTION_RIG_LINEAGE[archetype].bodyUrl);
+      expect(skin.length, archetype).toBe(joints);
+      expect(() => assertReactionClipsBind(clips, skin), archetype).not.toThrow();
+    }
+  }, 180_000);
+
+  it("authors the Warden and Breachling nine on their own rigs, and refuses another archetype's body", async () => {
+    serveFromDisk();
+    const wardenClips = reactionPackClips(await loadReactionPacks("warden", { parser: parser(), baseURI: BASE }));
+    const quadClips = reactionPackClips(await loadReactionPacks("breachling", { parser: parser(), baseURI: BASE }));
+    const seconds = (clips: readonly THREE.AnimationClip[], name: string) =>
+      Number(clips.find((clip) => clip.name === name)!.duration.toFixed(4));
+    // Authored durations, read from the shipped files.
+    expect(["PoisonImpact", "PoisonLoop", "PoisonRecover"].map((name) => seconds(wardenClips, name))).toEqual([1.1, 3.6, 2.4]);
+    expect(["BurnFlare", "BurnBurn", "BurnRecover"].map((name) => seconds(wardenClips, name))).toEqual([0.95, 3, 2]);
+    expect(["Knockdown", "ProneHold", "GetUp"].map((name) => seconds(wardenClips, name))).toEqual([1.4, 3.2, 3]);
+    expect(["PoisonImpact", "PoisonLoop", "PoisonRecover"].map((name) => seconds(quadClips, name))).toEqual([0.95, 2.4, 1.7]);
+    expect(["BurnFlare", "BurnBurn", "BurnRecover"].map((name) => seconds(quadClips, name))).toEqual([0.9, 2.6, 2]);
+    expect(["Knockdown", "ProneHold", "GetUp"].map((name) => seconds(quadClips, name))).toEqual([1, 2.2, 2.2]);
+    const wardenBody = await bodyBones(REACTION_RIG_LINEAGE.warden.bodyUrl);
+    const quadBody = await bodyBones(REACTION_RIG_LINEAGE.breachling.bodyUrl);
+    const humanBody = await bodyBones(REACTION_RIG_LINEAGE.humanoid.bodyUrl);
+    // Right body: binds. Any other archetype's body: refused before a clip is bound.
+    expect(() => assertReactionClipsBind(wardenClips, wardenBody)).not.toThrow();
+    expect(() => assertReactionClipsBind(quadClips, quadBody)).not.toThrow();
+    expect(() => assertReactionClipsBind(wardenClips, quadBody)).toThrow(/targets 14 node\(s\) the body does not have/);
+    expect(() => assertReactionClipsBind(quadClips, wardenBody)).toThrow(/targets 26 node\(s\) the body does not have/);
+    expect(() => assertReactionClipsBind(wardenClips, humanBody)).toThrow(/node\(s\) the body does not have/);
+    expect(() => assertReactionClipsBind(quadClips, humanBody)).toThrow(/node\(s\) the body does not have/);
+    // A sibling body missing bones the pack drives is the same rejection: the
+    // four-view Stalker has no front toes, and the quadruped pack drives six.
+    const stalker = await bodyBones("/assets/weapon-lab/mobs/breachling-stalker-fourview-composer-v5.glb");
+    expect(() => assertReactionClipsBind(quadClips, stalker)).toThrow(/front_toe1L/);
+  }, 180_000);
+
+  it("checks the pinned joint count against the parsed skin, not against a constant", async () => {
+    const skin = (names: readonly string[]) => {
+      const bones = names.map((name) => { const bone = new THREE.Bone(); bone.name = name; return bone; });
+      const mesh = new THREE.SkinnedMesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial());
+      const root = new THREE.Group();
+      for (const bone of bones) root.add(bone);
+      root.add(mesh);
+      mesh.bind(new THREE.Skeleton(bones));
+      return root;
+    };
+    const clipsOf = (pack: ReviewedReactionPack) => pack.clips.map((name) => new THREE.AnimationClip(name, 1,
+      [new THREE.QuaternionKeyframeTrack("root.quaternion", [0, 1], [0, 0, 0, 1, 0, 0, 0, 1])]));
+    const at = (pack: ReviewedReactionPack, count: number) => ({
+      async parseAsync() {
+        return { animations: clipsOf(pack), scene: skin([...Array(count)].map((_value, index) => `bone${index}`)) };
+      },
+    });
+    serveFromDisk();
+    // Right count: accepted. One bone short, or the humanoid's count on the
+    // Warden's file: rejected, and the message names the archetype it belongs to.
+    await expect(loadReactionPacks("warden", { parser: at(warden[0]!, 18), baseURI: BASE })).resolves.toHaveLength(1);
+    await expect(loadReactionPacks("warden", { parser: at(warden[0]!, 17), baseURI: BASE }))
+      .rejects.toThrow(/carries a 17-joint skin, not the 18 joints its warden receipt pins/);
+    await expect(loadReactionPacks("warden", { parser: at(warden[0]!, 65), baseURI: BASE }))
+      .rejects.toThrow(/carries a 65-joint skin, not the 18 joints its warden receipt pins/);
+    await expect(loadReactionPacks("breachling", { parser: at(breachling[0]!, 24), baseURI: BASE }))
+      .rejects.toThrow(/carries a 24-joint skin, not the 30 joints its breachling receipt pins/);
   }, 60_000);
 });
 

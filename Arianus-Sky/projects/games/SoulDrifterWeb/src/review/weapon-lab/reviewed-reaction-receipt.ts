@@ -4,12 +4,13 @@ import { REACTION_ARCHETYPES, REACTION_CONTRACT_CLIPS, REACTION_SETS, REACTION_P
 /**
  * Review-only intake for an authored special-attack reaction pack.
  *
- * The pack is installed BESIDE the human animation library, never over it. The
+ * A pack is installed BESIDE the body it plays on, never over it. The human
  * library at
  * `/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb`
- * is untouched and stays byte-identical; a reaction pack is its own GLB under
- * `/assets/weapon-lab/reactions/` and reaches an actor only through this
- * allowlist, the same way a rebuilt Warden body sits beside the shipped one.
+ * is untouched and stays byte-identical, and so are the Warden and Breachling
+ * bodies: a reaction pack is its own GLB under `/assets/weapon-lab/reactions/`
+ * and reaches an actor only through this allowlist, the same way a rebuilt Warden
+ * body sits beside the shipped one.
  *
  * An archetype may be delivered as more than one file while the authoring lanes
  * run in parallel — the poison three, the burning three and the knockdown three
@@ -24,6 +25,12 @@ import { REACTION_ARCHETYPES, REACTION_CONTRACT_CLIPS, REACTION_SETS, REACTION_P
  * never be played on a lineage it was not built for. `jointCount` is checked
  * against the parsed skin at load, so a re-export that drops or reorders bones is
  * rejected before it is bound to an actor.
+ *
+ * Both of those are archetype properties, not constants: the three archetypes are
+ * three different skeletons, measured at 65, 18 and 30 joints. `REACTION_RIG_LINEAGE`
+ * below is the one place that says which body each archetype's pack carries, and
+ * every row is checked against its own archetype's entry rather than against a
+ * humanoid-shaped default.
  */
 export interface ReviewedReactionPack {
   readonly archetype: ReactionArchetype;
@@ -33,10 +40,62 @@ export interface ReviewedReactionPack {
   /** Body GLB this pack carries the skeleton of, not the immediate working parent. */
   readonly rigSourceSha256: string;
   readonly jointCount: number;
-  /** Exact clip names in this file; a subset of the archetype's six. */
+  /** Exact clip names in this file; a subset of the archetype's nine. */
   readonly clips: readonly string[];
 }
 export type ReviewedReactionPacks = Readonly<Partial<Record<ReactionArchetype, readonly ReviewedReactionPack[]>>>;
+
+/** The one body an archetype's packs carry the skeleton of, and its joint count. */
+export interface ReactionRigLineage {
+  readonly bodyUrl: string;
+  readonly sha256: string;
+  readonly jointCount: number;
+  /** How the equality below was established, so a later reader does not have to re-derive it. */
+  readonly evidence: string;
+}
+
+/**
+ * Which rig each archetype's reaction pack is authored on.
+ *
+ * Every value here was measured on the shipped bytes by comparing the pack GLB's
+ * own skin against the body GLB's: same joint count, same joint order, and max
+ * absolute difference 0.000e+0 on bind translation, bind rotation, bind scale and
+ * the inverse bind matrices. A pack is therefore not merely compatible with its
+ * body — it carries that body's skeleton exactly.
+ *
+ * SIBLING BODIES ARE NOT COVERED BY THE SAME NUMBERS, and this is the reason the
+ * lineage is pinned rather than inferred from the archetype's joint names:
+ *  - `oathbreaker-greater-cinderbound-warden-fourview-v7.glb` has the same 18
+ *    joints in the same order, but its bind differs from the Wayfarer's by up to
+ *    0.229 in a quaternion component and 0.681 in an inverse bind matrix entry.
+ *  - `breachling-ravager-fourview-composer-v4.glb` (34 joints) and
+ *    `breachling-oathbound-fourview-composer-q4.glb` (38) carry the base rig's 30
+ *    names plus rear toes, at up to 1.462 of quaternion component difference;
+ *    `breachling-stalker-fourview-composer-v5.glb` (26) is missing
+ *    `front_toe1L..3L/R` outright and is rejected by `assertReactionClipsBind`
+ *    before anything is bound.
+ * Playing a pack on a sibling is a per-variant build, not a registration.
+ */
+export const REACTION_RIG_LINEAGE: Readonly<Record<ReactionArchetype, ReactionRigLineage>> = Object.freeze({
+  humanoid: Object.freeze({
+    bodyUrl: "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+    sha256: "b86f7378ada29ff11e0fbc030d438fe241b8d4a74c47afd37cc8aced28c5ff81",
+    jointCount: 65,
+    evidence: "Human Foundation rig; 65 joints, bind identical to the shipped runtime body (max abs diff 0 on TRS and inverse binds).",
+  }),
+  warden: Object.freeze({
+    bodyUrl: "/assets/weapon-lab/wardens/wayfarer-cinderbound-warden-fourview-v12.glb",
+    sha256: "79b8420120f6227b6a8056f67b1ca9067048f0e63b575617a65878cb0c106dcf",
+    jointCount: 18,
+    evidence: "Cinderbound Wayfarer four-view body; 18 joints, no digit or toe bones, bind identical (max abs diff 0 on TRS and inverse binds).",
+  }),
+  breachling: Object.freeze({
+    bodyUrl: "/assets/weapon-lab/mobs/breachling-base-fourview-composer-v8.glb",
+    sha256: "625055eef3c3a8cd755f343aedfd70e0ecb4310a953ad60b39430be455c2b9c0",
+    jointCount: 30,
+    evidence: "Base Breachling four-view body; 30 joints — 24 canonical plus six front toes — bind identical (max abs diff 0 on TRS and inverse binds).",
+  }),
+});
 
 const REV = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -57,6 +116,12 @@ export function prepareReviewedReactionPacks(input: ReviewedReactionPacks): Revi
       if (!Number.isSafeInteger(pack.bytes) || pack.bytes <= 0) throw invalid("byte length is not a positive integer");
       if (!/^[a-f0-9]{64}$/.test(pack.sha256) || !/^[a-f0-9]{64}$/.test(pack.rigSourceSha256)) throw invalid("checksums must be lowercase hex sha256");
       if (!Number.isSafeInteger(pack.jointCount) || pack.jointCount < 1 || pack.jointCount > 256) throw invalid("joint count is out of range");
+      // The rig is the archetype's, never a shared constant: 65, 18 and 30 joints
+      // are three different skeletons, and a row that names the wrong one would
+      // otherwise register a pack that cannot bind on the body it will be played on.
+      const lineage = REACTION_RIG_LINEAGE[archetype];
+      if (pack.rigSourceSha256 !== lineage.sha256) throw invalid(`pinned against the wrong rig; the ${archetype} pack carries ${lineage.bodyUrl}`);
+      if (pack.jointCount !== lineage.jointCount) throw invalid(`joint count ${pack.jointCount} is not the ${lineage.jointCount}-joint ${archetype} rig`);
       if (!Array.isArray(pack.clips) || !pack.clips.length) throw invalid("no clips listed");
       if (new Set(pack.clips).size !== pack.clips.length) throw invalid("a clip is listed twice in one pack");
       for (const clip of pack.clips) {
@@ -95,14 +160,24 @@ export function reviewedReactionNote(packs: readonly ReviewedReactionPack[]): st
 /**
  * Packs cleared for isolated Motion Forge review.
  *
- * `humanoid` is delivered as the three authoring lanes that produced it. All
- * three files carry the same 65-joint Human Foundation skeleton in the same order
- * as `human-foundation-pilot-runtime-4k.glb` (sha256 b86f7378…c5ff81), measured,
- * so any of them binds on the existing human actor.
+ * All three archetypes are registered. Each one carries the same nine contract
+ * clips on its OWN skeleton — 65 joints for the humanoid, 18 for the Warden, 30
+ * for the Breachling — so selection resolves by archetype and a body is never
+ * handed another archetype's motion. The union rule is unchanged and still the
+ * thing that admits a row: an archetype appears here only when its packs together
+ * carry exactly the nine clips with none claimed twice, whether that arrives as
+ * one file or as three authoring lanes.
  *
- * `warden` and `breachling` stay absent until their nine clips exist. The
- * selection rules already key off the archetype, so registering them is a data
- * change here and nothing else.
+ * `humanoid` is delivered as the three lanes that produced it. All three files
+ * carry the same 65-joint Human Foundation skeleton in the same order as
+ * `human-foundation-pilot-runtime-4k.glb` (sha256 b86f7378…c5ff81), measured, so
+ * any of them binds on the existing human actor.
+ *
+ * `warden` and `breachling` are single files, each nine clips on one rig. Both
+ * were verified the same way the humanoid rows were: bytes and sha256 hashed on
+ * the installed file, and the pack's own skin compared joint for joint against the
+ * body named in `REACTION_RIG_LINEAGE` (same count, same order, max absolute
+ * difference 0.000e+0 on bind TRS and inverse bind matrices).
  *
  * Revisions poison-r4 / burn-r2 / kd-r14 close contract defects D1 and D4. Every
  * clip now animates 52 of the 65 joints instead of 20: the 30 finger joints and
@@ -142,6 +217,36 @@ export const REVIEWED_REACTION_PACKS: ReviewedReactionPacks = prepareReviewedRea
       rigSourceSha256: "b86f7378ada29ff11e0fbc030d438fe241b8d4a74c47afd37cc8aced28c5ff81",
       jointCount: 65,
       clips: ["Knockdown", "ProneHold", "GetUp"],
+    },
+  ],
+  // One file, nine clips, on the Cinderbound rig's own 18 joints. The Warden has
+  // no digit or toe bones, so D1 has no analogue here: every joint the rig owns
+  // carries authored motion in every clip.
+  warden: [
+    {
+      archetype: "warden",
+      url: "/assets/weapon-lab/reactions/warden-reactions-r3.glb",
+      bytes: 22_228_284,
+      sha256: "ac58bc6ff929821a4585a661c4297ad85dca4890ad212c997d603e359b744662",
+      rigSourceSha256: "79b8420120f6227b6a8056f67b1ca9067048f0e63b575617a65878cb0c106dcf",
+      jointCount: 18,
+      clips: ["PoisonImpact", "PoisonLoop", "PoisonRecover", "BurnFlare", "BurnBurn", "BurnRecover",
+        "Knockdown", "ProneHold", "GetUp"],
+    },
+  ],
+  // One file, nine clips, on the base four-view quadruped's 30 joints — the 24
+  // canonical bones plus the six front toes, which carry 8.18 % of the body's skin
+  // weight and are what keeps the forepaws out of the floor.
+  breachling: [
+    {
+      archetype: "breachling",
+      url: "/assets/weapon-lab/reactions/breachling-reactions-quad-r4.glb",
+      bytes: 15_195_976,
+      sha256: "03c168b14e16f7df1df7304e12a1b1a335bfd190997c724219bcc683b0416cd4",
+      rigSourceSha256: "625055eef3c3a8cd755f343aedfd70e0ecb4310a953ad60b39430be455c2b9c0",
+      jointCount: 30,
+      clips: ["PoisonImpact", "PoisonLoop", "PoisonRecover", "BurnFlare", "BurnBurn", "BurnRecover",
+        "Knockdown", "ProneHold", "GetUp"],
     },
   ],
 });

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { MOB_CATALOG, MobsStage, type MobDefinition } from "./mobs-stage";
 import type { MobPoseControl } from "./mob-pose-overlay";
 import type { ReviewAction, ReviewActionSemantic, ReviewActorAdapter } from "./combat-review-types";
+import { REACTION_CONTRACT_CLIPS } from "./reaction-contract";
 
 export interface MobReviewActor extends ReviewActorAdapter {
   readonly definition: MobDefinition;
@@ -15,7 +16,17 @@ export interface MobReviewActor extends ReviewActorAdapter {
   socketWorld(name: string, target: THREE.Vector3): boolean;
 }
 
+/** Contract reaction clip names, matched exactly rather than by regex. */
+const CONTRACT_REACTION_CLIPS = new Set<string>(REACTION_CONTRACT_CLIPS);
+
 function semantic(name: string): ReviewActionSemantic {
+  // A pack clip is a reaction BY CONTRACT, not by regex - the same rule the human actor
+  // uses. None of the nine contract names (PoisonImpact/Loop/Recover, BurnFlare/Burn/Recover,
+  // Knockdown, ProneHold, GetUp) match any pattern below, so every one of them used to fall
+  // through to "interaction". combat-review-controller only reads a reaction's duration from
+  // an action whose semantic is "reaction", so an archetype set would silently lose to the
+  // flinch picker even once its clips are installed.
+  if (CONTRACT_REACTION_CLIPS.has(name)) return "reaction";
   if (/Death/i.test(name)) return "death";
   if (/Hit|React/i.test(name)) return "reaction";
   if (/Idle/i.test(name)) return "idle";

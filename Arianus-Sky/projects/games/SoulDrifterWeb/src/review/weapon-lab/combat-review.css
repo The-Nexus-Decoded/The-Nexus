@@ -40,3 +40,10 @@
   .combat-review .studio-card { padding: 10px; }
   .combat-review .combat-number { grid-template-columns: 80px minmax(0, 1fr) 38px; gap: 6px; }
 }
+
+/* Second hit into a running reaction, and what the precedence rules did with it. */
+.combat-review .combat-second-hit { margin: 12px 0 0; padding: 10px 0 0; border-top: 1px solid var(--studio-line, #394047); }
+.combat-review .combat-second-hit h3 { margin: 0 0 8px; color: var(--combat-b); font-size: 12px; letter-spacing: 0.025em; }
+.combat-review .combat-reaction-history { margin: 8px 0 0; padding: 0; list-style: none; font-size: 11px; line-height: 1.45; }
+.combat-review .combat-reaction-history li { padding: 6px 0; border-bottom: 1px solid var(--studio-line, #394047);
+  color: var(--studio-muted, #aeb3b5); overflow-wrap: anywhere; }

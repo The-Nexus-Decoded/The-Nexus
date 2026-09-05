@@ -11,7 +11,7 @@ import { MobsPanel } from "./mobs-panel.ts";
 import { createCombatReviewStudio } from "./combat-review-studio.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { configureReviewAssetLoader } from "./review-asset-loader.ts";
-import { loadReactionPacks, reactionPackClips } from "./reaction-pack-loader.ts";
+import { loadReactionPacksForFamily, reactionPackClips } from "./reaction-pack-loader.ts";
 import { createReviewShadowRig } from "./review-shadow-rig.ts";
 import { ReviewPropsPanel } from "./review-props-panel.ts";
 
@@ -258,7 +258,10 @@ let actor;
 const reactionPackLoader = configureReviewAssetLoader(new GLTFLoader());
 const humanFactory = createHumanReviewActorFactory({
   maxAnisotropy: renderer.capabilities.getMaxAnisotropy(),
-  loadReactionClips: async () => reactionPackClips(await loadReactionPacks("humanoid", { parser: reactionPackLoader })),
+  // Addressed by the actor's family, not by an archetype spelled out here: this
+  // factory builds human bodies, and the family-to-archetype map is the same one
+  // the combat controller uses to decide which archetype a defender reacts as.
+  loadReactionClips: async () => reactionPackClips(await loadReactionPacksForFamily("human", { parser: reactionPackLoader })),
 });
 let mobsPanel = null;
 let combatStudio = null;

@@ -49,6 +49,14 @@ export interface ReactionSetContract {
   readonly damageTypes: readonly ReviewDamageType[];
   /** Whether an ordinary heavy melee strike escalates into this set. */
   readonly fromHeavyMelee: boolean;
+  /**
+   * Seconds the controller crosses into this set's impact over. Derived from
+   * `REACTION_BLEND_MEASUREMENT` below and checked against it at module load, so it
+   * cannot drift away from the measurement without a build error.
+   */
+  readonly entryBlendSeconds: number;
+  /** Seconds the controller settles from this set's recovery back to the ready pose over. */
+  readonly exitBlendSeconds: number;
 }
 
 /**
@@ -92,18 +100,202 @@ export const REACTION_SETS: Readonly<Record<ReactionSetId, ReactionSetContract>>
     id: "poison", label: "Poison — covered and screaming",
     clips: Object.freeze({ impact: "PoisonImpact", loop: "PoisonLoop", recover: "PoisonRecover" }),
     precedence: 10, damageTypes: Object.freeze<ReviewDamageType[]>(["poison"]), fromHeavyMelee: false,
+    // 0.105, not 0.125: poison is the lowest precedence, so nothing can ever be cut for it
+    // and it is never entered by preempting a running set. The wider preempt gap that used
+    // to bind this floor described a transition reactionSetPreempts forbids.
+    entryBlendSeconds: 0.105, exitBlendSeconds: 0.36,
   }),
   burning: Object.freeze({
     id: "burning", label: "Burning — alight, beating at the flames",
     clips: Object.freeze({ impact: "BurnFlare", loop: "BurnBurn", recover: "BurnRecover" }),
     precedence: 15, damageTypes: Object.freeze<ReviewDamageType[]>(["fire"]), fromHeavyMelee: false,
+    entryBlendSeconds: 0.12, exitBlendSeconds: 0.24,
   }),
   knockdown: Object.freeze({
     id: "knockdown", label: "Knockdown — off the feet, prone, get up",
     clips: Object.freeze({ impact: "Knockdown", loop: "ProneHold", recover: "GetUp" }),
     precedence: 20, damageTypes: Object.freeze<ReviewDamageType[]>([]), fromHeavyMelee: true,
+    entryBlendSeconds: 0.215, exitBlendSeconds: 0.075,
   }),
 });
+
+/**
+ * ONE ROW PER SET PER ARCHETYPE, measured on the shipped bytes (contract defect D3).
+ *
+ * D3 said the entry gap "was never measured against the blend". It has been now, by
+ * `issue-458-motion-composer-v1/tools/reaction-entry-gap.mjs`, which reads exported
+ * keyframe tracks with NORMALISED quaternions (so a constant track cannot read as an
+ * angle against itself — defect D2) and takes the worst per-joint angle over the WHOLE
+ * PERIOD of every clip a defender can realistically be holding, not one frame of one of
+ * them. A hit lands whenever it lands; measuring at guard[0] would be measuring the
+ * harness, not the runtime.
+ *
+ * Three populations, because there are three real ways into an impact:
+ *  - `guardEntryDeg`   the first hit. Source: every guard/stance clip the defender's own
+ *                      catalog offers (nine for the humanoid, `Idle` + `CombatIdle` for
+ *                      the Warden and the Breachling).
+ *  - `preemptEntryDeg` a second hit that preempts. Source: the running set's own impact
+ *                      and loop, over their periods, because a preempt cuts wherever it
+ *                      cuts. This population only exists because D5 is wired.
+ *  - `exitDeg`         recover[end] back to any phase of any guard clip.
+ *
+ * `guardComparable` is false for the humanoid, and this is a finding, not a convenience.
+ * The humanoid packs are authored in the RUNTIME BODY's own bind space — hips at the
+ * body's neutral, body facing world +X (the composer's yaw 0) — while every clip in the
+ * shipped `human-foundation-pilot-animation-library.glb` is floor-referenced and faces
+ * world +Z. Measured on the shipped bytes: BurnFlare[0], PoisonImpact[0] and Knockdown[0]
+ * all stand with the soles at y = -0.500 rig units and a body-forward yaw of +90.0 deg,
+ * while `GreatSword__GreatSwordIdle`[0] stands with the soles at y = -0.003 and a yaw of
+ * -8.2 deg (`ProLongbow__UnarmedIdle01` -1.4 deg). That is a 497 mm drop and a ~90 deg
+ * spin at the moment of impact, and it is why the humanoid's guard rows read 151.98 deg
+ * and 501 mm against the Warden's 65.80 deg / 20.89 mm and the Breachling's 46.97 deg /
+ * 12.07 mm — the mobs' bodies and packs came out of the same composer, so their guard
+ * clips and their reaction clips share a space and the humanoid's do not. No blend length
+ * fixes a half-metre teleport; it is a re-authoring, tracked separately, and until it is
+ * done the humanoid's guard rows are recorded here as evidence but excluded from the
+ * derivation so a defect cannot silently set the product's blend.
+ */
+export interface ReactionBlendMeasurement {
+  readonly archetype: ReactionArchetype;
+  /** Worst per-joint angle from any phase of any guard clip to this set's impact[0]. */
+  readonly guardEntryDeg: number;
+  /** Hips/root translation over the same worst row, in mm of rig units. */
+  readonly guardEntryHipsMm: number;
+  /** Worst per-joint angle from any phase of a running set to this set's impact[0]. */
+  readonly preemptEntryDeg: number;
+  /** Worst per-joint angle from this set's recover[end] to any phase of any guard clip. */
+  readonly exitDeg: number;
+  /** Peak worst-bone rate the impact clip's own authored motion reaches, deg/s at 60 fps. */
+  readonly impactPeakRate: number;
+  /** Second by which the impact clip has laid down half of all the angular motion it ever lays down. */
+  readonly impactHalfTravelSeconds: number;
+  readonly recoverPeakRate: number;
+  readonly recoverSeconds: number;
+  /** False when this archetype's guard clips are not in the pack's space; see above. */
+  readonly guardComparable: boolean;
+}
+const HUMANOID_GUARD_COMPARABLE = false;
+export const REACTION_BLEND_MEASUREMENT: Readonly<Record<ReactionSetId, readonly ReactionBlendMeasurement[]>> = Object.freeze({
+  poison: Object.freeze([
+    Object.freeze({ archetype: "humanoid" as const, guardEntryDeg: 151.9755, guardEntryHipsMm: 501.39, preemptEntryDeg: 86.5758,
+      exitDeg: 151.9755, impactPeakRate: 754.2, impactHalfTravelSeconds: 0.1833, recoverPeakRate: 231.6, recoverSeconds: 1.6,
+      guardComparable: HUMANOID_GUARD_COMPARABLE }),
+    Object.freeze({ archetype: "warden" as const, guardEntryDeg: 65.7954, guardEntryHipsMm: 20.89, preemptEntryDeg: 81.017,
+      exitDeg: 65.7954, impactPeakRate: 657.1, impactHalfTravelSeconds: 0.2667, recoverPeakRate: 184.3, recoverSeconds: 2.4,
+      guardComparable: true }),
+    Object.freeze({ archetype: "breachling" as const, guardEntryDeg: 46.9677, guardEntryHipsMm: 12.07, preemptEntryDeg: 126.2847,
+      exitDeg: 46.9677, impactPeakRate: 1386.6, impactHalfTravelSeconds: 0.2, recoverPeakRate: 563.7, recoverSeconds: 1.7,
+      guardComparable: true }),
+  ]),
+  burning: Object.freeze([
+    Object.freeze({ archetype: "humanoid" as const, guardEntryDeg: 151.9755, guardEntryHipsMm: 501.39, preemptEntryDeg: 92.1456,
+      exitDeg: 151.9755, impactPeakRate: 770.8, impactHalfTravelSeconds: 0.15, recoverPeakRate: 417.5, recoverSeconds: 1.7,
+      guardComparable: HUMANOID_GUARD_COMPARABLE }),
+    Object.freeze({ archetype: "warden" as const, guardEntryDeg: 65.7954, guardEntryHipsMm: 20.89, preemptEntryDeg: 81.017,
+      exitDeg: 65.7954, impactPeakRate: 753.3, impactHalfTravelSeconds: 0.2167, recoverPeakRate: 277.8, recoverSeconds: 2,
+      guardComparable: true }),
+    Object.freeze({ archetype: "breachling" as const, guardEntryDeg: 46.9677, guardEntryHipsMm: 12.07, preemptEntryDeg: 98.5787,
+      exitDeg: 46.9677, impactPeakRate: 1508.8, impactHalfTravelSeconds: 0.2333, recoverPeakRate: 854.3, recoverSeconds: 2,
+      guardComparable: true }),
+  ]),
+  knockdown: Object.freeze([
+    Object.freeze({ archetype: "humanoid" as const, guardEntryDeg: 151.9755, guardEntryHipsMm: 501.39, preemptEntryDeg: 92.1456,
+      exitDeg: 151.9755, impactPeakRate: 431, impactHalfTravelSeconds: 0.45, recoverPeakRate: 672.7, recoverSeconds: 2.3,
+      guardComparable: HUMANOID_GUARD_COMPARABLE }),
+    Object.freeze({ archetype: "warden" as const, guardEntryDeg: 65.7954, guardEntryHipsMm: 20.89, preemptEntryDeg: 76.7128,
+      exitDeg: 65.7954, impactPeakRate: 408.5, impactHalfTravelSeconds: 0.4, recoverPeakRate: 877.5, recoverSeconds: 3,
+      guardComparable: true }),
+    Object.freeze({ archetype: "breachling" as const, guardEntryDeg: 46.9677, guardEntryHipsMm: 12.07, preemptEntryDeg: 126.2847,
+      exitDeg: 46.9677, impactPeakRate: 1597, impactHalfTravelSeconds: 0.25, recoverPeakRate: 873.1, recoverSeconds: 2.2,
+      guardComparable: true }),
+  ]),
+});
+
+/** Pinned defaults are rounded UP to this grid, so a rounded number can never fall below its floor. */
+export const REACTION_BLEND_QUANTUM_SECONDS = 0.005;
+
+export interface ReactionBlendBounds {
+  /** Shortest blend that is not itself the fastest motion on screen. */
+  readonly floorSeconds: number;
+  /** Longest blend that still lets the entered clip read; the exit bound is loose by nature. */
+  readonly ceilingSeconds: number;
+  /** floorSeconds rounded up to the quantum — what the set contract must pin. */
+  readonly derivedSeconds: number;
+}
+const quantise = (seconds: number) =>
+  Math.round(Math.ceil(seconds / REACTION_BLEND_QUANTUM_SECONDS) * REACTION_BLEND_QUANTUM_SECONDS * 1e6) / 1e6;
+
+/**
+ * The blend an entry needs, and the blend it can afford.
+ *
+ * FLOOR — a pop is a transition faster than any motion the animation itself contains.
+ * Crossing `gap` degrees in `b` seconds runs at gap/b deg/s, so the honest ceiling on that
+ * rate is the peak rate the entered clip's own authored motion reaches, and b >= gap/peak.
+ * This is why the answer is not "make it long": an impact SHOULD be fast, and the floor is
+ * the shortest blend that is defensibly fast rather than broken.
+ *
+ * CEILING — an impact still has to land. A crossfade still running past the point where the
+ * impact clip has laid down half of its total angular motion holds the old pose over most of
+ * the new clip, and the hit turns to mush. That is `impactHalfTravelSeconds`.
+ */
+export function reactionEntryBlendBounds(setId: ReactionSetId): ReactionBlendBounds {
+  const rows = REACTION_BLEND_MEASUREMENT[setId];
+  // A preempting entry is only reachable for a set that can actually cut another one.
+  // reactionSetPreempts requires STRICTLY greater precedence, so the lowest-ranked set
+  // is never entered by preemption and its preemptEntryDeg describes a transition the
+  // runtime forbids. Feeding that term to the floor inflated poison's blend from
+  // 0.105 s to 0.125 s off a gap it can never be asked to cross.
+  const canBeEnteredByPreempting = REACTION_SET_IDS.some((other) => reactionSetPreempts(other, setId));
+  const floorSeconds = Math.max(...rows.map((row) => {
+    const guard = row.guardComparable ? row.guardEntryDeg : Number.NEGATIVE_INFINITY;
+    const preempt = canBeEnteredByPreempting ? row.preemptEntryDeg : Number.NEGATIVE_INFINITY;
+    return Math.max(guard, preempt) / row.impactPeakRate;
+  }));
+  return Object.freeze({ floorSeconds, ceilingSeconds: Math.min(...rows.map((row) => row.impactHalfTravelSeconds)),
+    derivedSeconds: quantise(floorSeconds) });
+}
+/**
+ * The same rule on the way out, against the recovery's own peak rate. The exit is a settle,
+ * not an event, and its ceiling — the recovery clip's own length — is loose: what actually
+ * binds it is the floor, because the recoveries end on the composer's neutral rather than on
+ * any guard pose, so there is a real 47–66 deg of posture left to cross.
+ */
+export function reactionExitBlendBounds(setId: ReactionSetId): ReactionBlendBounds {
+  const rows = REACTION_BLEND_MEASUREMENT[setId].filter((row) => row.guardComparable);
+  const floorSeconds = Math.max(...rows.map((row) => row.exitDeg / row.recoverPeakRate));
+  return Object.freeze({ floorSeconds, ceilingSeconds: Math.min(...rows.map((row) => row.recoverSeconds)),
+    derivedSeconds: quantise(floorSeconds) });
+}
+
+/**
+ * One pass over the blend table at module load, so a pinned default cannot drift from the
+ * measurement that justifies it. This is also the proof that ONE blend for all three sets is
+ * impossible: knockdown's floor (0.2138 s) is above burning's ceiling (0.1500 s), so a single
+ * number is either a pop on the knockdown or mush on the burn. The defaults are per set for
+ * that measured reason, not for taste.
+ */
+(() => {
+  for (const id of REACTION_SET_IDS) {
+    const set = REACTION_SETS[id];
+    const rows = REACTION_BLEND_MEASUREMENT[id];
+    if (!rows?.length || new Set(rows.map((row) => row.archetype)).size !== REACTION_ARCHETYPES.length) {
+      throw new Error(`Reaction set ${id} has no blend measurement row for every archetype.`);
+    }
+    for (const [role, pinned, bounds] of [
+      ["entry", set.entryBlendSeconds, reactionEntryBlendBounds(id)] as const,
+      ["exit", set.exitBlendSeconds, reactionExitBlendBounds(id)] as const,
+    ]) {
+      if (!Number.isFinite(pinned) || pinned <= 0) throw new Error(`Reaction set ${id} has no ${role} blend.`);
+      if (Math.abs(pinned - bounds.derivedSeconds) > 1e-9) {
+        throw new Error(`Reaction set ${id} pins a ${role} blend of ${pinned} s, but its measurement derives `
+          + `${bounds.derivedSeconds} s (floor ${bounds.floorSeconds.toFixed(4)} s rounded up to the ${REACTION_BLEND_QUANTUM_SECONDS} s grid).`);
+      }
+      if (pinned > bounds.ceilingSeconds) {
+        throw new Error(`Reaction set ${id}'s ${role} blend of ${pinned} s outlasts its ceiling of ${bounds.ceilingSeconds} s.`);
+      }
+    }
+  }
+})();
 
 /** Every clip name the contract reserves, in contract order. */
 export const REACTION_CONTRACT_CLIPS: readonly string[] = Object.freeze(

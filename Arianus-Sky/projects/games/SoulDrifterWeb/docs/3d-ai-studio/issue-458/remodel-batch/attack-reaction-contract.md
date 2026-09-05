@@ -319,11 +319,25 @@ reaction is authored by the procedural composer, exactly as creature motion alre
 One reaction serves every body that shares a skeleton archetype, so the count is set by archetypes times special
 damage types rather than by the number of creatures in the game.
 
-| Archetype | Skeleton | Bodies it covers |
-|---|---|---|
-| `humanoid` | Human Foundation rig | the human NPC, and any future humanoid |
-| `warden` | 18-bone Cinderbound rig | Wayfarer and Greater Wardens, both bodies each |
-| `breachling` | 24-bone quadruped rig plus toes | all four Breachlings, legacy and four-view |
+| Archetype | Skeleton | Rig the shipped pack is authored on | Bodies it covers |
+|---|---|---|---|
+| `humanoid` | Human Foundation rig, 65 joints | `human-foundation-pilot-runtime-4k.glb` | the human NPC, and any future humanoid |
+| `warden` | Cinderbound rig, 18 joints, no digits or toes | `wayfarer-cinderbound-warden-fourview-v12.glb` | the Wayfarer four-view body |
+| `breachling` | quadruped rig, 30 joints - 24 canonical plus six front toes | `breachling-base-fourview-composer-v8.glb` | the base four-view body |
+
+**Measured correction, 2026-09-04.** The "bodies it covers" column above used to
+read "both Warden bodies" and "all four Breachlings". It does not, and the numbers
+say why. Joint NAMES are shared across an archetype; BIND POSES are not. Against
+the rig each pack is authored on, `oathbreaker-greater-cinderbound-warden-fourview-v7.glb`
+differs by up to 0.229 in a quaternion component and 0.681 in an inverse bind
+matrix entry; `breachling-ravager-fourview-composer-v4.glb` (34 joints) and
+`breachling-oathbound-fourview-composer-q4.glb` (38) differ by up to 1.462 of
+quaternion component, and `breachling-stalker-fourview-composer-v5.glb` (26) has
+no `front_toe1L..3L/R` at all and is refused outright by `assertReactionClipsBind`.
+An absolute-rotation pack forces its own rig's rest pose onto whatever it plays
+on, so a sibling body needs its own build from the same authoring, not a second
+row in the receipt. `REACTION_RIG_LINEAGE` in `reviewed-reaction-receipt.ts` is
+where each archetype's rig is pinned, and every pack row is checked against it.
 
 | Damage type | Reaction shape | Driven by |
 |---|---|---|
@@ -483,6 +497,87 @@ The two seam-table rows that reported this join as 0.0475 deg were comparing
 against the composer's internally baked arm-rest neutral, which exists in no
 shipped byte.
 
+> **CLOSED 2026-09-04. The blend is now derived from the gap, per set, and pinned.**
+> Measured with `issue-458-motion-composer-v1/tools/reaction-entry-gap.mjs` on the
+> shipped packs of all three archetypes, reading exported keyframe tracks with
+> normalised quaternions (so D2's artefact cannot appear). D3's own numbers
+> reproduce exactly: `BurnFlare[0]` is 89.9848 deg from `ProLongbow__UnarmedIdle01`,
+> 94.4821 from `IdleStandingRelaxed` and 151.9755 from `ProLongbow__StandingIdle01`.
+>
+> The gap was re-measured against what a defender is ACTUALLY holding, not one
+> frame of one clip: the worst per-joint angle over the whole period of every guard
+> clip its own catalog offers, and - now that D5 is wired - over the whole period of
+> a running set, because a preempt cuts wherever it cuts.
+>
+> | set | archetype | guard -> impact[0] | preempt -> impact[0] | recover[end] -> guard | impact peak rate | recover peak rate |
+> |---|---|---|---|---|---|---|
+> | poison | humanoid | 151.9755 deg / 501.39 mm | 86.5758 deg | 151.9755 deg | 754.2 deg/s | 231.6 deg/s |
+> | poison | warden | 65.7954 deg / 20.89 mm | 81.0170 deg | 65.7954 deg | 657.1 deg/s | 184.3 deg/s |
+> | poison | breachling | 46.9677 deg / 12.07 mm | 126.2847 deg | 46.9677 deg | 1386.6 deg/s | 563.7 deg/s |
+> | burning | humanoid | 151.9755 deg / 501.39 mm | 92.1456 deg | 151.9755 deg | 770.8 deg/s | 417.5 deg/s |
+> | burning | warden | 65.7954 deg / 20.89 mm | 81.0170 deg | 65.7954 deg | 753.3 deg/s | 277.8 deg/s |
+> | burning | breachling | 46.9677 deg / 12.07 mm | 98.5787 deg | 46.9677 deg | 1508.8 deg/s | 854.3 deg/s |
+> | knockdown | humanoid | 151.9755 deg / 501.39 mm | 92.1456 deg | 151.9755 deg | 431.0 deg/s | 672.7 deg/s |
+> | knockdown | warden | 65.7954 deg / 20.89 mm | 76.7128 deg | 65.7954 deg | 408.5 deg/s | 877.5 deg/s |
+> | knockdown | breachling | 46.9677 deg / 12.07 mm | 126.2847 deg | 46.9677 deg | 1597.0 deg/s | 873.1 deg/s |
+>
+> Guard rows are the worst over every guard clip the archetype offers - nine loadout
+> stances for the humanoid, `Idle` and `CombatIdle` for the Warden and the
+> Breachling - sampled at 60 Hz across each clip's whole period.
+>
+> **The rule, both ways.** A pop is a transition faster than any motion the animation
+> itself contains, so the blend must satisfy `gap / blend <= the entered clip's own
+> peak authored rate`. That is a FLOOR, and it is the whole answer to "should an
+> impact be fast": it should be as fast as it can be without being the fastest thing
+> on screen. The CEILING is the second at which the impact clip has laid down half of
+> all the angular motion it ever lays down - a crossfade still running past that
+> point holds the old pose over most of the new clip and the hit turns to mush.
+>
+> **One blend cannot serve all three sets, and that is measured, not preference.**
+> Knockdown's floor is 0.2138 s (92.1456 deg into a `Knockdown` whose peak is only
+> 431.0 deg/s) and burning's ceiling is 0.1500 s. The intersection is empty, so the
+> defaults are per set:
+>
+> | set | entry floor | entry ceiling | **entry pinned** | exit floor | **exit pinned** |
+> |---|---|---|---|---|---|
+> | poison | 0.1233 s | 0.1833 s | **0.125 s** | 0.3570 s | **0.360 s** |
+> | burning | 0.1196 s | 0.1500 s | **0.120 s** | 0.2368 s | **0.240 s** |
+> | knockdown | 0.2138 s | 0.2500 s | **0.215 s** | 0.0750 s | **0.075 s** |
+>
+> Pinned values are the floor rounded UP to a 5 ms grid, so tidying a number can
+> never drop it below its own floor. The old 0.1 s default was under the floor of all
+> three sets, and the old hard-coded 0.12 s hand-back was under two of three exits -
+> the Warden's poison settle needs 0.357 s to stay inside `PoisonRecover`'s own
+> 184.3 deg/s. Both live in `reaction-contract.ts` as
+> `REACTION_SETS[id].entryBlendSeconds` / `.exitBlendSeconds`, are checked against
+> `REACTION_BLEND_MEASUREMENT` at module load, are re-derived and asserted by
+> `tests/reactionEntryBlend.test.ts`, and stay adjustable per review through the
+> panel's Blend in / Blend out fields (`CombatReviewController.setReactionBlend`,
+> which does not unmeasure the contact the way a manual cue does). The sequence tail
+> grew from a flat 0.25 s to `max(0.25 s, exit blend)`, because a tail shorter than
+> the settle silently clamped the blend it claimed to be playing.
+>
+> **D3a, opened by this measurement: the humanoid packs and the humanoid library are
+> in different root spaces.** The humanoid guard column above is 152 deg and 501 mm
+> against the Warden's 66 deg / 21 mm and the Breachling's 47 deg / 12 mm, and the
+> reason is not that the human moves more. Measured by FK on the shipped bytes:
+> `BurnFlare[0]`, `PoisonImpact[0]` and `Knockdown[0]` all stand with the soles at
+> y = -0.500 rig units and a body-forward yaw of +90.0 deg, while
+> `GreatSword__GreatSwordIdle[0]` stands with the soles at y = -0.003 and a yaw of
+> -8.2 deg (`ProLongbow__UnarmedIdle01` -1.4 deg). The composer's humanoid neutral is
+> the runtime body's own bind hips - origin-centred, facing the composer's yaw 0,
+> world +X - and every clip in the shipped, frozen
+> `human-foundation-pilot-animation-library.glb` is floor-referenced and faces world
+> +Z. Playing a humanoid reaction pack next to a library idle therefore drops the body
+> 497 mm and spins it about 90 deg at the moment of impact. The mobs do not have this
+> because their bodies' own clips and their packs came out of the same composer.
+> **No blend length fixes a half-metre teleport.** It is a re-author of the humanoid
+> nine against the library's floor-and-facing convention, and until that is done the
+> humanoid guard and exit rows are recorded as evidence but marked
+> `guardComparable: false` and excluded from the derivation, so a defect cannot
+> silently set the product's blend. The honest preempt rows still set the floor for
+> two of the three sets, so the exclusion is not doing the work.
+
 **D4 — planted-foot skate in BurnBurn.** Max toe lift is 46.0 mm on a 0.9891 m rig
 with 30.4 mm of horizontal travel while planted. That is a weight-shift shuffle
 with a slide in it, not the planted steps it was described as.
@@ -518,3 +613,120 @@ tests; the panel exposes no command for them and `resolveContact` only ever buil
 a single-plan timeline through `applyReactionHit`. The precedence design is sound
 and tested, but it is not reachable in the product yet. Either wire it or stop
 describing it as behaviour.
+
+> **CLOSED 2026-09-04 by wiring it, not by cutting it.** Cutting was the cheaper
+> option and it was the wrong one: the owner asked to SEE reactions, precedence only
+> means anything when two hits land together, and the rules were already written and
+> tested - the only thing missing was a way in. `CombatReviewPanel` now carries a
+> "Second hit into the running reaction" block, visible exactly while a set is
+> running: a set picker over `REACTION_SET_IDS`, a "Lands at" time seeded from the
+> running plan's loop start, and three buttons - **Land second hit**
+> (`recordReactionHit`), **Cut to death here** (`cutReactionToDeath`) and **Clear
+> reaction** (`clearReactionTimeline`).
+>
+> The timeline says what happened to each hit rather than leaving the reviewer to
+> infer it. Under the control is an ordered history built from the timeline the
+> controller already owns: every plan with its start, its set, its loop periods, the
+> later hits that re-armed it ("impact not replayed") and the hit that cut it; then
+> every absorbed hit with its own reason - lower precedence than the running set, or
+> landing before the running plan started. The two `reaction-preempt-*` /
+> `reaction-absorbed-*` sequence events that already existed now have a visible
+> counterpart.
+>
+> A preempt is also an entry, so it is crossed at the preempting set's own measured
+> blend (D3) while the plan it cut keeps its own pinned number.
+>
+> A refusal stays a refusal: a death cut before the reaction starts still throws
+> `A death before the reaction is not a cut`, and the panel shows it without
+> half-applying it. Driven end to end through the panel's own DOM in
+> `tests/reactionEntryBlend.test.ts` - preempt, absorb, re-arm, death cut, clear.
+---
+
+## 9. Registration, 2026-09-04: all three archetypes installed
+
+The Warden and Breachling nine exist, so the receipt no longer holds those rows
+open. `REVIEWED_REACTION_PACKS` now carries all three archetypes, and every number
+below was hashed and parsed on the installed file rather than copied from a build
+log.
+
+| Archetype | File | Bytes | sha256 | Rig it carries | Joints |
+|---|---|---|---|---|---|
+| `humanoid` | `humanoid-reactions-poison-r4.glb` | 3,364,176 | `2d7bdfaacac3ee9650f292d64d9c8d4a583c9396be47a66658953cfadba51363` | `human-foundation-pilot-runtime-4k.glb` | 65 |
+| `humanoid` | `humanoid-reactions-burn-r2.glb` | 3,403,688 | `246b46a6867b499961908cd5977335206df593d90be0c7f5f15f43cdb224030f` | same | 65 |
+| `humanoid` | `humanoid-reactions-kd-r14.glb` | 3,442,812 | `c40fa8ab8615fbc2c81418645942e9192c2679f49f35b6cf0353e252afa8eb34` | same | 65 |
+| `warden` | `warden-reactions-r3.glb` | 22,228,284 | `ac58bc6ff929821a4585a661c4297ad85dca4890ad212c997d603e359b744662` | `wayfarer-cinderbound-warden-fourview-v12.glb` | 18 |
+| `breachling` | `breachling-reactions-quad-r4.glb` | 15,195,976 | `03c168b14e16f7df1df7304e12a1b1a335bfd190997c724219bcc683b0416cd4` | `breachling-base-fourview-composer-v8.glb` | 30 |
+
+What "carries the rig" means here is exact, not approximate: each pack's own skin
+was compared joint for joint against the body GLB named beside it, and the maximum
+absolute difference is 0.000e+0 on bind translation, bind rotation, bind scale and
+every inverse bind matrix entry, in the same joint order. That is why the joint
+count is an archetype property and not a constant - 65, 18 and 30 are three
+different skeletons, and `prepareReviewedReactionPacks` now rejects a row whose
+`rigSourceSha256` or `jointCount` is not its own archetype's.
+
+**Both-ways clip enforcement and the union rule are unchanged.** An archetype is
+registered only when its packs together carry exactly the nine contract clips with
+none claimed twice - three files for the humanoid, one each for the Warden and the
+Breachling - and at load a file must contain every clip its receipt claims and no
+clip it does not. The pinned joint count is now checked against the parsed skin as
+well, so a re-export that gained or dropped bones is refused before a clip is bound.
+
+**Selection.** A defender's archetype is read from its catalog family and nothing
+else: `reactionArchetypeForFamily` maps `human` to `humanoid`, `warden` to
+`warden`, `breachling` to `breachling`, and `MOB_CATALOG` gives every Warden and
+Breachling definition its own family. `CombatReviewController` now asks the receipt
+whether that archetype has the set installed before it reads any duration off the
+defender, so a special set is reachable only through the defender's own registered
+pack; a defender whose archetype has no pack falls back to the ordinary directional
+flinch picker instead of half-playing another rig's motion. The lab-side loader is
+addressed the same way - `loadReactionPacksForFamily(family, ...)` - so no call
+site spells out an archetype.
+
+**Still open.** Mob review actors do not yet install their pack's clips: the
+Breachling and Warden stages play their own body's animation set through the shared
+dungeon runtime, so the registration above is reachable by the contract and the
+loader but not yet by a Warden or Breachling actor on the stage. That wiring, and
+the per-variant builds the measured correction in section 5.1 calls for, are the
+next pieces.
+
+---
+
+## 9. Archetype reaction sets: shipped, pinned, and NOT yet reachable
+
+The warden and breachling nine-clip sets are authored, pinned and independently
+verified for integrity - hashes, byte lengths, joint names and index order all
+re-derived from the shipped bytes by a skeptic using its own parser. Three
+skeptics then refuted the lane's own claims. What follows is what they found, so
+nobody reads the pins as proof the feature works.
+
+**D6 - a mob defender still cannot receive an archetype set. Two blockers, not
+one.** The first is disclosed: `combat-review-studio.js:79` passes
+`includeReactionPack` only to the human factory, so mob review actors never
+install pack clips at all. The second was undisclosed and is now FIXED here:
+`mob-review-actor.ts` classified all nine contract clip names as `"interaction"`,
+because it matched by regex and not one of PoisonImpact, PoisonLoop,
+PoisonRecover, BurnFlare, BurnBurn, BurnRecover, Knockdown, ProneHold or GetUp
+matches any of its patterns. `combat-review-controller.ts` only reads a reaction's
+duration from an action whose semantic is `"reaction"`, so every archetype set
+would have fallen through to the flinch picker even after the first blocker was
+closed. It now matches by contract, the same way the human actor does. **The first
+blocker remains open: until mob actors install pack clips, these two packs are
+inert.** The test that was offered as proof of archetype resolution is a fixture,
+not the live path.
+
+**D7 - the poison entry blend was derived from a transition the runtime forbids.
+FIXED here.** The floor took the wider of a guard entry and a preempting entry.
+Poison is the lowest precedence and `reactionSetPreempts` requires strictly
+greater, so poison is never entered by preempting a running set - yet that
+impossible term was the single binding term in its floor. Excluding transitions
+the precedence table forbids takes poison from 0.125 s to 0.105 s, which the
+module-load guard now derives independently.
+
+**D8 - the breachling pack ships the exact defect D4 names, unmeasured.** In
+`breachling-reactions-quad-r4.glb`, `GetUp` teleports the planted right rear foot
+154.9 mm horizontally in one 1/60 s frame, and 145.1 mm back two frames later,
+while the foot stays inside the 4 mm contact band throughout and then locks dead
+still. The same rig's shipped reviewed body has zero rear-foot events of this kind
+across all sixteen of its clips. **This pack should not be relied on until that is
+re-authored**, and it is committed only because it is currently unreachable.

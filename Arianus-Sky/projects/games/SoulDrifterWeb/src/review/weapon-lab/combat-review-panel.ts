@@ -1,5 +1,5 @@
 import { CombatReviewController, type CombatActionRole, type CombatContactSnapshot, type CombatReviewSnapshot, type CombatSlot, type CombatSlotSnapshot, type CombatSparRow } from "./combat-review-controller";
-import { REACTION_SETS } from "./reaction-contract";
+import { REACTION_SET_IDS, REACTION_SETS, type ReactionSetId } from "./reaction-contract";
 import type { ReviewAction } from "./combat-review-types";
 
 interface ActorFields {
@@ -25,8 +25,15 @@ export class CombatReviewPanel {
   private readonly responseRow: HTMLElement;
   private readonly cueTimeRow: HTMLElement;
   private readonly cueBlendRow: HTMLElement;
+  private readonly cueExitBlendRow: HTMLElement;
   private readonly effectRow: HTMLElement;
   private readonly reactionPlan: HTMLElement;
+  private readonly secondHit: HTMLElement;
+  private readonly secondHitSet: HTMLSelectElement;
+  private readonly secondHitButtons: HTMLElement;
+  private readonly reactionHistory: HTMLOListElement;
+  private secondHitKey = "";
+  private historyKey = "";
   private readonly play: HTMLButtonElement;
   private readonly restart: HTMLButtonElement;
   private readonly timeline: HTMLInputElement;
@@ -97,12 +104,38 @@ export class CombatReviewPanel {
     this.cue = this.selectField(sequence, "Manual cue", "cue");
     this.response = this.selectField(sequence, "Clip", "response"); this.responseRow = this.response.closest("label")!;
     this.cueTimeRow = this.numberField(sequence, "Cue time", "cue-time", 0, 120, 0.01, "s");
-    this.cueBlendRow = this.numberField(sequence, "Blend in", "cue-blend", 0, 1, 0.01, "s");
+    // Two crossfades, both adjustable, both defaulted from the D3 measurement whenever a
+    // set is running: in from whatever the defender was holding, and out again after the
+    // recovery. They are not a manual-cue property, which is why they survive a measured
+    // contact rather than unmeasuring it.
+    this.cueBlendRow = this.numberField(sequence, "Blend in", "cue-blend", 0, 1, 0.005, "s");
+    this.cueExitBlendRow = this.numberField(sequence, "Blend out", "cue-exit-blend", 0, 2, 0.005, "s");
     // How long the effect lasts, which is what the loop is held for. One asset
     // serves a 0.867 s held beam and a 2.5 s ground residue.
     this.effectRow = this.numberField(sequence, "Effect duration", "effect-seconds", 0, 120, 0.1, "s");
     this.reactionPlan = this.node("p", "context-note"); this.reactionPlan.dataset.reactionPlan = "true";
     sequence.append(this.reactionPlan);
+    // Precedence is only worth having if a reviewer can land the second hit that exercises
+    // it. This is that control: pick the set the second hit carries, pick when it lands,
+    // and the history below says what the running reaction did with it.
+    this.secondHit = this.node("div", "combat-second-hit"); this.secondHit.dataset.secondHit = "true";
+    this.secondHit.append(this.node("h3", "", "Second hit into the running reaction"));
+    this.secondHit.append(this.node("p", "context-note",
+      "A later hit of the same set re-arms the hold without replaying the impact; a higher-precedence set preempts and cuts the running one; a lower one is absorbed and recorded. Review evidence only; no damage or gameplay approval."));
+    this.secondHitSet = this.selectField(this.secondHit, "Second hit set", "reaction-hit-set");
+    this.options(this.secondHitSet, REACTION_SET_IDS.map((id) => ({ id, label: REACTION_SETS[id].label })));
+    // Named rather than left to the browser's first-option default, so the button cannot
+    // reach the controller with an empty set id.
+    this.secondHitSet.value = REACTION_SET_IDS[0]!;
+    this.numberField(this.secondHit, "Lands at", "reaction-hit-time", 0, 120, 0.01, "s");
+    this.secondHitButtons = this.node("div", "buttons");
+    this.secondHitButtons.append(this.button("Land second hit", "reaction-hit"),
+      this.button("Cut to death here", "reaction-death-cut"), this.button("Clear reaction", "reaction-clear"));
+    this.secondHit.append(this.secondHitButtons);
+    this.reactionHistory = this.node("ol", "combat-reaction-history");
+    this.reactionHistory.setAttribute("aria-label", "What each hit did to the running reaction");
+    this.secondHit.append(this.reactionHistory);
+    sequence.append(this.secondHit);
     this.evidence = this.node("p", "combat-evidence", "No response cue. Contact is not measured in this sequence.");
     sequence.append(this.evidence);
     const placement = this.card("04", "Spacing & facing");
@@ -223,7 +256,17 @@ export class CombatReviewPanel {
         break;
       case "projectile-release": if (snapshot.projectiles.flights[0]) this.controller.seek(snapshot.projectiles.flights[0].releaseSeconds); break;
       case "cue-time": this.controller.setManualCue({ atSeconds: Number(value) }); break;
-      case "cue-blend": this.controller.setManualCue({ blendSeconds: Number(value) }); break;
+      case "cue-blend": this.controller.setReactionBlend({ entrySeconds: Number(value) }); break;
+      case "cue-exit-blend": this.controller.setReactionBlend({ exitSeconds: Number(value) }); break;
+      // The set and the time are read when a button fires, not as they are typed: a
+      // half-typed second hit must not land on the running reaction.
+      case "reaction-hit-set": case "reaction-hit-time": break;
+      case "reaction-hit":
+        this.controller.recordReactionHit({ setId: this.secondHitSet.value as ReactionSetId,
+          atSeconds: Number(this.values.get("reaction-hit-time")!.value) });
+        break;
+      case "reaction-death-cut": this.controller.cutReactionToDeath(Number(this.values.get("reaction-hit-time")!.value)); break;
+      case "reaction-clear": this.controller.clearReactionTimeline(); break;
       case "effect-seconds": this.controller.setEffectSeconds(Number(value)); break;
       case "separation": this.controller.setPlacement({ separationMeters: Number(value) }); break;
       case "yaw-a": this.controller.setPlacement({ yawADegrees: Number(value) }); break;
@@ -255,10 +298,15 @@ export class CombatReviewPanel {
         { id: "death", label: defender.selected.death ? "Death · manual cue" : "Death unavailable for this binding", disabled: !defender.selected.death }]);
       const hasCue = snapshot.cue.kind !== "none" && snapshot.contact.response === "none";
       this.cue.value = hasCue ? snapshot.cue.kind : "none"; this.cue.disabled = !snapshot.ready;
-      this.responseRow.hidden = this.cueTimeRow.hidden = this.cueBlendRow.hidden = !hasCue;
+      this.responseRow.hidden = this.cueTimeRow.hidden = !hasCue;
+      // The blends belong to the response, measured or manual, so they stay reachable
+      // after a scan. The exit one only means anything when a reaction hands back.
+      this.cueBlendRow.hidden = snapshot.cue.kind === "none";
+      this.cueExitBlendRow.hidden = snapshot.cue.kind !== "reaction";
       this.actionOptions(this.response, defender.actions.filter((entry) => entry.semantic === snapshot.cue.kind),
         hasCue ? defender.selected[snapshot.cue.kind as "reaction" | "death"] : "");
       this.setNumber("cue-time", snapshot.cue.atSeconds); this.setNumber("cue-blend", snapshot.cue.blendSeconds);
+      this.setNumber("cue-exit-blend", snapshot.cue.exitBlendSeconds);
       this.setNumber("effect-seconds", snapshot.reaction.effectSeconds);
       this.setNumber("separation", snapshot.placement.separationMeters);
       this.setNumber("yaw-a", snapshot.placement.yawADegrees); this.setNumber("yaw-b", snapshot.placement.yawBDegrees);
@@ -293,11 +341,13 @@ export class CombatReviewPanel {
     const timeline = snapshot.reaction.timeline;
     const active = timeline?.plans[timeline.plans.length - 1];
     if (!active || !snapshot.reaction.phases.length) {
+      this.secondHit.hidden = true; this.secondHitKey = ""; this.historyKey = "";
       this.reactionPlan.textContent = snapshot.ready
         ? "No special reaction. An ordinary contact uses the directional flinch set; a special damage type or a heavy strike replaces it with an authored impact, held loop and recovery."
         : "";
       return;
     }
+    this.renderSecondHit(snapshot);
     const quantized = Math.abs(active.quantizationSeconds) > 1e-6
       ? ` · loop quantized to whole periods, ${active.quantizationSeconds > 0 ? "+" : ""}${active.quantizationSeconds.toFixed(3)} s against the effect`
       : " · loop lands exactly on the effect";
@@ -307,7 +357,47 @@ export class CombatReviewPanel {
     this.reactionPlan.textContent = `${REACTION_SETS[active.setId].label} · ${timeline!.archetype} archetype · impact at `
       + `${active.atSeconds.toFixed(3)} s, ${active.loopPeriods} × ${active.phases[1]!.clipDurationSeconds.toFixed(3)} s loop `
       + `= ${active.holdSeconds.toFixed(3)} s held for a ${active.requestedHoldSeconds.toFixed(3)} s effect${quantized}`
-      + `, then recovery and back to the ready pose${cut}${absorbed}${preempted}.`;
+      + `, then recovery and back to the ready pose${cut}${absorbed}${preempted}`
+      + ` · entering over ${snapshot.cue.blendSeconds.toFixed(3)} s (set default ${REACTION_SETS[active.setId].entryBlendSeconds.toFixed(3)} s)`
+      + `, settling back over ${snapshot.cue.exitBlendSeconds.toFixed(3)} s (set default ${REACTION_SETS[active.setId].exitBlendSeconds.toFixed(3)} s).`;
+  }
+  /**
+   * The second-hit control and the record of what every hit actually did.
+   *
+   * Every row here is derived from the timeline the controller already owns: a plan the
+   * reviewer can see was started, re-armed or cut, and an absorbed hit with the reason it
+   * changed nothing. Without this the precedence rules were code with no way to reach them.
+   */
+  private renderSecondHit(snapshot: CombatReviewSnapshot): void {
+    const timeline = snapshot.reaction.timeline!;
+    const active = timeline.plans[timeline.plans.length - 1]!;
+    this.secondHit.hidden = false;
+    for (const button of this.secondHitButtons.children) (button as HTMLButtonElement).disabled = !snapshot.ready;
+    // Reseed the time only when the running plan changes, so a reviewer's own number stands.
+    const key = `${timeline.plans.length}:${timeline.absorbed.length}:${active.setId}:${active.atSeconds.toFixed(6)}`;
+    if (key !== this.secondHitKey) {
+      this.secondHitKey = key;
+      this.setNumber("reaction-hit-time", Number((active.atSeconds + active.phases[0]!.clipDurationSeconds).toFixed(3)));
+    }
+    const rows: string[] = [];
+    timeline.plans.forEach((plan, index) => {
+      const next = timeline.plans[index + 1];
+      const cutBy = next ? ` · cut at ${next.atSeconds.toFixed(3)} s by ${REACTION_SETS[next.setId].label}` : "";
+      const rearms = plan.hitSeconds.length > 1
+        ? ` · re-armed by ${plan.hitSeconds.length - 1} later hit(s) of the same set at ${plan.hitSeconds.slice(1).map((value) => value.toFixed(3)).join(", ")} s, impact not replayed`
+        : "";
+      rows.push(`${index ? "Preempts at" : "Starts at"} ${plan.atSeconds.toFixed(3)} s · ${REACTION_SETS[plan.setId].label}`
+        + ` · ${plan.loopPeriods} loop period(s), ${plan.durationSeconds.toFixed(3)} s total${rearms}${cutBy}`);
+    });
+    for (const hit of timeline.absorbed) {
+      rows.push(`Absorbed at ${hit.atSeconds.toFixed(3)} s · ${REACTION_SETS[hit.setId].label} · ${hit.reason === "lower-precedence"
+        ? "lower precedence than the running set, so nothing visible changed" : "lands before the running plan started"}`
+        + " · recorded, impact not replayed");
+    }
+    const historyKey = rows.join("|");
+    if (historyKey === this.historyKey) return;
+    this.historyKey = historyKey;
+    this.reactionHistory.replaceChildren(...rows.map((text) => this.node("li", "", text)));
   }
   private renderContact(snapshot: CombatReviewSnapshot): void {
     const defender = snapshot.slots.find((entry) => entry.slot !== snapshot.attacker)!;

@@ -1,12 +1,35 @@
 import type * as THREE from "three";
 import { fetchPinnedReviewAsset } from "./review-asset-loader";
-import { REACTION_PHASE_ROLES, REACTION_SETS, type ReactionArchetype, type ReactionClipDurations,
-  type ReactionSetId } from "./reaction-contract";
+import { reactionArchetypeForFamily, REACTION_PHASE_ROLES, REACTION_SETS, type ReactionArchetype,
+  type ReactionClipDurations, type ReactionSetId } from "./reaction-contract";
 import { REVIEWED_REACTION_PACKS, type ReviewedReactionPack, type ReviewedReactionPacks } from "./reviewed-reaction-receipt";
+import type { ReviewActorFamily } from "./combat-review-types";
 
-/** Only the parse surface is needed; the caller owns loader configuration and caching. */
+/**
+ * Only the parse surface is needed; the caller owns loader configuration and caching.
+ *
+ * `scene` is optional because a caller may hand in a clip-only stub, but when a
+ * real GLTF parse supplies one, the pack's own skin is counted and checked against
+ * the joint count its receipt pins.
+ */
 export interface ReactionPackParser {
-  parseAsync(data: ArrayBuffer, path: string): Promise<{ animations: THREE.AnimationClip[] }>;
+  parseAsync(data: ArrayBuffer, path: string): Promise<{ animations: THREE.AnimationClip[]; scene?: THREE.Object3D }>;
+}
+
+/**
+ * Bone names of the skin a parsed pack carries, or null when the parse produced no
+ * skinned mesh to count. The union over every skinned mesh is the skeleton the
+ * receipt pins, which is what makes 65 / 18 / 30 an archetype property rather than
+ * a constant.
+ */
+function packJointNames(scene: THREE.Object3D | undefined): Set<string> | null {
+  if (!scene) return null;
+  const names = new Set<string>();
+  scene.traverse((object) => {
+    const skinned = object as THREE.SkinnedMesh;
+    if (skinned.isSkinnedMesh && skinned.skeleton) for (const bone of skinned.skeleton.bones) names.add(bone.name);
+  });
+  return names.size ? names : null;
 }
 
 export interface LoadedReactionPack {
@@ -23,6 +46,10 @@ export interface LoadedReactionPack {
  * contain every clip its receipt claims and no clip it does not. A pack that
  * gained a clip in a re-export is rejected here rather than silently installed
  * beside the library under a name nothing selects.
+ *
+ * The pinned joint count is checked against the parsed skin, per archetype: a
+ * Warden pack is 18 joints, a Breachling pack 30, a humanoid pack 65, and a
+ * re-export that dropped or gained bones is rejected before a clip is bound.
  */
 export async function loadReactionPacks(archetype: ReactionArchetype, options: {
   parser: ReactionPackParser; registry?: ReviewedReactionPacks; signal?: AbortSignal; baseURI?: string;
@@ -46,9 +73,27 @@ export async function loadReactionPacks(archetype: ReactionArchetype, options: {
     for (const clip of gltf.animations) {
       if (!Number.isFinite(clip.duration) || clip.duration <= 0) throw new Error(`${pack.url} clip ${clip.name} has no duration.`);
     }
+    const joints = packJointNames(gltf.scene);
+    if (joints && joints.size !== pack.jointCount) {
+      throw new Error(`${pack.url} carries a ${joints.size}-joint skin, not the ${pack.jointCount} joints its ${pack.archetype} receipt pins.`);
+    }
     loaded.push({ pack, clips: Object.freeze([...gltf.animations]), checksumVerified });
   }
   return Object.freeze(loaded);
+}
+
+/**
+ * The same load, addressed the way the lab actually asks the question: by the
+ * defender's catalog family. The family is the only thing an actor knows about
+ * itself, and `reactionArchetypeForFamily` is the one map from it to an archetype,
+ * so a Warden or a Breachling reaches its own pack here rather than the humanoid
+ * one by a hard-coded string at the call site.
+ */
+export async function loadReactionPacksForFamily(family: ReviewActorFamily, options: {
+  parser: ReactionPackParser; registry?: ReviewedReactionPacks; signal?: AbortSignal; baseURI?: string;
+  requireChecksum?: boolean;
+}): Promise<readonly LoadedReactionPack[]> {
+  return loadReactionPacks(reactionArchetypeForFamily(family), options);
 }
 
 /** Flatten loaded packs into the clip list an actor installs, rejecting a name collision. */
