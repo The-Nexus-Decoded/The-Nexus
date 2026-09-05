@@ -309,7 +309,6 @@ function updateBowInventoryPreview() {
   const state = actor?.reviewTools.updateBowInventoryPreview();
   if (state) document.querySelector("#arrowCountOut").textContent = `${state.inventory} / 100`;
 }
-function enforceMountedArtifactClearance(value) { return value?.reviewTools.enforceMountedArtifactClearance(value); }
 
 function setSocketControls(attachment) {
   const position = attachment?.position ?? [0, 0, 0];
@@ -783,9 +782,13 @@ function updateStatus() {
         targetErrorMeters: leftWorld.distanceTo(targetWorld),
       };
     },
+    // Pure read. This used to call enforceMountedArtifactClearance(), which MOVES
+    // sockets on a per-call budget -- so opening the panel corrected the pose a
+    // second time and reported clearances for a frame that was never drawn. The
+    // corrections are recorded by the sample() that actually posed the actor.
     getArtifactCollisionMetrics: () => ({
       clearances: actor.reviewTools.artifactBodyClearanceMetrics(actor),
-      corrections: enforceMountedArtifactClearance(actor),
+      corrections: actor.mountedArtifactCorrections ?? [],
     }),
     getGreatswordMetrics: () => {
       if (!actor.primary || actor.primary.asset !== "longsword") return { active: false };

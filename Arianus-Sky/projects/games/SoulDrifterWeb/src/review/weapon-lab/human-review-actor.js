@@ -796,42 +796,58 @@ export function createHumanReviewActorFactory({
       if (up.dot(torsoUp) < 0) up.negate();
       const back = forward.clone().negate();
       const chestCenter = spine1.clone().lerp(spine2, 0.35);
+      /**
+       * Every offset below is a DISTANCE across the torso -- shoulder width, chest
+       * depth, waist drop -- measured in metres on the calibration body, so each
+       * basis vector is pre-scaled by BODY_RATIO and the literals stay exactly the
+       * numbers that were fitted. The unit `up` / `right` / `forward` survive for the
+       * dot and cross work, which is orientation and must not be scaled.
+       *
+       * Leaving these absolute is what hung the sling off a 1.8 m torso: the bones
+       * they are measured from shrank with the body and these did not, so the front
+       * run stood a full body-ratio too far off the chest while the gate that was
+       * supposed to catch it had been reading against an equally oversized proxy.
+       */
+      const bodyRight = right.clone().multiplyScalar(BODY_RATIO);
+      const bodyUp = up.clone().multiplyScalar(BODY_RATIO);
+      const bodyForward = forward.clone().multiplyScalar(BODY_RATIO);
+      const bodyBack = back.clone().multiplyScalar(BODY_RATIO);
       // The Mixamo "shoulder" bone is the clavicle root, next to the neck, not the
       // acromion. Routing the sling over topRight = rightShoulder + up only put the
-      // strap 39.6 mm from that bone once the right arm drew back, which the shipped
-      // harness gate (a 65 mm proxy sphere) reads as -25.4 mm of body intrusion on
-      // every drawn clip. 35 mm outboard carries the crossing over the deltoid.
+      // strap 39.6 mm from that bone once the right arm drew back, which the harness
+      // gate reads as body intrusion on every drawn clip. 75 mm outboard on the
+      // calibration body carries the crossing over the deltoid.
       const shoulderOutboardMeters = 0.075;
-      const topRight = rightShoulder.clone().addScaledVector(up, 0.012).addScaledVector(right, shoulderOutboardMeters);
-      const lowerLeft = chestCenter.clone().addScaledVector(right, -0.17).addScaledVector(up, -0.2);
+      const topRight = rightShoulder.clone().addScaledVector(bodyUp, 0.012).addScaledVector(bodyRight, shoulderOutboardMeters);
+      const lowerLeft = chestCenter.clone().addScaledVector(bodyRight, -0.17).addScaledVector(bodyUp, -0.2);
       const frontTorsoDepth = 0.185;
       const lowerTorsoDepth = 0.16;
       const shoulderFront = topRight.clone()
-        .addScaledVector(forward, 0.145)
-        .addScaledVector(right, 0.025);
+        .addScaledVector(bodyForward, 0.145)
+        .addScaledVector(bodyRight, 0.025);
       const diagonalUpper = chestCenter.clone()
-        .addScaledVector(right, 0.045)
-        .addScaledVector(up, 0.055)
-        .addScaledVector(forward, frontTorsoDepth);
+        .addScaledVector(bodyRight, 0.045)
+        .addScaledVector(bodyUp, 0.055)
+        .addScaledVector(bodyForward, frontTorsoDepth);
       const diagonalLower = chestCenter.clone()
-        .addScaledVector(right, -0.07)
-        .addScaledVector(up, -0.075)
-        .addScaledVector(forward, frontTorsoDepth);
+        .addScaledVector(bodyRight, -0.07)
+        .addScaledVector(bodyUp, -0.075)
+        .addScaledVector(bodyForward, frontTorsoDepth);
       const quiverUpper = quiver.socket.localToWorld(new THREE.Vector3(0, 0.15, 0));
       const quiverLower = quiver.socket.localToWorld(new THREE.Vector3(0, -0.15, 0));
       const routes = [
         [
           quiverUpper,
-          topRight.clone().addScaledVector(back, 0.09).addScaledVector(right, 0.02),
-          topRight.clone().addScaledVector(back, 0.055).addScaledVector(right, 0.06),
-          topRight.clone().addScaledVector(right, 0.085),
-          topRight.clone().addScaledVector(forward, 0.055).addScaledVector(right, 0.06),
+          topRight.clone().addScaledVector(bodyBack, 0.09).addScaledVector(bodyRight, 0.02),
+          topRight.clone().addScaledVector(bodyBack, 0.055).addScaledVector(bodyRight, 0.06),
+          topRight.clone().addScaledVector(bodyRight, 0.085),
+          topRight.clone().addScaledVector(bodyForward, 0.055).addScaledVector(bodyRight, 0.06),
           shoulderFront,
           diagonalUpper,
           diagonalLower,
-          lowerLeft.clone().addScaledVector(forward, lowerTorsoDepth),
-          lowerLeft.clone().addScaledVector(right, -0.055),
-          lowerLeft.clone().addScaledVector(back, lowerTorsoDepth),
+          lowerLeft.clone().addScaledVector(bodyForward, lowerTorsoDepth),
+          lowerLeft.clone().addScaledVector(bodyRight, -0.055),
+          lowerLeft.clone().addScaledVector(bodyBack, lowerTorsoDepth),
           quiverLower,
         ],
       ];
@@ -1290,6 +1306,11 @@ export function createHumanReviewActorFactory({
           passes: finalMetric?.passes ?? true,
         });
       }
+      // This MOVES sockets, and its correction budget is per call, so invoking it to
+      // READ the numbers spends a second budget on top of the pose sample() already
+      // corrected, and reports a pose that was never rendered. Record the frame
+      // result so a reader can have the numbers without driving the solver again.
+      actor.mountedArtifactCorrections = corrections;
       return corrections;
     }
 
@@ -1619,11 +1640,19 @@ export function createHumanReviewActorFactory({
       const right = shoulder.clone().sub(spine).addScaledVector(up, -shoulder.clone().sub(spine).dot(up)).normalize();
       const back = bodyDirection(new THREE.Vector3(0, 0, -1));
       const forward = back.clone().negate();
-      const prepPosition = shoulder.clone().addScaledVector(right, 0.24).addScaledVector(up, 0.08).addScaledVector(forward, 0.13);
-      const liftPosition = shoulder.clone().addScaledVector(right, 0.25).addScaledVector(up, 0.28).addScaledVector(back, 0.06);
-      const turnPosition = shoulder.clone().addScaledVector(right, 0.27).addScaledVector(up, 0.3).addScaledVector(back, 0.34);
-      const turnedPosition = shoulder.clone().addScaledVector(right, 0.18).addScaledVector(up, 0.2).addScaledVector(back, 0.3);
-      const insertedPosition = shoulder.clone().addScaledVector(right, 0.2).addScaledVector(up, -0.02).addScaledVector(back, 0.33);
+      // Reach distances off the shoulder, measured on the calibration body -- how far
+      // out and how far back the hilt travels. Same treatment as the sling: scale the
+      // basis, keep the fitted literals. The unit axes still drive the blade
+      // orientation quaternions below, which are ratios and must stay unscaled.
+      const bodyRight = right.clone().multiplyScalar(BODY_RATIO);
+      const bodyUp = up.clone().multiplyScalar(BODY_RATIO);
+      const bodyForward = forward.clone().multiplyScalar(BODY_RATIO);
+      const bodyBack = back.clone().multiplyScalar(BODY_RATIO);
+      const prepPosition = shoulder.clone().addScaledVector(bodyRight, 0.24).addScaledVector(bodyUp, 0.08).addScaledVector(bodyForward, 0.13);
+      const liftPosition = shoulder.clone().addScaledVector(bodyRight, 0.25).addScaledVector(bodyUp, 0.28).addScaledVector(bodyBack, 0.06);
+      const turnPosition = shoulder.clone().addScaledVector(bodyRight, 0.27).addScaledVector(bodyUp, 0.3).addScaledVector(bodyBack, 0.34);
+      const turnedPosition = shoulder.clone().addScaledVector(bodyRight, 0.18).addScaledVector(bodyUp, 0.2).addScaledVector(bodyBack, 0.3);
+      const insertedPosition = shoulder.clone().addScaledVector(bodyRight, 0.2).addScaledVector(bodyUp, -0.02).addScaledVector(bodyBack, 0.33);
       const liftQuaternion = greatswordBladeQuaternion(
         up.clone().multiplyScalar(0.9).addScaledVector(back, 0.3).addScaledVector(right, 0.12),
         right,
