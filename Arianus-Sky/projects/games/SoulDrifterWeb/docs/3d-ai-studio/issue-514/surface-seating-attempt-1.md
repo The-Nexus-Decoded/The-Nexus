@@ -79,3 +79,75 @@ The diagnosis in the #514 body stands: the sling waypoints are bone offsets that
 were never projected onto the surface, and `BODY_RATIO` cannot rescue them because
 girth is not a function of height. Surface-seating remains the right idea. This
 attempt got the idea right and the measurement wrong.
+
+---
+
+# Attempt 2 — narrowed to the front, still not landed. Ground truth now locked.
+
+Attempt 2 did the thing attempt 1 skipped: built the validator first. It paid for
+itself immediately and it is now committed as a permanent test.
+
+## What the validator established
+
+`tests/helpers/torsoGroundTruth.ts` + `tests/torsoSurfaceGroundTruth.test.js` —
+every posed vertex, no binning, no bone filtering, median of a narrow window.
+
+| | value |
+|---|---|
+| torso axis, Hips → Neck | **502 mm** |
+| front surface radius, heights 0.15–0.6 | **108–125 mm** |
+| front surface radius at the neck (0.9) | 84–88 mm |
+| shipped `frontTorsoDepth` | **185 mm** |
+
+**The guess is ~60 mm past the surface.** That is the daylight, quantified. This
+is the single most useful number produced across both attempts.
+
+The sides are **not measurable this way and a fix must not try**: the arms hang at
+bearing 0 and 180, so a ray along the shoulder line hits a bicep and reports
+200–416 mm of "torso". Only the front hemisphere is occlusion-free — which is
+convenient, because the front run is the part that visibly floats.
+
+## Why attempt 2 still did not land
+
+A front-only profile (±arc around the sternum, median per height band) was built
+in the actor and measured against ground truth band by band, same pose:
+
+| band | height | ground truth | actor profile |
+|---|---|---|---|
+| 1 | 0.13–0.25 | 108 mm | 141 mm |
+| 3 | 0.38–0.50 | 122 mm | 164 mm |
+| 4 | 0.50–0.63 | 120 mm | 158 mm |
+| 6 | 0.75–0.88 | 98 mm | 128 mm |
+
+Same algorithm, same window, same pose, consistently **~35 mm high**. Arc width
+was swept (±60°, ±26°, ±20°, ±12.6°) and the offset survived all of it, so the arc
+is not the cause.
+
+**The lead, unresolved:** the profile reports an axis length of **511 mm** where
+ground truth measures **502 mm** in the same frame. The profile is being built at
+a different pose from the one it is read in — it is built lazily on the first
+`updateQuiverHarness`, which runs before the actor is posed by the clip under
+test. A 9 mm axis discrepancy does not by itself explain 35 mm of radius, so there
+is a second factor still unaccounted for.
+
+Measured gap outcomes, all worse than baseline — reverted, none kept:
+
+| variant | p50 gap |
+|---|---|
+| baseline | **45.3 mm** |
+| ±60° arc | 63.0 mm |
+| ±26° arc, 8 bands | 56.9 mm |
+| ±12.6° arc, 8 bands | 56.3 mm |
+
+## For attempt 3
+
+1. **Do not write a second measurement implementation.** Both attempts failed the
+   same way: a profile in the actor that disagrees with the validator. Have the
+   actor call the *same* code the ground-truth helper uses, so the two cannot
+   diverge. One implementation, one set of numbers.
+2. **Build the profile at a known pose, after `updateMatrixWorld`,** and assert its
+   axis length equals the frame's before trusting any radius. That check alone
+   would have caught this in one run.
+3. Only then replace `frontTorsoDepth` / `lowerTorsoDepth` with the measured
+   radius plus a standoff, and gate on both the shipped sling test and the p50
+   skin gap.
