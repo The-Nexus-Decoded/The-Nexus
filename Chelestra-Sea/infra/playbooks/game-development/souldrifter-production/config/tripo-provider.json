@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "provider": "Tripo3D",
+  "role": "3D_PRODUCTION_ONLY",
+  "conceptImagePolicy": "HOST_LLM_FIRST_NO_TRIPO_2D_CREDITS_BY_DEFAULT",
+  "officialJsSdk": {
+    "package": "@vastai/tripo-sdk",
+    "repository": "https://github.com/VAST-AI-Research/tripo-js-sdk",
+    "apiVersion": "v3",
+    "globalBaseUrl": "https://openapi.tripo3d.ai/v3",
+    "chinaBaseUrl": "https://openapi.tripo3d.com/v3",
+    "minimumNodeMajor": 18,
+    "installPolicy": "install_latest_then_lock_exact_version_in_shared_tool_root"
+  },
+  "officialPythonSdk": {
+    "package": "tripo3d",
+    "repository": "https://github.com/VAST-AI-Research/tripo-python-sdk",
+    "use": "Houdini/Python integration or fallback when JS SDK is unsuitable"
+  },
+  "secret": {
+    "environmentVariable": "TRIPO_API_KEY",
+    "allowedStores": [
+      "Windows User environment",
+      "Windows Machine environment",
+      "approved local secret manager"
+    ],
+    "neverCommit": true,
+    "neverPrint": true
+  },
+  "persistentLocalState": {
+    "toolRoot": "H:\\CodexData\\souldrifter-toolchain\\tripo-v3",
+    "receipt": "H:\\CodexData\\souldrifter-toolchain\\receipts\\tripo-provider.json",
+    "downloads": "H:\\CodexData\\souldrifter-toolchain\\tripo-v3\\downloads",
+    "temporaryTasks": "H:\\CodexData\\souldrifter-toolchain\\tripo-v3\\tasks"
+  },
+  "readOnlyBootstrap": {
+    "method": "getBalance",
+    "charged": false,
+    "requiredCapabilities": [
+      "textToModel",
+      "imageToModel",
+      "multiviewToModel",
+      "uploadFile",
+      "downloadModel",
+      "segmentMesh",
+      "completeMesh",
+      "decimateMesh",
+      "rigCheck",
+      "rigModel",
+      "retargetAnimation",
+      "getTask",
+      "listTasks",
+      "waitForTask",
+      "getBalance"
+    ]
+  },
+  "officialCliPolicy": {
+    "status": "DISCOVER_ONLY_FROM_AUTHENTICATED_TRIPO_CONSOLE_OR_FIRST_PARTY_DOCS",
+    "blockedUnverifiedPackage": "tripo-cli",
+    "requiredEvidence": [
+      "official publisher",
+      "official package/repository or installer",
+      "version",
+      "documented authentication command",
+      "documented health/version command",
+      "read-only account or task-list proof"
+    ]
+  },
+  "mcp": {
+    "repository": "https://github.com/VAST-AI-Research/tripo-mcp",
+    "status": "OPTIONAL_ALPHA_BLENDER_INTEGRATION",
+    "doesNotReplaceSdkApiProof": true
+  },
+  "spendPolicy": {
+    "liveBalanceRequiredBeforeEveryPaidOperation": true,
+    "livePricingRequiredBeforeEveryPaidOperation": true,
+    "exactExpectedAndMaximumCreditsRequired": true,
+    "ownerApprovalRequired": true,
+    "automaticRetriesWithoutApproval": false
+  },
+  "outputPolicy": {
+    "downloadImmediately": true,
+    "providerUrlsAreTemporary": true,
+    "hashOriginalAndDerivatives": true,
+    "updateAssetRegistry": true,
+    "preserveTaskModelVersionPromptCostAndLicense": true
+  }
+}

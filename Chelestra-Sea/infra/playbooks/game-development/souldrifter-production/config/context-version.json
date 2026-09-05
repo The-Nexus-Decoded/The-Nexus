@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "contextVersion": "2026-08-24-master-v7",
+  "entryPoint": "START_HERE.md",
+  "sessionFastStart": "SESSION_FAST_START.md",
+  "fullOnboarding": "ONBOARDING.md",
+  "toolchainPreflight": "PRODUCTION_TOOLCHAIN_PREFLIGHT.md",
+  "animationRouting": "ANIMATION_PROVIDER_ROUTING.md",
+  "animationBakeoff": "CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md",
+  "rule": "Use cached session fast-start for normal chats; run full bootstrap only on receipt invalidation or newly required lane."
+}

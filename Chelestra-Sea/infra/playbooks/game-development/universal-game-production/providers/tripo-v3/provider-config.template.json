@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "providerId": "tripo-v3",
+  "role": "3D_PRODUCTION_ONLY",
+  "enabled": false,
+  "officialJsSdk": {
+    "package": "@vastai/tripo-sdk",
+    "repository": "https://github.com/VAST-AI-Research/tripo-js-sdk",
+    "apiVersion": "v3",
+    "globalBaseUrl": "https://openapi.tripo3d.ai/v3",
+    "chinaBaseUrl": "https://openapi.tripo3d.com/v3",
+    "minimumNodeMajor": 18
+  },
+  "secretEnvironmentVariable": "TRIPO_API_KEY",
+  "conceptImagePolicy": "HOST_LLM_FIRST",
+  "tripo2DImageCreditsAllowedByDefault": false,
+  "requiredReadOnlyCapabilities": [
+    "textToModel",
+    "imageToModel",
+    "multiviewToModel",
+    "uploadFile",
+    "downloadModel",
+    "segmentMesh",
+    "completeMesh",
+    "decimateMesh",
+    "rigCheck",
+    "rigModel",
+    "retargetAnimation",
+    "getTask",
+    "listTasks",
+    "waitForTask",
+    "getBalance"
+  ],
+  "localState": {
+    "toolRoot": "H:\\CodexData\\game-production-toolchain\\tripo-v3",
+    "receiptPath": "H:\\CodexData\\game-production-toolchain\\receipts\\tripo-provider.json",
+    "downloadsRoot": "H:\\CodexData\\game-production-toolchain\\tripo-v3\\downloads"
+  },
+  "officialCliPolicy": "DISCOVER_FROM_FIRST_PARTY_DOCS_ONLY",
+  "blockedUnverifiedPackage": "tripo-cli",
+  "mcpPolicy": "OPTIONAL_DOES_NOT_REPLACE_SDK_API_PROOF",
+  "spendPolicy": {
+    "liveBalanceBeforeEveryPaidOperation": true,
+    "livePricingBeforeEveryPaidOperation": true,
+    "exactExpectedAndMaximumCost": true,
+    "ownerApprovalRequired": true,
+    "unapprovedAutomaticRetries": false
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "animationId": "ambient-chained-struggle-loop",
+  "displayName": "Ambient Chained Struggle Loop",
+  "category": "constrained_ambient_interaction",
+  "complexityTags": [
+    "wall_constraint",
+    "wrist_constraint",
+    "chain_attachment",
+    "looping"
+  ],
+  "ticket": 451,
+  "commonInput": {
+    "briefPath": "",
+    "briefSha256": "",
+    "canonicalRigId": "",
+    "canonicalRigVersion": "",
+    "modelAssetId": "",
+    "modelSha256": "",
+    "tripoTaskIds": [],
+    "tripoRigVersion": "",
+    "tripoPresetSource": null,
+    "durationTargetSeconds": 4.0,
+    "fps": 30,
+    "rootMotionPolicy": "in_place",
+    "requiredConstraints": [],
+    "requiredMarkers": [],
+    "cameraContract": [],
+    "runtimeContract": "threejs_glb"
+  },
+  "candidates": {
+    "houdiniKinefx": {
+      "candidateId": "ambient-chained-struggle-loop__HFX__v001",
+      "producer": "",
+      "houdiniVersionBuild": "",
+      "houdiniLicense": "Indie",
+      "sourcePath": "",
+      "sourceSha256": "",
+      "buildScriptPath": "",
+      "reviewExportPath": "",
+      "reviewExportSha256": "",
+      "runtimeExportPath": "",
+      "runtimeExportSha256": "",
+      "productionMinutes": 0,
+      "agentIterations": 0,
+      "manualInterventions": 0,
+      "crashes": 0,
+      "exportFailures": 0,
+      "automatedGate": {
+        "status": "NOT_RUN",
+        "results": []
+      },
+      "runtimeMetrics": {},
+      "evidence": []
+    },
+    "blender": {
+      "candidateId": "ambient-chained-struggle-loop__BLD__v001",
+      "producer": "",
+      "blenderVersion": "",
+      "addons": [],
+      "sourcePath": "",
+      "sourceSha256": "",
+      "buildScriptPath": "",
+      "reviewExportPath": "",
+      "reviewExportSha256": "",
+      "runtimeExportPath": "",
+      "runtimeExportSha256": "",
+      "productionMinutes": 0,
+      "agentIterations": 0,
+      "manualInterventions": 0,
+      "crashes": 0,
+      "exportFailures": 0,
+      "automatedGate": {
+        "status": "NOT_RUN",
+        "results": []
+      },
+      "runtimeMetrics": {},
+      "evidence": []
+    }
+  },
+  "blindReview": {
+    "labelAssignmentSeed": "",
+    "candidateAActual": "REDACTED_UNTIL_VERDICT",
+    "candidateBActual": "REDACTED_UNTIL_VERDICT",
+    "aiReviewer": "",
+    "aiScores": {
+      "candidateA": {},
+      "candidateB": {}
+    },
+    "aiRecommendation": "PENDING",
+    "aiConfidence": 0.0,
+    "ownerVerdict": "PENDING",
+    "ownerNotes": "",
+    "reviewEvidence": []
+  },
+  "result": {
+    "labelsUnblindedAt": "",
+    "winner": "PENDING",
+    "winnerPipeline": "PENDING",
+    "canonicalRuntimeClip": "",
+    "loserPreserved": false,
+    "independentVerification": "NOT_RUN",
+    "finalStatus": "NOT_STARTED",
+    "lessons": []
+  }
+}

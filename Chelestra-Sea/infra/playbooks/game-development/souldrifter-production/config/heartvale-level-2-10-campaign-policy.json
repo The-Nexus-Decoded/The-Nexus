@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "policyId": "souldrifter-heartvale-level-2-10-campaign-v1",
+  "chapter": {
+    "chapterId": "heartvale-first-wound",
+    "workingTitle": "Heartvale: The Vale's First Wound",
+    "workingStoryCause": "ECHO_WOUND_PROPOSAL",
+    "storyCauseStatus": "OWNER_CANON_REVIEW_REQUIRED",
+    "location": "Heartvale, Thalenyr",
+    "mainQuestCount": 10,
+    "sideQuestCount": 10,
+    "totalQuestCount": 20
+  },
+  "ownership": {
+    "progressionRuntimeIssue": 442,
+    "questInfrastructurePilotIssue": 459,
+    "campaignContentIssue": 498,
+    "campaignCanonIssue": 428,
+    "realmResearchIssues": [429, 430],
+    "environmentIssues": [452, 453, 454, 455, 456]
+  },
+  "levelFlow": {
+    "firstBreachStart": 1,
+    "heartvaleArrivalTarget": 2,
+    "openingRescueAndOrientationTarget": 3,
+    "heartvaleRemainderMin": 3,
+    "heartvaleFinaleTarget": 10,
+    "hardSetLevelByDefault": false,
+    "canonicalProgressionServiceRequired": true,
+    "idempotentCatchUpAllowed": true,
+    "combatGrindingRequired": false,
+    "allSideQuestsRequired": false
+  },
+  "opening": {
+    "entryCondition": "FIRST_BREACH_COMPLETE_AND_FIRST_MEMORY_GRANTED",
+    "entryType": "PHYSICAL_ZONE_SEAM",
+    "arrivalQuestId": "HV-MQ-01",
+    "orientationQuestId": "HV-MQ-02",
+    "participants": [
+      "wellkeeper-sef",
+      "shepherdess-rill",
+      "sergeant-hull"
+    ],
+    "sequence": [
+      "SKIPPABLE_SOUL_WELL_BASIN_ESTABLISHING_SHOT",
+      "REVEAL_RILL_AND_HULL_UNDER_ATTACK",
+      "SEF_MAINTAINS_SOUL_WELL",
+      "RETURN_PLAYER_CONTROL_QUICKLY",
+      "REAL_COMBAT_IN_SELECTED_MODE",
+      "POST_COMBAT_ACKNOWLEDGEMENT",
+      "ONE_TIME_REWARD",
+      "ACTUAL_MAP_DERIVED_ATLAS_REVEAL",
+      "PLAYER_ONBOARDING_ROUTE_CHOICE"
+    ],
+    "routeChoices": [
+      "HELP_AT_THE_BASIN",
+      "LEARN_GATHERING_AND_TRADE",
+      "GO_DIRECTLY_TO_ANWEL"
+    ],
+    "routeChoicePermanentlyLocksContent": false
+  },
+  "mainQuestIds": [
+    "HV-MQ-01",
+    "HV-MQ-02",
+    "HV-MQ-03",
+    "HV-MQ-04",
+    "HV-MQ-05",
+    "HV-MQ-06",
+    "HV-MQ-07",
+    "HV-MQ-08",
+    "HV-MQ-09",
+    "HV-MQ-10"
+  ],
+  "sideQuestIds": [
+    "HV-SQ-01",
+    "HV-SQ-02",
+    "HV-SQ-03",
+    "HV-SQ-04",
+    "HV-SQ-05",
+    "HV-SQ-06",
+    "HV-SQ-07",
+    "HV-SQ-08",
+    "HV-SQ-09",
+    "HV-SQ-10"
+  ],
+  "questGraph": {
+    "mustBeAcyclic": true,
+    "stableIdsRequired": true,
+    "requiredQuestMayDependOnOptionalQuest": false,
+    "orphanObjectivesAllowed": false,
+    "duplicateRewardEventIdsAllowed": false,
+    "prerequisiteExpressionsTyped": true,
+    "lateSideQuestCompletionSupported": true,
+    "abandonAndReacquireSupported": true,
+    "alternateWorldStateVariantsRequiredWhenContentChanges": true
+  },
+  "systemsToTeach": [
+    "MOVEMENT_AND_CAMERA",
+    "MAP_JOURNAL_WAYPOINTS",
+    "REAL_TIME_DEFAULT_COMBAT",
+    "TACTICAL_TURN_BASED_COMBAT",
+    "TARGETING_ATTACKS_ABILITIES_COOLDOWNS_RESOURCES",
+    "HIT_DEFEAT_CHECKPOINT_RECOVERY",
+    "DIALOGUE_AND_CHOICES",
+    "CONTAINERS_PICKUPS_INVENTORY",
+    "EQUIPMENT_COMPARE_EQUIP_BUY_SELL",
+    "GATHERING_AND_MATERIALS",
+    "STARTER_UPGRADE_OR_CRAFT",
+    "DESTRUCTIBLE_INTERACTABLE_PROTECTED_OBJECTS",
+    "ROADS_WAYSTONES_DISCOVERY_FAST_TRAVEL",
+    "WILDLIFE_MONSTERS_HAZARDS",
+    "WATER_TRAVERSAL_WHEN_AVAILABLE",
+    "QUEST_LOG_PREREQUISITES_OPTIONAL_OBJECTIVES_TURN_IN",
+    "LORE_JOURNAL_DISCOVERY",
+    "SAVE_RELOAD_ZONE_REENTRY",
+    "CHAPTER_COMPLETION_AND_NEXT_REGION_READINESS"
+  ],
+  "narrativeBeatTiers": {
+    "tierAFullerCampaignBeats": [
+      "HV-MQ-01",
+      "HV-MQ-02",
+      "HV-MQ-06",
+      "HV-MQ-08",
+      "HV-MQ-10"
+    ],
+    "tierBStandardMainQuestBeats": [
+      "HV-MQ-03",
+      "HV-MQ-04",
+      "HV-MQ-05",
+      "HV-MQ-07",
+      "HV-MQ-09"
+    ],
+    "tierCSideQuestBeatDurationSeconds": {
+      "min": 4,
+      "max": 10
+    },
+    "externalProviderVideoRequiredForEveryQuest": false,
+    "inEngineVignetteAllowed": true,
+    "captionsRequired": true,
+    "skipRequired": true,
+    "textFallbackRequired": true,
+    "replayWhereAppropriate": true,
+    "mobileDesktopFramingRequired": true,
+    "paidMediaRequiresOwnerApproval": true
+  },
+  "mapReveal": {
+    "mustUseAcceptedRuntimeMapData": true,
+    "decorativeContradictoryMapAllowed": false,
+    "revealOnlyKnownLocations": true,
+    "hideSecretsAndUnexploredInteriorDetail": true,
+    "candidateLocations": [
+      "SOUL_WELL_BASIN",
+      "ANWEL",
+      "VAELDOR",
+      "LOCKROOT",
+      "ERBOUG",
+      "THALENS_HEIR",
+      "WORLD_TREE_OLD_FEN_AREA",
+      "APPROVED_ROADS_AND_WAYSTONES"
+    ]
+  },
+  "rewardRules": {
+    "allAwardsUseIssue442ProgressionService": true,
+    "rewardEventsIdempotent": true,
+    "mainPathAndRequiredContentReachFinaleWithoutGrinding": true,
+    "sideRewardsMayShiftFromXpWhenOverLevel": true,
+    "optionalRewardRequiredForMainCompletion": false,
+    "duplicateRewardsOnReloadReconnectTriggerReentry": false
+  },
+  "combatAndFailure": {
+    "realTimeDefaultSupported": true,
+    "tacticalTurnBasedSupported": true,
+    "singleAuthoritativeSimulation": true,
+    "requiredStoryNpcsPermanentlyKillable": false,
+    "safeCheckpointForOpeningDefeat": true,
+    "questProgressionSoftLocksAllowed": false
+  },
+  "environmentAndPopulation": {
+    "consumeVerifiedStableSockets": true,
+    "campaignMaySilentlyMoveAcceptedBuildingsRoadsProps": false,
+    "populationChangesReopenAffectedEnvironmentGates": true,
+    "waterQuestRequiresAccessibleAlternateUntilSwimmingReady": true
+  },
+  "runtimeState": {
+    "versionedQuestRecords": true,
+    "saveMigrationRequired": true,
+    "worldStateReadsWritesRequired": true,
+    "tutorialFlagsIdempotent": true,
+    "cutsceneCompletionIdempotent": true,
+    "partyAttributionPolicyRequired": true,
+    "reconnectAndLateJoinPolicyRequiredWhenMultiplayerActive": true
+  },
+  "hardGates": {
+    "latestAcceptedHeartvaleBaseDiscovered": true,
+    "stale459BranchUsedWithoutAudit": false,
+    "canonCauseApprovedBeforeNarrativeFinalization": true,
+    "progressionNumbersApprovedBeforeBalanceLock": true,
+    "questInfrastructurePilotPassed": true,
+    "environmentPopulationSocketsVerified": true,
+    "desktopMobileRealGpuProof": true,
+    "independentVerification": true,
+    "mergeOrDeployWithoutOwnerApproval": false
+  }
+}

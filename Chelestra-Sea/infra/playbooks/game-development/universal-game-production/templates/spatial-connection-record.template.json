@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "policyId": "universal-spatial-connection-traversal-v1",
+  "projectId": "",
+  "ticketId": "",
+  "commit": "",
+  "seedOrVariant": "",
+  "connectionId": "",
+  "sourceNode": {
+    "id": "",
+    "type": "",
+    "state": ""
+  },
+  "destinationNode": {
+    "id": "",
+    "type": "",
+    "state": ""
+  },
+  "connectionType": "",
+  "physicalOrNonphysical": "PHYSICAL",
+  "movementModes": [],
+  "medium": [],
+  "directionality": "BIDIRECTIONAL",
+  "requirements": {
+    "locks": [],
+    "puzzles": [],
+    "encounters": [],
+    "equipment": [],
+    "abilities": [],
+    "worldState": []
+  },
+  "geometry": {
+    "sourceOpeningOrAttachPoint": null,
+    "destinationOpeningOrAttachPoint": null,
+    "pathSplineSurfaceOrVolume": null,
+    "clearance": null,
+    "elevationOrDepthProfile": [],
+    "streamingBoundary": null
+  },
+  "runtime": {
+    "collisionOwner": "",
+    "navigationOwner": "",
+    "controllerStateTransitions": [],
+    "animations": [],
+    "eventMarkers": [],
+    "cameraRules": [],
+    "combatRules": [],
+    "interactionRules": [],
+    "aiAndCompanionSupport": "",
+    "mobileAndAccessibilityRules": []
+  },
+  "resourcesHazardsAndRecovery": {
+    "resources": {},
+    "forcesOrCurrents": null,
+    "damage": null,
+    "failureConditions": [],
+    "recoveryBehavior": []
+  },
+  "statePersistenceAndNetwork": {
+    "states": [],
+    "saveReload": "NOT_RUN",
+    "streamingLoading": "NOT_RUN",
+    "networkSynchronization": "NOT_APPLICABLE",
+    "returnOrOneWayRules": ""
+  },
+  "diagnostics": {
+    "topDownPlan": [],
+    "sectionsOrElevations": [],
+    "volumeOrSliceEvidence": [],
+    "stateSequenceEvidence": [],
+    "streamingMapEvidence": []
+  },
+  "tests": {
+    "automated": [],
+    "realMovementMode": "NOT_RUN",
+    "camera": "NOT_RUN",
+    "collision": "NOT_RUN",
+    "navigation": "NOT_RUN",
+    "resources": "NOT_RUN",
+    "failureRecovery": "NOT_RUN",
+    "saveReload": "NOT_RUN"
+  },
+  "evidence": [],
+  "producerStatus": "NOT_STARTED",
+  "independentVerification": {
+    "status": "NOT_RUN",
+    "verifier": "",
+    "commit": "",
+    "notes": ""
+  }
+}

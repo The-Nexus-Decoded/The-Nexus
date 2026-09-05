@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "policyVersion": "2026-08-29-v1",
+  "everyProductionQuestRequiresVideoIntroOrCutscene": true,
+  "allowedNarrativeBeatKinds": [
+    "QUEST_INTRO_VIDEO",
+    "QUEST_CUTSCENE"
+  ],
+  "storyVideoDefaultLane": "MINIMAX_H3",
+  "visibleSpeakingNpcDefaultLane": "PENDING_BAKEOFF",
+  "stockOrPresetAvatarMayReplaceCanonicalNpc": false,
+  "h3DisposableMotionReferenceDefaultAllowed": false,
+  "mediaDelivery": {
+    "fullVideoOutsideZonePackage": true,
+    "fullVideoOutsideBaseApplicationBundle": true,
+    "deliveryMode": "VERSIONED_EXTERNAL_OBJECT_STORAGE_OR_MEDIA_CDN",
+    "loadPolicy": "LAZY_ON_NARRATIVE_TRIGGER",
+    "preloadAllQuestVideos": false,
+    "mobileVariantRequired": true,
+    "desktopVariantRequired": true,
+    "captionsRequired": true,
+    "textFallbackRequired": true,
+    "failureMayBlockQuestProgression": false,
+    "boundedRuntimeCacheRequired": true
+  },
+  "playerControls": [
+    "PAUSE",
+    "REPLAY",
+    "SKIP",
+    "CAPTIONS",
+    "VOLUME"
+  ],
+  "talkingNpcBakeoff": {
+    "requiredBeforeDefaultSelection": true,
+    "candidateA": "PROVIDER_AVATAR_FROM_CANONICAL_NPC_REFERENCES",
+    "candidateB": "ACTUAL_3D_NPC_MODEL",
+    "providerCandidateDefault": "KLING_AVATAR_OR_APPROVED_EQUIVALENT",
+    "attemptsPerLaneWhenSupported": 3,
+    "targetDurationSeconds": {
+      "minimum": 8,
+      "maximum": 15
+    },
+    "identicalInputsRequired": [
+      "NPC_IDENTITY",
+      "SCRIPT",
+      "VOICE_TRACK",
+      "EMOTIONAL_DIRECTION",
+      "EYELINE",
+      "FRAMING_INTENT",
+      "BACKGROUND_LIGHTING_INTENT",
+      "CAPTIONS",
+      "DELIVERY_FORMATS"
+    ],
+    "blindOwnerVerdictRequired": true,
+    "losingLaneRetainedAsFallback": true,
+    "automaticGlobalRetirementAllowed": false
+  },
+  "scoreWeights": {
+    "canonicalIdentityWardrobePropFidelity": 25,
+    "lipSyncExpressionGazeEmotion": 15,
+    "runtimeArtDirectionMatch": 15,
+    "temporalConsistency": 10,
+    "editabilityRepeatabilityReuse": 10,
+    "costPerAcceptedSecond": 10,
+    "humanProductionCleanupTime": 10,
+    "compressionMobilePlaybackClarity": 5
+  },
+  "ownerReadyRequires": [
+    "NARRATIVE_VIDEO_BEAT",
+    "EXTERNAL_STORAGE_PROOF",
+    "DESKTOP_PLAYBACK_PROOF",
+    "MOBILE_PLAYBACK_PROOF",
+    "CAPTIONS_SKIP_REPLAY_PROOF",
+    "FAILURE_FALLBACK_PROOF",
+    "ZONE_BUNDLE_EXCLUSION_PROOF",
+    "WATCHED_SKIPPED_REENTRY_PERSISTENCE_PROOF",
+    "PROVENANCE_AND_RIGHTS",
+    "OWNER_ACCEPTANCE"
+  ]
+}

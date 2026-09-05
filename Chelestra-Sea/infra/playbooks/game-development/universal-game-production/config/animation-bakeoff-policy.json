@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "enabledByDefaultForCustomMotion": true,
+  "defaultCandidateLanes": [
+    "HOUDINI_KINEFX",
+    "BLENDER"
+  ],
+  "directAcceptedProviderPresetRequiresBakeoff": false,
+  "requiredFor": [
+    "bespoke_custom_motion",
+    "substantial_constrained_interaction",
+    "class_or_weapon_specific_motion_not_covered_by_provider",
+    "boss_or_monster_signature_motion",
+    "signature_death",
+    "owner_designated_bakeoff"
+  ],
+  "blindReview": true,
+  "independentAiReviewer": true,
+  "ownerFinalCreativeDecision": true,
+  "preserveLosingCandidate": true,
+  "reviewCheckpoints": [10, 25, 50, 100],
+  "reviewEveryAdditional": 50,
+  "automaticPipelineRetirement": false,
+  "routingChangeRequiresOwnerApproval": true
+}
