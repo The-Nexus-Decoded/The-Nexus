@@ -2,16 +2,15 @@ import * as THREE from "three";
 import { isStaffCarryClip } from "./weapon-locomotion.js";
 import { TARGET_HEIGHT_METERS, CALIBRATION_HEIGHT_METERS } from "./human-review-catalog.js";
 
-// The palm depth these fits aim at is BODY anatomy, so it is spent as a
+// The mace block's hand-to-haft offset is BODY anatomy, so it is spent as a
 // fraction of body height, exactly as human-review-actor.js spends the socket
-// seats. Measured on the 2.06 -> 1.8 m change: left absolute, the staff
-// two-hand support palm sat 19.0 mm from the shaft axis (2.5 mm OUTSIDE a
-// 16.5 mm shaft) on all ten two-hand clips against 12.0 mm at 2.06 m, and the
-// mace two-hand block support palm 24.9 mm against 21.3 mm. Spending the ratio
-// returns them to 10.5 mm and 18.6 mm -- 0.874x their approved values, the same
-// grip on a smaller hand. Distances measured on the WEAPON stay absolute: the
-// 0.24 m mace block point below the head is one of them.
-const bodyUnits = (actorScale) => TARGET_HEIGHT_METERS / (CALIBRATION_HEIGHT_METERS * actorScale);
+// seats. Measured on the 2.06 -> 1.8 m change, the mace two-hand block support
+// palm sat 24.9 mm from the shaft against 21.3 mm at 2.06 m; spending the ratio
+// returns it to 18.6 mm -- 0.874x its approved value, the same grip on a smaller
+// hand. Distances measured on the WEAPON stay absolute: the 0.24 m mace block
+// point below the head is one of them, and so is the staff palm contact -- see
+// the note on fitStaffToSourceHands below, which is why only a scalar ratio is
+// needed here and no per-actor bodyUnits() helper.
 const BODY_RATIO = TARGET_HEIGHT_METERS / CALIBRATION_HEIGHT_METERS;
 
 /**
