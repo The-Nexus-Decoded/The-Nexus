@@ -629,7 +629,7 @@ function findApprovedModule(model: THREE.Object3D, name: string): THREE.Object3D
 
 function hideAppearanceModules(model: THREE.Object3D): void {
   model.traverse((child) => {
-    if (/^SK_Hair_(?:Buzzed|CurlyCoiled|(?:Cropped|Parted|Long|TiedBack|Braided)(?:_(?:Straight|Curly))?)$/i.test(child.name)
+    if (/^SK_Hair_(?:Buzzed|CurlyCoiled|(?:Cropped|Fade|Parted|Afro|Cornrows|Locs|Twists|Bun|TiedBack|Braided|Long)(?:_(?:Straight|Curly))?)$/i.test(child.name)
       || /^SK_HairScalp$/i.test(child.name)
       || /^SK_SilverHairClump/i.test(child.name)
       || /^SK_FacialHair_(?:Stubble|Moustache|Goatee|ShortBeard|FullBeard)$/i.test(child.name)

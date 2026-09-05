@@ -35,10 +35,16 @@ export const HUMAN_DIALOGUE_MORPH_NAMES = DIALOGUE_FACIAL_MORPH_NAMES;
 export type HumanHairStyleWithModule = Exclude<CanonicalHairStyleId, "shaved-buzzed">;
 export const HUMAN_HAIR_STYLE_MODULE_BASE: Readonly<Record<HumanHairStyleWithModule, string>> = {
   cropped: "SK_Hair_Cropped",
+  fade: "SK_Hair_Fade",
   parted: "SK_Hair_Parted",
-  long: "SK_Hair_Long",
+  afro: "SK_Hair_Afro",
+  cornrows: "SK_Hair_Cornrows",
+  locs: "SK_Hair_Locs",
+  twists: "SK_Hair_Twists",
+  bun: "SK_Hair_Bun",
   "tied-back": "SK_Hair_TiedBack",
   braided: "SK_Hair_Braided",
+  long: "SK_Hair_Long",
 };
 export const HUMAN_HAIR_TEXTURE_MODULE_SUFFIX: Readonly<Record<CanonicalHairTextureId, string>> = {
   straight: "Straight",

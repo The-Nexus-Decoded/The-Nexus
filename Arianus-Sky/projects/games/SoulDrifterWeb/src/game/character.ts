@@ -82,7 +82,10 @@ export interface CharacterDraft {
 
 /** How the hair grows. A style is authored under a texture; "shaved-buzzed" is the same scalp under every texture. */
 export type CanonicalHairTextureId = "straight" | "curly";
-export type CanonicalHairStyleId = "shaved-buzzed" | "cropped" | "parted" | "long" | "tied-back" | "braided";
+export type CanonicalHairStyleId =
+  | "shaved-buzzed" | "cropped" | "fade" | "parted"
+  | "afro" | "cornrows" | "locs" | "twists"
+  | "bun" | "tied-back" | "braided" | "long";
 /** "curly-coiled" was a style id before texture existed; it resolves to cropped under the curly texture. */
 export type LegacyHairStyleId = "shaved" | "silver-sweep" | "curly-coiled";
 /** UI/save compatibility input; runtime and persisted profiles resolve to CanonicalHairStyleId. */
@@ -164,10 +167,16 @@ export const HAIR_TEXTURES: ReadonlyArray<{ id: CanonicalHairTextureId; name: st
 export const HAIR_STYLES: ReadonlyArray<{ id: CanonicalHairStyleId; name: string; description: string }> = [
   { id: "shaved-buzzed", name: "Shaved or buzzed", description: "Clean close crown with visible scalp and no helmet-like shell." },
   { id: "cropped", name: "Cropped", description: "Short cut kept clear of ears, collar, and brow; a close natural under curly hair." },
+  { id: "fade", name: "Fade", description: "Short tapered sides under a fuller top." },
   { id: "parted", name: "Parted", description: "Controlled side part with readable strand flow." },
-  { id: "long", name: "Long", description: "Shoulder-length silhouette with face and weapon clearance." },
-  { id: "tied-back", name: "Tied back", description: "Secured tail or bun kept clear of the neck seam and back sockets." },
+  { id: "afro", name: "Afro", description: "Full rounded natural standing off the scalp." },
+  { id: "cornrows", name: "Cornrows", description: "Braided rows laid flat to the scalp from hairline to nape." },
+  { id: "locs", name: "Locs", description: "Rope-formed locs falling from the scalp." },
+  { id: "twists", name: "Twists", description: "Two-strand twists standing in defined sections." },
+  { id: "bun", name: "Bun", description: "Gathered knot above the nape, clear of the collar." },
+  { id: "tied-back", name: "Tied back", description: "Secured tail kept clear of the neck seam and back sockets." },
   { id: "braided", name: "Braided", description: "Readable restrained braids suitable for game runtime." },
+  { id: "long", name: "Long", description: "Shoulder-length silhouette with face and weapon clearance." },
 ];
 
 export const FACIAL_HAIR_STYLES: ReadonlyArray<{ id: FacialHairId; name: string; description: string }> = [

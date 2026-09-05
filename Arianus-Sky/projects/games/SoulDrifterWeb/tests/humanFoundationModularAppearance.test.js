@@ -18,7 +18,7 @@ const follicleMaskUrl = new URL(
 
 const HEAD_SHA256 = "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8";
 const shippedModules = ["SK_Hair_Parted_Straight", "SK_Hair_Cropped_Curly", "SK_Hair_Cropped_Straight", "SK_Hair_Parted_Curly"];
-const HAIR_STYLE_MODULES = ["Cropped", "Parted", "Long", "TiedBack", "Braided"];
+const HAIR_STYLE_MODULES = ["Cropped", "Fade", "Parted", "Afro", "Cornrows", "Locs", "Twists", "Bun", "TiedBack", "Braided", "Long"];
 const HAIR_TEXTURE_MODULES = ["Straight", "Curly"];
 const withheldModules = [
   ...HAIR_STYLE_MODULES.flatMap((style) => HAIR_TEXTURE_MODULES.map((texture) => `SK_Hair_${style}_${texture}`))

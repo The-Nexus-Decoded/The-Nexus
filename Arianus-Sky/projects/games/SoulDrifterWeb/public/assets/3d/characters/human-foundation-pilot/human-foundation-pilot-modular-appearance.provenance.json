@@ -636,24 +636,24 @@
           "evidence": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-parted-v1/silhouette-gate-draft11/owner-contact-sheet.png"
         },
         "gateScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_silhouette_gate.py",
           "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
         },
         "buildScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack4_build.py",
           "sha256": "EE48490FABACC53F5DBFCA5E13B4BD37046F37B637B1440A07ABB2F43DD1E47D"
         },
         "postScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack_post.py",
           "sha256": "7B47A1BED96A84682D604C19D76BFCCA897D4DC372B911B8A9407BAAA574F0D2"
         },
         "atlas": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cards-atlas.png",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-parted-cards-atlas.png",
           "sha256": "992F1186FE7D5A4BD2976C19F477AD42405FB9FF0274EC8F7AABE70216E58235",
-          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_atlas_build.py"
+          "generator": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_atlas_build.py"
         },
         "capTile": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cap-tile.png",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-parted-cap-tile.png",
           "sha256": "EA6540A13899F40B3F9218B84300D354CF74A01B2A377F050EB71468A126BBD5"
         },
         "follicleMask": {
@@ -741,24 +741,24 @@
           "status": "PENDING_LIVE_REVIEW"
         },
         "gateScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_silhouette_gate.py",
           "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
         },
         "buildScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack4_build.py",
           "sha256": "EE48490FABACC53F5DBFCA5E13B4BD37046F37B637B1440A07ABB2F43DD1E47D"
         },
         "postScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack_post.py",
           "sha256": "7B47A1BED96A84682D604C19D76BFCCA897D4DC372B911B8A9407BAAA574F0D2"
         },
         "atlas": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-shell-tile.png",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-coily-shell-tile.png",
           "sha256": "2A2677250FD2BCC01C0EE625643B9C22794B03EF8195E08C8361028E4B2FA47F",
-          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_coily_atlas.py"
+          "generator": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_coily_atlas.py"
         },
         "capTile": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-cap-tile.png",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-coily-cap-tile.png",
           "sha256": "52B275BA76F1083EE89943CD0C3C50D36707ACC6A00ADBFA523F051AC04F8BD0"
         },
         "follicleMask": {
@@ -795,24 +795,24 @@
           "status": "PENDING_LIVE_REVIEW"
         },
         "gateScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_silhouette_gate.py",
           "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
         },
         "buildScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack4_build.py",
           "sha256": "EE48490FABACC53F5DBFCA5E13B4BD37046F37B637B1440A07ABB2F43DD1E47D"
         },
         "postScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack_post.py",
           "sha256": "7B47A1BED96A84682D604C19D76BFCCA897D4DC372B911B8A9407BAAA574F0D2"
         },
         "atlas": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cards-atlas.png",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-parted-cards-atlas.png",
           "sha256": "992F1186FE7D5A4BD2976C19F477AD42405FB9FF0274EC8F7AABE70216E58235",
-          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_atlas_build.py"
+          "generator": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_atlas_build.py"
         },
         "capTile": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cap-tile.png",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-parted-cap-tile.png",
           "sha256": "EA6540A13899F40B3F9218B84300D354CF74A01B2A377F050EB71468A126BBD5"
         },
         "follicleMask": {
@@ -849,24 +849,24 @@
           "status": "PENDING_LIVE_REVIEW"
         },
         "gateScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_silhouette_gate.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_silhouette_gate.py",
           "sha256": "F43CE94FAD1FB7BDDC2C4A9F9830ADF8DE39D84443BF5DD8450302D88E006EE7"
         },
         "buildScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack4_build.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack4_build.py",
           "sha256": "EE48490FABACC53F5DBFCA5E13B4BD37046F37B637B1440A07ABB2F43DD1E47D"
         },
         "postScript": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_pack_post.py",
           "sha256": "7B47A1BED96A84682D604C19D76BFCCA897D4DC372B911B8A9407BAAA574F0D2"
         },
         "atlas": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-shell-tile.png",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-coily-shell-tile.png",
           "sha256": "2A2677250FD2BCC01C0EE625643B9C22794B03EF8195E08C8361028E4B2FA47F",
-          "generator": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_coily_atlas.py"
+          "generator": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\hair_coily_atlas.py"
         },
         "capTile": {
-          "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-cap-tile.png",
+          "path": "C:\\Users\\olawal\\AppData\\Local\\Temp\\claude\\H--CodexData--codex-worktrees-458-pre-codex-fixes-validation-The-Nexus\\88337d60-7ff3-4f36-baee-eb5527e557b8\\scratchpad\\atlas\\hair-coily-cap-tile.png",
           "sha256": "52B275BA76F1083EE89943CD0C3C50D36707ACC6A00ADBFA523F051AC04F8BD0"
         },
         "follicleMask": {
@@ -910,14 +910,26 @@
     "requiredModuleNames": [
       "SK_Hair_Cropped_Straight",
       "SK_Hair_Cropped_Curly",
+      "SK_Hair_Fade_Straight",
+      "SK_Hair_Fade_Curly",
       "SK_Hair_Parted_Straight",
       "SK_Hair_Parted_Curly",
-      "SK_Hair_Long_Straight",
-      "SK_Hair_Long_Curly",
+      "SK_Hair_Afro_Straight",
+      "SK_Hair_Afro_Curly",
+      "SK_Hair_Cornrows_Straight",
+      "SK_Hair_Cornrows_Curly",
+      "SK_Hair_Locs_Straight",
+      "SK_Hair_Locs_Curly",
+      "SK_Hair_Twists_Straight",
+      "SK_Hair_Twists_Curly",
+      "SK_Hair_Bun_Straight",
+      "SK_Hair_Bun_Curly",
       "SK_Hair_TiedBack_Straight",
       "SK_Hair_TiedBack_Curly",
       "SK_Hair_Braided_Straight",
       "SK_Hair_Braided_Curly",
+      "SK_Hair_Long_Straight",
+      "SK_Hair_Long_Curly",
       "SK_FacialHair_Stubble",
       "SK_FacialHair_Moustache",
       "SK_FacialHair_Goatee",
@@ -925,12 +937,24 @@
       "SK_FacialHair_FullBeard"
     ],
     "withheldModules": {
-      "SK_Hair_Long_Straight": "new exact-head strand candidate remains under front/side/rear/collision QA",
-      "SK_Hair_Long_Curly": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Fade_Straight": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Fade_Curly": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Afro_Straight": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Afro_Curly": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Cornrows_Straight": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Cornrows_Curly": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Locs_Straight": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Locs_Curly": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Twists_Straight": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Twists_Curly": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Bun_Straight": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Bun_Curly": "no validated module authored for this style under this texture yet",
       "SK_Hair_TiedBack_Straight": "owner live review found a glossy rigid cap plus ear/neck/body penetration",
       "SK_Hair_TiedBack_Curly": "no validated module authored for this style under this texture yet",
       "SK_Hair_Braided_Straight": "owner live review found a glossy rigid cap plus ear/neck/body penetration",
       "SK_Hair_Braided_Curly": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Long_Straight": "new exact-head strand candidate remains under front/side/rear/collision QA",
+      "SK_Hair_Long_Curly": "no validated module authored for this style under this texture yet",
       "SK_FacialHair_Stubble": "candidate reads as patchy bulk instead of surface stubble",
       "SK_FacialHair_Moustache": "owner live review found the prior moustache floating and misfitted",
       "SK_FacialHair_Goatee": "candidate projects as a detached chin shelf",
@@ -940,10 +964,16 @@
     "hairStyles": [
       "shaved-buzzed",
       "cropped",
+      "fade",
       "parted",
-      "long",
+      "afro",
+      "cornrows",
+      "locs",
+      "twists",
+      "bun",
       "tied-back",
-      "braided"
+      "braided",
+      "long"
     ],
     "facialHairStyles": [
       "none",

@@ -77,7 +77,8 @@ describe("character weaving", () => {
     expect(BODY_TYPES.map((body) => body.id)).toEqual(["foundation"]);
     expect(FACE_TYPES.map((face) => face.id)).toEqual(["foundation"]);
     expect(HAIR_STYLES.map((style) => style.id)).toEqual([
-      "shaved-buzzed", "cropped", "parted", "long", "tied-back", "braided",
+      "shaved-buzzed", "cropped", "fade", "parted", "afro", "cornrows",
+      "locs", "twists", "bun", "tied-back", "braided", "long",
     ]);
     expect(HAIR_TEXTURES.map((texture) => texture.id)).toEqual(["straight", "curly"]);
     expect(FACIAL_HAIR_STYLES.map((style) => style.id)).toEqual([
