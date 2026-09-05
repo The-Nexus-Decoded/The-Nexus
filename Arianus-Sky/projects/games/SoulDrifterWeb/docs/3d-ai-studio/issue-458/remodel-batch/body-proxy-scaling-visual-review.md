@@ -229,3 +229,21 @@ types need. Until that lands, the sling is fitted to one body and only one.
 
 Status: the proxy-radius and socket-unit work stands and is still correct. The
 sling routing is NOT fixed. Reopening.
+
+---
+
+# Tracked as #514
+
+The surface-projection follow-on has its own ticket so it does not get lost in
+the 458 creature work:
+
+**#514 - fit worn gear to the body surface so it works on any build and height**
+https://github.com/The-Nexus-Decoded/The-Nexus/issues/514
+
+It carries the measurements above, the proposed sequence (surface-project, then
+height slider, then build morphs), the argument for moving the fitting logic into
+`src/rig/uniform/`, and the verification limits - no harness screenshots without
+`preserveDrawingBuffer`, death-forward unreachable through the lab UI, and only
+`applyBoneTransform` skin numbers to be trusted.
+
+Blocks the four body builds in #487.
