@@ -13,7 +13,29 @@
   </head>
   <body>
     <section id="character-creation" class="creation-shell" aria-label="SoulDrifter character creation">
-      <div class="creation-atmosphere" aria-hidden="true"></div>
+      <div id="creation-stage-viewport" class="stage-viewport" data-station="name">
+        <canvas class="stage-backdrop" aria-hidden="true"></canvas>
+        <canvas class="stage-backdrop" aria-hidden="true"></canvas>
+        <div class="stage-shade" aria-hidden="true"></div>
+        <div class="stage-well-light" aria-hidden="true"></div>
+        <canvas id="appearance-preview-canvas" aria-label="The returned body on the Soul Well. Drag to rotate manually." tabindex="0"></canvas>
+        <div class="stage-vignette" aria-hidden="true"></div>
+        <div class="stage-grain" aria-hidden="true"></div>
+        <img id="creation-stage-fallback" class="stage-fallback" alt="" hidden />
+        <p id="creation-stage-status" class="stage-status" aria-live="polite">The Well is returning the body…</p>
+        <div id="appearance-preview-controls" class="stage-pill" hidden>
+          <label class="appearance-rotation-toggle">
+            <input id="appearance-auto-rotate" type="checkbox" />
+            <span>Rotate automatically</span>
+          </label>
+          <button id="appearance-front-view" type="button">Front view</button>
+          <span class="stage-pill__readout" aria-live="polite">
+            <span id="appearance-preview-mode">Body · relaxed idle · drag to turn</span>
+            <strong id="appearance-preview-status">Loading the returned body…</strong>
+          </span>
+        </div>
+        <button id="creation-hide-ui" class="stage-hide-ui" type="button" aria-pressed="false" title="Hide the interface; Esc or a click on the figure restores it">Hide UI</button>
+      </div>
       <aside class="creation-rail">
         <div class="creation-brand">
           <span class="creation-brand__seal">◇</span>

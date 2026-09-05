@@ -18,8 +18,12 @@ import {
 import {
   CreationAvatarPreview,
   EMPTY_CREATION_PREVIEW_AVAILABILITY,
+  type CreationLightState,
+  type CreationPreviewAppearance,
   type CreationPreviewAvailability,
+  type CreationPreviewView,
 } from "./creationPreview";
+import { CreationStageBackdrop } from "./creationStage";
 
 export function characterPortraitPath(raceId: string, callingId: string): string {
   if (callingId === "shadowknight") {
@@ -29,6 +33,37 @@ export function characterPortraitPath(raceId: string, callingId: string): string
 }
 
 type CreationStep = "name" | "race" | "appearance" | "calling" | "memory" | "review";
+
+interface CreationStationPresentation {
+  view: CreationPreviewView;
+  /** Radians; the figure's authored facing for the station. */
+  yaw: number;
+  light: CreationLightState;
+}
+
+/**
+ * How the one stage presents each station: the camera stop, the figure's yaw and the
+ * light state. The appearance station's stop follows its body/face panel instead.
+ */
+export const STATION_PRESENTATION: Readonly<Record<CreationStep, CreationStationPresentation>> = Object.freeze({
+  name: { view: "medium", yaw: 0, light: { key: 0.25, fill: 0, rim: 1, under: 1.6 } },
+  race: { view: "body", yaw: 0, light: { key: 1, fill: 0.6, rim: 1, under: 1 } },
+  appearance: { view: "body", yaw: 0, light: { key: 1, fill: 0.6, rim: 1, under: 1 } },
+  calling: { view: "body", yaw: -0.35, light: { key: 1, fill: 0.6, rim: 1, under: 1 } },
+  memory: { view: "medium", yaw: 0, light: { key: 0.9, fill: 0.5, rim: 1.1, under: 1 } },
+  review: { view: "hero", yaw: -0.18, light: { key: 1, fill: 0.6, rim: 1.2, under: 1.1 } },
+});
+
+/** The key light rises as the name is typed: the first control on screen changes pixels. */
+export function creatorNameLight(nameLength: number): Pick<CreationLightState, "key" | "fill"> {
+  const progress = Math.min(1, Math.max(0, nameLength) / 6);
+  return { key: 0.25 + 0.75 * progress, fill: 0.6 * progress };
+}
+
+/** Desktop stands the figure left of centre, clear of the folio; phones keep it centred. */
+export function creatorViewOffset(viewportWidth: number, uiHidden: boolean): number {
+  return uiHidden || viewportWidth <= 1079 ? 0 : 0.14;
+}
 
 interface CreationHistoryState {
   souldrifterCreation: true;
@@ -130,6 +165,14 @@ export class CharacterCreation {
   private appearanceAvailability: CreationPreviewAvailability = EMPTY_CREATION_PREVIEW_AVAILABILITY;
   private appearancePanel: "body" | "face" = "body";
   private appearanceAutoRotate = false;
+  private readonly stageViewport = requiredElement<HTMLElement>("creation-stage-viewport");
+  private readonly stageStatus = requiredElement<HTMLElement>("creation-stage-status");
+  private readonly stageFallback = requiredElement<HTMLImageElement>("creation-stage-fallback");
+  private readonly previewControls = requiredElement<HTMLElement>("appearance-preview-controls");
+  private readonly reducedMotion = typeof window.matchMedia === "function"
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  private backdrop: CreationStageBackdrop | null = null;
+  private uiHidden = false;
 
   public constructor(
     private readonly onComplete: (profile: CharacterProfile, resumeSavedSoul: boolean) => void,
@@ -142,7 +185,134 @@ export class CharacterCreation {
     });
     window.addEventListener("popstate", this.onPopState);
     window.history.replaceState(this.creationHistoryState(), "");
+    this.mountStage();
     this.render();
+  }
+
+  /** Builds the persistent stage once: backdrop, preview and the controls that outlive stations. */
+  private mountStage(): void {
+    const backdrops = Array.from(this.stageViewport.querySelectorAll<HTMLCanvasElement>("canvas.stage-backdrop"));
+    const [first, second] = backdrops;
+    if (first && second) {
+      this.backdrop = new CreationStageBackdrop([first, second], {
+        reducedMotion: this.reducedMotion,
+        resolutionDivisor: window.innerWidth <= 820 ? 3 : 4,
+      });
+    }
+    this.mountPreview();
+    requiredElement<HTMLInputElement>("appearance-auto-rotate").addEventListener("change", (event) => {
+      this.appearanceAutoRotate = (event.currentTarget as HTMLInputElement).checked;
+      this.appearancePreview?.setAutoRotate(this.appearanceAutoRotate);
+    });
+    requiredElement<HTMLButtonElement>("appearance-front-view").addEventListener("click", () => {
+      this.appearancePreview?.resetFacing();
+    });
+    requiredElement<HTMLButtonElement>("creation-hide-ui").addEventListener("click", () => {
+      this.setUiHidden(!this.uiHidden);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && this.uiHidden) this.setUiHidden(false);
+    });
+    requiredElement<HTMLCanvasElement>("appearance-preview-canvas").addEventListener("click", () => {
+      if (this.uiHidden) this.setUiHidden(false);
+    });
+    window.addEventListener("resize", () => this.applyStationPresentation());
+  }
+
+  /**
+   * One WebGL preview for the whole flow. When the context cannot be created the
+   * stage shows the painted portrait plate instead and the creator still works as a form.
+   */
+  private mountPreview(): void {
+    const canvas = requiredElement<HTMLCanvasElement>("appearance-preview-canvas");
+    try {
+      this.appearancePreview = new CreationAvatarPreview(
+        canvas,
+        this.previewAppearance(),
+        (availability) => this.updateAppearanceAvailability(availability),
+        {
+          view: this.step === "appearance" ? this.appearancePanel : STATION_PRESENTATION[this.step].view,
+          autoRotate: this.appearanceAutoRotate,
+          onLoadFailure: (reason) => this.showAppearanceLoadFailure(reason),
+          reducedMotion: this.reducedMotion,
+        },
+      );
+      canvas.hidden = false;
+      this.stageFallback.hidden = true;
+      this.stageStatus.classList.remove("is-failed");
+      this.stageStatus.textContent = "The Well is returning the body…";
+      this.stageStatus.hidden = false;
+    } catch (error) {
+      console.warn("Creation stage could not start WebGL; showing the painted plate instead.", error);
+      this.appearancePreview = null;
+      canvas.hidden = true;
+      this.stageFallback.src = characterPortraitPath(this.draft.raceId || "human", this.draft.callingId || "warrior");
+      this.stageFallback.hidden = false;
+      const reason = error instanceof Error ? error.message : "WebGL is unavailable";
+      this.stageStatus.textContent = `Preview unavailable: ${reason}.`;
+      this.stageStatus.classList.add("is-failed");
+      this.stageStatus.hidden = false;
+    }
+    if (import.meta.env.DEV) {
+      // Hands the live preview to the QA harness and to manual checks such as
+      // `__souldrifterCreationPreview.playReaction("listen")` in DevTools.
+      (window as Window & { __souldrifterCreationPreview?: CreationAvatarPreview | null })
+        .__souldrifterCreationPreview = this.appearancePreview;
+    }
+  }
+
+  private releasePreview(): void {
+    this.appearancePreview?.dispose();
+    this.appearancePreview = null;
+  }
+
+  private previewAppearance(): CreationPreviewAppearance {
+    return {
+      hairStyle: this.draft.appearance.hairStyle,
+      skinTone: this.draft.appearance.skinTone,
+      raceId: this.draft.raceId || "human",
+      facialHair: this.draft.appearance.facialHair,
+      hairColor: this.draft.appearance.hairColor,
+      age: this.draft.appearance.age,
+      hairGreying: this.draft.appearance.hairGreying,
+      facialHairGreying: this.draft.appearance.facialHairGreying,
+      faceType: this.draft.appearance.faceType,
+    };
+  }
+
+  /** Points the one stage at the current station: backdrop crop, camera stop, yaw, light, chrome. */
+  private applyStationPresentation(): void {
+    const presentation = STATION_PRESENTATION[this.step];
+    this.stageViewport.dataset.station = this.step;
+    this.backdrop?.setStation(this.step);
+    const preview = this.appearancePreview;
+    if (preview) {
+      const facePanel = this.step === "appearance" && this.appearancePanel === "face";
+      preview.setView(this.step === "appearance" ? this.appearancePanel : presentation.view);
+      preview.setPresentationYaw(presentation.yaw);
+      const light: CreationLightState = this.step === "name"
+        ? { ...presentation.light, ...creatorNameLight(this.draft.name.trim().length) }
+        : facePanel ? { ...presentation.light, under: 1.3 } : presentation.light;
+      preview.setLightState(light);
+      preview.setViewOffset(creatorViewOffset(window.innerWidth, this.uiHidden));
+    }
+    this.previewControls.hidden = this.step !== "appearance";
+    const copy = APPEARANCE_PANEL_COPY[this.appearancePanel];
+    document.getElementById("appearance-preview-canvas")?.setAttribute(
+      "aria-label",
+      this.step === "appearance" ? copy.canvas : "The returned body on the Soul Well. Drag to rotate manually.",
+    );
+    const mode = document.getElementById("appearance-preview-mode");
+    if (mode) mode.textContent = copy.mode;
+  }
+
+  private setUiHidden(hidden: boolean): void {
+    this.uiHidden = hidden;
+    this.root.classList.toggle("is-ui-hidden", hidden);
+    const button = requiredElement<HTMLButtonElement>("creation-hide-ui");
+    button.setAttribute("aria-pressed", String(hidden));
+    button.textContent = hidden ? "Show UI" : "Hide UI";
+    this.applyStationPresentation();
   }
 
   private creationHistoryState(): CreationHistoryState {
@@ -187,14 +357,15 @@ export class CharacterCreation {
     this.step = "appearance";
     this.root.classList.remove("is-dissolving");
     this.root.hidden = false;
+    // The game owns its own context once it is running; the preview was released
+    // at Awaken, so the edit path brings it back for the duration of the edit.
+    if (!this.appearancePreview) this.mountPreview();
     window.history.pushState(this.creationHistoryState(), "");
     this.render();
   }
 
   private render(): void {
     this.error.textContent = "";
-    this.appearancePreview?.dispose();
-    this.appearancePreview = null;
     this.renderProgress();
 
     if (this.step === "name") this.renderName();
@@ -204,6 +375,7 @@ export class CharacterCreation {
     else if (this.step === "memory") this.renderMemory();
     else this.renderReview();
 
+    this.applyStationPresentation();
     resetCreationStageScroll(this.stage);
   }
 
@@ -248,6 +420,9 @@ export class CharacterCreation {
       </div>`;
 
     const input = requiredElement<HTMLInputElement>("character-name-input");
+    input.addEventListener("input", () => {
+      this.appearancePreview?.setLightState(creatorNameLight(input.value.trim().length));
+    });
     const advance = (): void => {
       this.draft.name = input.value.trim();
       if (this.draft.name.length < 2) return this.fail("The Well cannot hold a name shorter than two characters.");
@@ -300,7 +475,8 @@ export class CharacterCreation {
 
   private renderAppearance(): void {
     this.draft.appearance = resolveCharacterAppearance(this.draft.appearance);
-    this.appearanceAvailability = EMPTY_CREATION_PREVIEW_AVAILABILITY;
+    // The availability was cached when the persistent preview loaded on the name
+    // station; resetting it here would silence the readout for the whole session.
     const appearance = resolveCharacterAppearance(this.draft.appearance);
     const facePanel = this.appearancePanel === "face";
     const copy = APPEARANCE_PANEL_COPY[this.appearancePanel];
@@ -320,22 +496,6 @@ export class CharacterCreation {
         </button>
       </div>
       <div class="appearance-builder appearance-builder--${this.appearancePanel}">
-        <div class="appearance-preview appearance-preview--${this.appearancePanel}">
-          <div class="appearance-preview__viewport appearance-preview__viewport--${this.appearancePanel}">
-            <canvas id="appearance-preview-canvas" aria-label="${copy.canvas}"></canvas>
-          </div>
-          <div class="appearance-preview__controls">
-            <label class="appearance-rotation-toggle">
-              <input id="appearance-auto-rotate" type="checkbox" ${this.appearanceAutoRotate ? "checked" : ""} />
-              <span>Rotate automatically</span>
-            </label>
-            <button id="appearance-front-view" type="button">Front view</button>
-          </div>
-          <div class="appearance-preview__readout" aria-live="polite">
-            <span id="appearance-preview-mode">${copy.mode}</span>
-            <strong id="appearance-preview-status">Loading the returned body…</strong>
-          </div>
-        </div>
         <div class="appearance-builder__options">
         <section data-appearance-section="body" ${facePanel ? "hidden" : ""}>
           <h3>Body</h3>
@@ -363,41 +523,15 @@ export class CharacterCreation {
           ? facePanel ? "Save appearance" : "Review face & features"
           : facePanel ? "Choose calling" : "Continue to face & features",
       )}`;
-    const previewCanvas = requiredElement<HTMLCanvasElement>("appearance-preview-canvas");
-    this.appearancePreview = new CreationAvatarPreview(previewCanvas, {
-      hairStyle: this.draft.appearance.hairStyle,
-      skinTone: this.draft.appearance.skinTone,
-      raceId: this.draft.raceId || "human",
-      facialHair: this.draft.appearance.facialHair,
-      hairColor: this.draft.appearance.hairColor,
-      age: this.draft.appearance.age,
-      hairGreying: this.draft.appearance.hairGreying,
-      facialHairGreying: this.draft.appearance.facialHairGreying,
-      faceType: this.draft.appearance.faceType,
-    }, (availability) => this.updateAppearanceAvailability(availability), {
-      view: this.appearancePanel,
-      autoRotate: this.appearanceAutoRotate,
-      onLoadFailure: (reason) => this.showAppearanceLoadFailure(reason),
-    });
-    if (import.meta.env.DEV) {
-      // Hands the live preview to the QA harness and to manual checks such as
-      // `__souldrifterCreationPreview.playReaction("listen")` in DevTools.
-      (window as Window & { __souldrifterCreationPreview?: CreationAvatarPreview })
-        .__souldrifterCreationPreview = this.appearancePreview;
-    }
+    // The preview has been alive since the name station; this station only points it.
+    this.appearancePreview?.setAppearance(this.previewAppearance());
+    this.updateAppearanceReadout();
     this.stage.querySelectorAll<HTMLButtonElement>("button[data-appearance-panel]").forEach((button) => {
       button.addEventListener("click", () => {
         const panel = button.dataset.appearancePanel;
         if (panel !== "body" && panel !== "face") return;
         this.switchAppearancePanel(panel);
       });
-    });
-    requiredElement<HTMLInputElement>("appearance-auto-rotate").addEventListener("change", (event) => {
-      this.appearanceAutoRotate = (event.currentTarget as HTMLInputElement).checked;
-      this.appearancePreview?.setAutoRotate(this.appearanceAutoRotate);
-    });
-    requiredElement<HTMLButtonElement>("appearance-front-view").addEventListener("click", () => {
-      this.appearancePreview?.resetFacing();
     });
     this.bindChoices("button[data-skin-tone]", "skinTone", (id) => {
       this.draft.appearance.skinTone = id as CharacterDraft["appearance"]["skinTone"];
@@ -407,6 +541,7 @@ export class CharacterCreation {
     const leaveAppearance = (): void => {
       if (this.appearanceEditProfile) {
         this.appearanceEditProfile = null;
+        this.releasePreview();
         this.root.hidden = true;
         return;
       }
@@ -465,15 +600,10 @@ export class CharacterCreation {
       button.classList.toggle("is-selected", selected);
       button.setAttribute("aria-selected", String(selected));
     });
-    for (const [selector, base] of [
-      [".appearance-builder", "appearance-builder"],
-      [".appearance-preview", "appearance-preview"],
-      [".appearance-preview__viewport", "appearance-preview__viewport"],
-    ] as const) {
-      const element = this.stage.querySelector<HTMLElement>(selector);
-      if (!element) continue;
-      element.classList.remove(`${base}--body`, `${base}--face`);
-      element.classList.add(`${base}--${panel}`);
+    const builder = this.stage.querySelector<HTMLElement>(".appearance-builder");
+    if (builder) {
+      builder.classList.remove("appearance-builder--body", "appearance-builder--face");
+      builder.classList.add(`appearance-builder--${panel}`);
     }
     this.stage.querySelectorAll<HTMLElement>("[data-appearance-section]").forEach((section) => {
       section.hidden = section.dataset.appearanceSection !== panel;
@@ -485,8 +615,6 @@ export class CharacterCreation {
     setText("appearance-eyebrow", copy.eyebrow);
     setText("appearance-title", copy.title);
     setText("appearance-lede", copy.lede);
-    setText("appearance-preview-mode", copy.mode);
-    this.stage.querySelector<HTMLCanvasElement>("#appearance-preview-canvas")?.setAttribute("aria-label", copy.canvas);
     const back = this.stage.querySelector<HTMLButtonElement>("#creation-back");
     const next = this.stage.querySelector<HTMLButtonElement>("#creation-next");
     if (back) back.innerHTML = `← ${this.escape(this.appearanceEditProfile ? "Cancel" : facePanel ? "Return to body" : "Return to ancestry")}`;
@@ -495,15 +623,19 @@ export class CharacterCreation {
         ? facePanel ? "Save appearance" : "Review face & features"
         : facePanel ? "Choose calling" : "Continue to face & features")} <span>→</span>`;
     }
-    this.appearancePreview?.setView(panel);
+    this.applyStationPresentation();
     this.updateAppearanceReadout();
     resetCreationStageScroll(this.stage);
   }
 
   private showAppearanceLoadFailure(reason: string): void {
-    const status = this.stage.querySelector<HTMLElement>("#appearance-preview-status");
+    const message = `Preview unavailable: ${reason}.`;
+    this.stageStatus.textContent = message;
+    this.stageStatus.classList.add("is-failed");
+    this.stageStatus.hidden = false;
+    const status = document.getElementById("appearance-preview-status");
     if (!status) return;
-    status.textContent = `Preview unavailable: ${reason}.`;
+    status.textContent = message;
     status.classList.add("is-failed");
   }
 
@@ -653,6 +785,9 @@ export class CharacterCreation {
     window.setTimeout(() => {
       this.root.hidden = true;
       window.removeEventListener("popstate", this.onPopState);
+      // Release the creator's context before the game can create its own: two live
+      // contexts is the exact failure mobile Safari punishes with a blank canvas.
+      this.releasePreview();
       this.onComplete(profile, resumeSavedSoul);
     }, 520);
   }
@@ -689,12 +824,14 @@ export class CharacterCreation {
     // Fires once the canonical model has loaded and been inspected, so it doubles
     // as the honest "loaded" signal for the readout.
     this.appearanceAvailability = availability;
+    if (availability !== EMPTY_CREATION_PREVIEW_AVAILABILITY) this.stageStatus.hidden = true;
     this.updateAppearanceReadout();
   }
 
   private updateAppearanceReadout(): void {
-    const status = this.stage.querySelector<HTMLElement>("#appearance-preview-status");
+    const status = document.getElementById("appearance-preview-status");
     if (!status || status.classList.contains("is-failed")) return;
+    if (this.appearanceAvailability === EMPTY_CREATION_PREVIEW_AVAILABILITY) return;
     const appearance = resolveCharacterAppearance(this.draft.appearance);
     const tone = SKIN_TONES[appearance.skinTone]?.name ?? appearance.skinTone;
     status.textContent = `Human foundation · ${tone}`;

@@ -116,21 +116,134 @@ button {
   min-height: 100vh;
   grid-template-columns: 310px minmax(0, 1fr);
   overflow: hidden;
-  background:
-    linear-gradient(100deg, rgba(4, 8, 10, 0.98) 0 22%, rgba(5, 11, 13, 0.84) 49%, rgba(12, 9, 6, 0.94) 100%),
-    url("/assets/generated/first-breach-environment-v1.png") center / cover;
+  background: #0b1019;
 }
 
-.creation-shell::after {
-  position: fixed;
+/* The persistent stage: one WebGL canvas and its painted backdrop behind every station. */
+.stage-viewport {
+  position: absolute;
   inset: 0;
-  content: "";
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 68% 45%, transparent 0 20%, rgba(0, 0, 0, 0.28) 68%),
-    repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 255, 255, 0.018) 3px 4px);
-  mix-blend-mode: screen;
+  z-index: 0;
+  overflow: hidden;
+  --accent-hue: 122, 244, 223;
 }
+
+.stage-viewport > canvas,
+.stage-viewport > .stage-shade,
+.stage-viewport > .stage-well-light,
+.stage-viewport > .stage-vignette,
+.stage-viewport > .stage-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.stage-backdrop { opacity: 0; }
+
+#appearance-preview-canvas {
+  display: block;
+  cursor: grab;
+  outline: none;
+  touch-action: pan-y;
+}
+
+#appearance-preview-canvas[hidden] { display: none; }
+#appearance-preview-canvas:focus-visible { box-shadow: inset 0 0 0 2px var(--soul); }
+
+.stage-shade,
+.stage-well-light,
+.stage-vignette,
+.stage-grain { pointer-events: none; }
+
+.stage-shade { background: linear-gradient(rgba(16, 23, 38, 0.65) 0%, rgba(16, 23, 38, 0) 48%); }
+.stage-well-light { background: radial-gradient(circle at 50% 78%, rgba(var(--accent-hue), 0.22), transparent 46%); }
+.stage-vignette { box-shadow: inset 0 0 180px 60px rgba(8, 12, 20, 0.75); }
+
+.stage-grain {
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.stage-fallback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(42vh, 360px);
+  transform: translate(-50%, -50%);
+  opacity: 0.9;
+}
+
+.stage-fallback[hidden] { display: none; }
+
+.stage-status {
+  position: absolute;
+  top: 50%;
+  left: 340px;
+  margin: 0;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-family: "Soul HUD", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.stage-status.is-failed { color: #e08a7a; }
+.stage-status[hidden] { display: none; }
+
+.stage-pill {
+  position: absolute;
+  bottom: 28px;
+  left: 340px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 16px;
+  border: 1px solid rgba(197, 141, 71, 0.35);
+  background: rgba(16, 23, 38, 0.86);
+  font-family: "Soul HUD", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.stage-pill[hidden] { display: none; }
+.stage-pill__readout { display: grid; gap: 2px; text-transform: uppercase; }
+.stage-pill__readout span { color: #75867f; font-size: 11px; letter-spacing: 0.12em; }
+.stage-pill__readout strong { color: var(--parchment); }
+.stage-pill__readout strong.is-failed { color: #e08a7a; }
+
+.stage-hide-ui {
+  position: absolute;
+  top: 24px;
+  left: 340px;
+  z-index: 3;
+  padding: 8px 14px;
+  border: 1px solid rgba(197, 141, 71, 0.35);
+  background: rgba(16, 23, 38, 0.86);
+  color: var(--muted);
+  font-family: "Soul HUD", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.creation-rail,
+.creation-main,
+.stage-pill { transition: opacity 300ms ease-in-out; }
+
+.creation-shell.is-ui-hidden .creation-rail,
+.creation-shell.is-ui-hidden .creation-main,
+.creation-shell.is-ui-hidden .stage-pill {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.creation-shell.is-ui-hidden .stage-hide-ui { left: 24px; }
 
 .creation-shell.is-dissolving {
   animation: soul-dissolve 520ms ease-in forwards;
@@ -138,20 +251,6 @@ button {
 
 @keyframes soul-dissolve {
   to { opacity: 0; filter: blur(8px) brightness(1.5); transform: scale(1.015); }
-}
-
-.creation-atmosphere {
-  position: fixed;
-  inset: -15%;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 22% 50%, rgba(64, 220, 213, 0.16), transparent 26%),
-    radial-gradient(circle at 78% 45%, rgba(197, 141, 71, 0.13), transparent 30%);
-  animation: atmosphere-breathe 7s ease-in-out infinite alternate;
-}
-
-@keyframes atmosphere-breathe {
-  to { opacity: 0.58; transform: translate3d(1.5%, -1%, 0) scale(1.025); }
 }
 
 .creation-rail {
@@ -272,12 +371,13 @@ button {
   z-index: 2;
   display: grid;
   min-width: 0;
-  place-items: center;
-  padding: 46px clamp(36px, 6vw, 110px);
+  align-items: center;
+  justify-items: end;
+  padding: 46px clamp(24px, 3vw, 48px);
 }
 
 .creation-stage {
-  width: min(1120px, 100%);
+  width: min(560px, 100%);
   max-height: calc(100vh - 110px);
   overflow: auto;
   padding: 38px clamp(28px, 4vw, 60px);

@@ -260,7 +260,9 @@ async function desktopLegacyFlow() {
       }
     };
     await new Promise((resolve, reject) => {
-      const request = indexedDB.open("souldrifter-story", 3);
+      // No explicit version: the page has already upgraded the database to the
+      // app's current schema, and requesting an older version throws VersionError.
+      const request = indexedDB.open("souldrifter-story");
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains("characters")) db.createObjectStore("characters", { keyPath: "id" });

@@ -19,21 +19,24 @@ export interface StageCrop {
 }
 
 /**
- * Per-station crops. The painted returned soul stands at roughly a quarter of the way
- * across the painting; the focal points keep the 3D body over that silhouette.
+ * Per-station crops. The painting carries two painted figures (the returned soul left of
+ * centre, Ilyra right of centre), so it is used as abstract light only: zoomed past 1.5
+ * on the well between them and blurred hard, never anchored to a figure.
  */
 export const STATION_CROPS: Readonly<Record<CreationStationId, StageCrop>> = Object.freeze({
-  name: { focalX: 0.44, focalY: 0.60, scale: 1.10 },
-  race: { focalX: 0.44, focalY: 0.58, scale: 1.00 },
-  appearance: { focalX: 0.44, focalY: 0.58, scale: 1.00 },
-  calling: { focalX: 0.50, focalY: 0.58, scale: 1.00 },
-  memory: { focalX: 0.44, focalY: 0.56, scale: 1.08 },
-  review: { focalX: 0.46, focalY: 0.54, scale: 1.18 },
+  name: { focalX: 0.48, focalY: 0.58, scale: 1.55 },
+  race: { focalX: 0.48, focalY: 0.55, scale: 1.50 },
+  appearance: { focalX: 0.48, focalY: 0.55, scale: 1.50 },
+  calling: { focalX: 0.48, focalY: 0.55, scale: 1.50 },
+  memory: { focalX: 0.48, focalY: 0.53, scale: 1.55 },
+  review: { focalX: 0.48, focalY: 0.50, scale: 1.60 },
 });
+/** Portrait phones see a narrow strip of the painting; this x keeps it figure-free. */
+const PORTRAIT_FOCAL_X = 0.47;
 
 export const STAGE_BACKDROP_URL = "/assets/generated/prologue/10-ilyra-awakening.webp";
 const CROSSFADE_MS = 600;
-const BLUR_PX = 4;
+const BLUR_PX = 8;
 
 /** Where to draw a cover-cropped image so `crop.focal` lands on the canvas centre. */
 export function coverCropPlacement(
@@ -119,9 +122,10 @@ export class CreationStageBackdrop {
   private paint(station: CreationStationId, immediate: boolean): void {
     const image = this.image;
     if (!image) return;
-    const crop = STATION_CROPS[station];
     const viewportWidth = Math.max(1, window.innerWidth);
     const viewportHeight = Math.max(1, window.innerHeight);
+    const authored = STATION_CROPS[station];
+    const crop = viewportHeight > viewportWidth ? { ...authored, focalX: PORTRAIT_FOCAL_X } : authored;
     const width = Math.max(1, Math.round(viewportWidth / this.divisor));
     const height = Math.max(1, Math.round(viewportHeight / this.divisor));
 
@@ -154,15 +158,13 @@ export class CreationStageBackdrop {
     target.width = width;
     target.height = height;
     target.getContext("2d")?.drawImage(offscreen, 0, 0);
-    target.style.transformOrigin = `${(crop.focalX * 100).toFixed(1)}% ${(crop.focalY * 100).toFixed(1)}%`;
-    target.classList.toggle("stage-backdrop--drift", !this.reducedMotion);
+    // No drift: a moving painting behind a still body reads as parallax ghosting.
     target.style.transition = immediate || this.reducedMotion ? "none" : `opacity ${CROSSFADE_MS}ms linear`;
     target.style.opacity = "1";
     if (!immediate) {
       const previous = this.front === 0 ? this.canvases[0] : this.canvases[1];
       previous.style.transition = this.reducedMotion ? "none" : `opacity ${CROSSFADE_MS}ms linear`;
       previous.style.opacity = "0";
-      previous.classList.remove("stage-backdrop--drift");
       this.front = back;
     }
   }

@@ -304,7 +304,11 @@ export function creationCameraStop(
 ): CreationCameraStop {
   const { center, boundsSize, bodyHeight, headY } = framing;
   const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(fovDegrees * 0.5));
-  const distanceForSpan = (span: number): number => span / (2 * tanHalfFov);
+  const safeAspect = Math.max(0.01, aspect);
+  // A stop names a vertical span; a portrait viewport also has to hold the shoulders,
+  // so the horizontal fit wins when it is the larger of the two.
+  const distanceForSpan = (span: number, width: number): number =>
+    Math.max(span / (2 * tanHalfFov), width / (2 * tanHalfFov * safeAspect));
   switch (view) {
     case "face": {
       // Head-and-shoulders portrait. `headY` is the Head bone (skull base, 0.377 on the
@@ -312,17 +316,21 @@ export function creationCameraStop(
       // 0.20 x bodyHeight span centred 0.035 above the bone puts the chin ~19% up the
       // frame, the crown ~94% up and the eyes just above centre.
       const y = headY + bodyHeight * 0.035;
-      return cameraStop(center.x, y, center.z + distanceForSpan(bodyHeight * 0.20), center.x, y, center.z);
+      return cameraStop(center.x, y, center.z + distanceForSpan(bodyHeight * 0.20, bodyHeight * 0.16), center.x, y, center.z);
     }
     case "medium": {
-      const y = headY - bodyHeight * 0.12;
-      return cameraStop(center.x, y, center.z + distanceForSpan(bodyHeight * 0.42), center.x, y, center.z);
+      // Head to mid-chest with headroom: `headY` is the skull base, the crown sits
+      // ~0.125 x bodyHeight above it, so the look-at stays close to the bone and the
+      // span leaves ~15% of the frame above the crown.
+      const y = headY - bodyHeight * 0.03;
+      return cameraStop(center.x, y, center.z + distanceForSpan(bodyHeight * 0.44, boundsSize.x * 1.15), center.x, y, center.z);
     }
     case "hero":
-      // Low three-quarter: the camera sits below the chest and looks up at the shoulders.
+      // Low three-quarter: the camera sits a little below the chest and looks up at
+      // the head and shoulders, with the crown kept a tenth of the frame from the top.
       return cameraStop(
-        center.x, center.y - bodyHeight * 0.05, center.z + distanceForSpan(bodyHeight * 0.78),
-        center.x, center.y + bodyHeight * 0.30, center.z,
+        center.x, center.y + bodyHeight * 0.02, center.z + distanceForSpan(bodyHeight * 0.80, boundsSize.x * 1.4),
+        center.x, center.y + bodyHeight * 0.20, center.z,
       );
     default: {
       const distance = bodyPreviewFitDistance(boundsSize, aspect, fovDegrees);
@@ -606,7 +614,6 @@ export class CreationAvatarPreview {
         helpers.forEach((helper) => helper.removeFromParent());
         this.model = model;
         this.rotationPivot.add(model);
-        this.ensureEnvironment();
         model.traverse((child) => {
           if (!(child instanceof THREE.Mesh)) return;
           const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -616,6 +623,9 @@ export class CreationAvatarPreview {
         });
         this.cameraSettled = false;
         this.onAvailabilityChange?.(inspectCreationPreviewAvailability(model));
+        // The reflection map costs a few dozen milliseconds; it waits until the
+        // figure is on screen and announced.
+        this.ensureEnvironment();
         this.applyAppearance();
         this.syncPreviewMotion();
       })
