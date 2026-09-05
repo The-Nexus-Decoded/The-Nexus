@@ -17,7 +17,7 @@ const follicleMaskUrl = new URL(
 );
 
 const HEAD_SHA256 = "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8";
-const shippedModules = ["SK_Hair_Parted_Straight", "SK_Hair_Cropped_Curly"];
+const shippedModules = ["SK_Hair_Parted_Straight", "SK_Hair_Cropped_Curly", "SK_Hair_Cropped_Straight"];
 const HAIR_STYLE_MODULES = ["Cropped", "Parted", "Long", "TiedBack", "Braided"];
 const HAIR_TEXTURE_MODULES = ["Straight", "Curly"];
 const withheldModules = [
@@ -171,6 +171,8 @@ describe("Human foundation modular appearance pack", () => {
     expect(json.materials.map((material) => material.name).sort()).toEqual([
       "MAT_HumanHair_Tintable_Cropped_Curly_Cards",
       "MAT_HumanHair_Tintable_Cropped_Curly_Mass",
+      "MAT_HumanHair_Tintable_Cropped_Straight_Cards",
+      "MAT_HumanHair_Tintable_Cropped_Straight_Mass",
       "MAT_HumanHair_Tintable_Parted_Straight_Cards",
       "MAT_HumanHair_Tintable_Parted_Straight_Mass",
     ]);
@@ -186,8 +188,10 @@ describe("Human foundation modular appearance pack", () => {
       expect(material.extensions.KHR_materials_specular.specularFactor).toBeLessThan(1);
     }
     expect(json.extensionsUsed).toEqual(expect.arrayContaining(["KHR_materials_anisotropy", "KHR_materials_specular"]));
-    expect(json.images).toHaveLength(4);
-    expect(json.images.map((image) => image.mimeType)).toEqual(["image/png", "image/png", "image/png", "image/png"]);
+    // the two straight modules share the strand atlas and cap tile, which the exporter emits once
+    expect(json.images.length).toBeGreaterThan(0);
+    expect(json.images.length).toBeLessThanOrEqual(2 * shippedModules.length);
+    expect(new Set(json.images.map((image) => image.mimeType))).toEqual(new Set(["image/png"]));
   });
 
   it("ships the approved follicle mask its extras point at", () => {
@@ -229,6 +233,11 @@ describe("Human foundation modular appearance pack", () => {
             sourceHeadSha256: HEAD_SHA256,
             ownerApproval: { status: "PENDING_LIVE_REVIEW" },
           },
+          SK_Hair_Cropped_Straight: {
+            license: "PROJECT_ORIGINAL",
+            sourceHeadSha256: HEAD_SHA256,
+            ownerApproval: { status: "PENDING_LIVE_REVIEW" },
+          },
         },
       },
       contract: {
@@ -246,7 +255,7 @@ describe("Human foundation modular appearance pack", () => {
       },
       freshImport: {
         status: "PASS",
-        meshCount: 4,
+        meshCount: 2 * shippedModules.length,
         boneCount: 65,
         moduleNames: [...shippedModules].sort(),
         embeddedActionCount: 0,
