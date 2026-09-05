@@ -17,7 +17,7 @@ const follicleMaskUrl = new URL(
 );
 
 const HEAD_SHA256 = "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8";
-const shippedModules = ["SK_Hair_Parted_Straight", "SK_Hair_Cropped_Curly", "SK_Hair_Cropped_Straight"];
+const shippedModules = ["SK_Hair_Parted_Straight", "SK_Hair_Cropped_Curly", "SK_Hair_Cropped_Straight", "SK_Hair_Parted_Curly"];
 const HAIR_STYLE_MODULES = ["Cropped", "Parted", "Long", "TiedBack", "Braided"];
 const HAIR_TEXTURE_MODULES = ["Straight", "Curly"];
 const withheldModules = [
@@ -156,12 +156,12 @@ describe("Human foundation modular appearance pack", () => {
     }
   });
 
-  it("stacks the coily fur shells with a falling vertex alpha so alphaCutoff thins them outward", () => {
-    const stats = vertexAlphaStats("SK_Hair_Cropped_Curly_Cards");
-    const mass = json.meshes.find((entry) => entry.name === "SK_Hair_Cropped_Curly_Mass");
-    const massCount = json.accessors[mass.primitives[0].attributes.POSITION].count;
-    // five shells over the mass, every vertex carrying its shell's coverage
-    expect(stats.count).toBeGreaterThanOrEqual(massCount * 5 - 5 * 64);
+  it.each(["SK_Hair_Cropped_Curly", "SK_Hair_Parted_Curly"])("stacks %s's fur shells with a falling vertex alpha so alphaCutoff thins them outward", (moduleName) => {
+    const stats = vertexAlphaStats(`${moduleName}_Cards`);
+    // Five shells, each a copy of the ~6.4k-vertex welded scalp, every vertex carrying its
+    // shell's coverage. The mass itself is not the reference: a parted module refines its own
+    // mass along the part line, so its vertex count no longer matches the shells' base.
+    expect(stats.count).toBeGreaterThan(5 * 6000);
     expect(stats.feathered).toBe(stats.count);
     expect(stats.meanAlpha).toBeGreaterThan(0.4);
     expect(stats.meanAlpha).toBeLessThan(0.85);
@@ -173,6 +173,8 @@ describe("Human foundation modular appearance pack", () => {
       "MAT_HumanHair_Tintable_Cropped_Curly_Mass",
       "MAT_HumanHair_Tintable_Cropped_Straight_Cards",
       "MAT_HumanHair_Tintable_Cropped_Straight_Mass",
+      "MAT_HumanHair_Tintable_Parted_Curly_Cards",
+      "MAT_HumanHair_Tintable_Parted_Curly_Mass",
       "MAT_HumanHair_Tintable_Parted_Straight_Cards",
       "MAT_HumanHair_Tintable_Parted_Straight_Mass",
     ]);
@@ -234,6 +236,11 @@ describe("Human foundation modular appearance pack", () => {
             ownerApproval: { status: "PENDING_LIVE_REVIEW" },
           },
           SK_Hair_Cropped_Straight: {
+            license: "PROJECT_ORIGINAL",
+            sourceHeadSha256: HEAD_SHA256,
+            ownerApproval: { status: "PENDING_LIVE_REVIEW" },
+          },
+          SK_Hair_Parted_Curly: {
             license: "PROJECT_ORIGINAL",
             sourceHeadSha256: HEAD_SHA256,
             ownerApproval: { status: "PENDING_LIVE_REVIEW" },
