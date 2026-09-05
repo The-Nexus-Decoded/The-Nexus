@@ -9,6 +9,7 @@ import {
 } from "../src/characterCreation";
 import {
   bodyPreviewFitDistance,
+  CreatorAdditivePose,
   CREATOR_GAZE_LIMITS,
   CREATOR_REACTION_CLIPS,
   CREATOR_RELAXED_IDLE_PACK,
@@ -16,10 +17,12 @@ import {
   inspectCreationPreviewAvailability,
   creatorBreathEnvelope,
   creatorGazeAngles,
+  previewModelUrl,
   resolveCreatorReactionSpec,
   stabilizeCreatorRelaxedIdle,
   type CreationPreviewReaction,
 } from "../src/creationPreview";
+import { HUMAN_FOUNDATION_MODEL_PATH } from "../src/game/avatarIdentity";
 import { resolveCharacterAppearance } from "../src/game/character";
 import {
   applyModularAppearance,
@@ -644,5 +647,92 @@ describe("creator reactions and gaze", () => {
     expect(Math.abs(creatorGazeAngles(0, 0, Math.PI).yaw)).toBeCloseTo(maxYaw, 6);
     expect(Math.abs(creatorGazeAngles(0, 0, 7 * Math.PI).yaw)).toBeCloseTo(maxYaw, 6);
     expect(creatorGazeAngles(0, 0, 4 * Math.PI).yaw).toBeCloseTo(0, 6);
+  });
+});
+
+describe("creator additive pose", () => {
+  function rig(): { root: THREE.Object3D; spine: THREE.Object3D; head: THREE.Object3D } {
+    const root = new THREE.Object3D();
+    const spine = new THREE.Object3D();
+    spine.name = "mixamorigSpine";
+    const head = new THREE.Object3D();
+    head.name = "mixamorigHead";
+    root.add(spine);
+    spine.add(head);
+    return { root, spine, head };
+  }
+  const HELD = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.2);
+  function idleClip(): THREE.AnimationClip {
+    const swing = [new THREE.Quaternion(), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), 0.3)];
+    return new THREE.AnimationClip("idle", 1, [
+      new THREE.QuaternionKeyframeTrack("mixamorigSpine.quaternion", [0, 1], [...swing[0]!.toArray(), ...swing[1]!.toArray()]),
+      // A stabilised track: every key holds the same value, like the creator's neck and head.
+      new THREE.QuaternionKeyframeTrack("mixamorigHead.quaternion", [0, 1], [...HELD.toArray(), ...HELD.toArray()]),
+    ]);
+  }
+
+  it("pins the three.js rule the layer must survive: an unchanged track is not rewritten", () => {
+    const { root, head } = rig();
+    const mixer = new THREE.AnimationMixer(root);
+    mixer.clipAction(idleClip()).play();
+    for (let frame = 0; frame < 3; frame += 1) mixer.update(1 / 60);
+    expect(head.quaternion.angleTo(HELD)).toBeCloseTo(0, 6);
+    const disturbed = HELD.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.5));
+    head.quaternion.copy(disturbed);
+    mixer.update(1 / 60);
+    // The mixer left the disturbed value in place: nothing resets the bone for us.
+    expect(head.quaternion.angleTo(disturbed)).toBeCloseTo(0, 6);
+  });
+
+  it("keeps a per-frame additive offset from integrating on bones the mixer stops writing", () => {
+    const { root, spine, head } = rig();
+    const mixer = new THREE.AnimationMixer(root);
+    mixer.clipAction(idleClip()).play();
+    mixer.update(0);
+    const pose = new CreatorAdditivePose();
+    pose.register(head);
+    pose.register(spine);
+    expect(pose.size).toBe(2);
+    const gaze = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(10));
+    const breath = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), THREE.MathUtils.degToRad(0.5));
+    const spineOffsets: number[] = [];
+    const headOffsets: number[] = [];
+    for (let frame = 0; frame < 600; frame += 1) {
+      pose.restore();
+      mixer.update(1 / 60);
+      pose.snapshot();
+      const mixerSpine = spine.quaternion.clone();
+      head.quaternion.multiply(gaze);
+      spine.quaternion.multiply(breath);
+      spineOffsets.push(THREE.MathUtils.radToDeg(spine.quaternion.angleTo(mixerSpine)));
+      headOffsets.push(THREE.MathUtils.radToDeg(head.quaternion.angleTo(HELD)));
+    }
+    // Ten seconds of frames later the head carries exactly one gaze offset from the held value...
+    expect(Math.max(...headOffsets)).toBeCloseTo(10, 3);
+    expect(Math.min(...headOffsets)).toBeCloseTo(10, 3);
+    // ...and the breathing spine carries exactly one breath offset from the mixer's pose every frame.
+    expect(Math.max(...spineOffsets)).toBeCloseTo(0.5, 3);
+    expect(Math.min(...spineOffsets)).toBeCloseTo(0.5, 3);
+  });
+
+  it("clears its joints so a released model is not written again", () => {
+    const { head } = rig();
+    const pose = new CreatorAdditivePose();
+    pose.register(head);
+    pose.clear();
+    expect(pose.size).toBe(0);
+    head.quaternion.set(0, 0.5, 0, Math.SQRT1_2);
+    pose.restore();
+    expect(head.quaternion.y).toBeCloseTo(0.5, 6);
+  });
+});
+
+describe("creator preview model routing", () => {
+  it("previews Humans on the foundation body and keeps the legacy bodies for legacy saves", () => {
+    expect(previewModelUrl("human")).toBe(HUMAN_FOUNDATION_MODEL_PATH);
+    expect(previewModelUrl("")).toBe(HUMAN_FOUNDATION_MODEL_PATH);
+    expect(previewModelUrl("elf")).toBe("/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb");
+    expect(previewModelUrl("dwarf")).toBe("/assets/3d/characters/human-shadowknight/human-shadowknight.glb");
+    expect(previewModelUrl("halfling")).toBe("/assets/3d/characters/human-shadowknight/human-shadowknight.glb");
   });
 });

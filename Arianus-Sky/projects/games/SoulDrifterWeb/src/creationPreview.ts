@@ -135,16 +135,48 @@ const CREATOR_BREATH_INHALE_FRACTION = 0.42; // the inhale is quicker than the r
 
 interface CreatorBreathJoint {
   readonly bone: THREE.Object3D;
-  /** Pose captured once the mixer has settled, so the layer can never accumulate. */
-  readonly base: THREE.Quaternion;
   readonly axis: THREE.Vector3;
   readonly radians: number;
-  /**
-   * True when the bound idle writes this bone every frame, so the breath can
-   * ride on the mixer's output (and on any blended reaction) instead of
-   * overwriting it.
-   */
-  readonly written: boolean;
+}
+
+/**
+ * The mixer's own pose for every bone an additive layer touches.
+ *
+ * three.js writes a bone only when its accumulated track value changed since
+ * the previous frame (`PropertyMixer.apply`: "value has changed -> update scene
+ * graph"). The stabilised idle holds the neck and head on one constant value,
+ * so after the first frame the mixer never touches them again, and a layer
+ * that multiplies onto "the mixer's output" is really multiplying onto its own
+ * previous frame: the offsets integrate and the head folds onto the shoulder
+ * within seconds of real time. Restoring the mixer's last pose before every
+ * update and snapshotting it after makes each frame's additive offset start
+ * from the same place whether or not the mixer wrote anything.
+ */
+export class CreatorAdditivePose {
+  private readonly joints = new Map<THREE.Object3D, THREE.Quaternion>();
+
+  public get size(): number {
+    return this.joints.size;
+  }
+
+  /** Records the bone with whatever pose it holds right now as the mixer's. */
+  public register(bone: THREE.Object3D): void {
+    if (!this.joints.has(bone)) this.joints.set(bone, bone.quaternion.clone());
+  }
+
+  /** Before `mixer.update`: hand every bone back to the mixer untouched. */
+  public restore(): void {
+    for (const [bone, pose] of this.joints) bone.quaternion.copy(pose);
+  }
+
+  /** After `mixer.update`: remember what the mixer left, written or not. */
+  public snapshot(): void {
+    for (const [bone, pose] of this.joints) pose.copy(bone.quaternion);
+  }
+
+  public clear(): void {
+    this.joints.clear();
+  }
 }
 
 interface CreatorGazeJoint {
@@ -191,10 +223,6 @@ function trackNodeName(trackName: string): string {
   return cut === -1 ? trackName : trackName.slice(0, cut);
 }
 
-/** Lower-cased names of every node a clip writes. */
-function clipNodeNames(clip: THREE.AnimationClip): ReadonlySet<string> {
-  return new Set(clip.tracks.map((track) => trackNodeName(track.name).toLowerCase()));
-}
 
 /**
  * The four authored camera stops. `medium` is head-to-mid-chest (name, memories), `body`
@@ -416,7 +444,7 @@ function loadPreviewModel(url: string): Promise<GLTF> {
   return cached;
 }
 
-function previewModelUrl(raceId: string): string {
+export function previewModelUrl(raceId: string): string {
   if (!raceId || raceId === "human") return HUMAN_FOUNDATION_MODEL_PATH;
   return raceId === "elf" ? PREVIEW_MODEL_ELF : PREVIEW_MODEL_LEGACY_HUMAN;
 }
@@ -448,6 +476,7 @@ export class CreationAvatarPreview {
   private framing: CreationPreviewFraming | null = null;
   private readonly onLoadFailure: ((reason: string) => void) | undefined;
   private breathJoints: CreatorBreathJoint[] = [];
+  private readonly additivePose = new CreatorAdditivePose();
   private breathSeconds = 0;
   private idleAction: THREE.AnimationAction | null = null;
   private reactionAction: THREE.AnimationAction | null = null;
@@ -878,18 +907,16 @@ export class CreationAvatarPreview {
     this.renderer.forceContextLoss();
   }
 
-  private captureBreathJoints(model: THREE.Object3D, idle: THREE.AnimationClip): void {
+  private captureBreathJoints(model: THREE.Object3D): void {
     const joints: CreatorBreathJoint[] = [];
-    const written = clipNodeNames(idle);
     model.traverse((node) => {
       for (const spec of CREATOR_BREATH_JOINTS) {
         if (!spec.names.has(node.name.toLowerCase())) continue;
+        this.additivePose.register(node);
         joints.push({
           bone: node,
-          base: node.quaternion.clone(),
           axis: new THREE.Vector3(spec.axis[0], spec.axis[1], spec.axis[2]).normalize(),
           radians: THREE.MathUtils.degToRad(spec.degrees),
-          written: written.has(node.name.toLowerCase()),
         });
       }
     });
@@ -908,10 +935,9 @@ export class CreationAvatarPreview {
   }
 
   /**
-   * Rides on the mixer's output for bones the idle writes every frame (so a
-   * blended reaction keeps breathing) and re-derives the rest from a captured
-   * base, so the layer cannot integrate and drift if a clip ever stops
-   * writing one of these tracks.
+   * Rides on the mixer's pose for the frame (so a blended reaction keeps
+   * breathing). `additivePose` restored that pose before the mixer ran, so the
+   * offset never compounds on a previous frame's offset.
    */
   private applyBreath(deltaSeconds: number): void {
     if (this.breathJoints.length === 0) return;
@@ -919,30 +945,29 @@ export class CreationAvatarPreview {
     const envelope = creatorBreathEnvelope(this.breathSeconds);
     for (const joint of this.breathJoints) {
       CREATOR_BREATH_SCRATCH.setFromAxisAngle(joint.axis, joint.radians * envelope);
-      if (joint.written) joint.bone.quaternion.multiply(CREATOR_BREATH_SCRATCH);
-      else joint.bone.quaternion.copy(joint.base).multiply(CREATOR_BREATH_SCRATCH);
+      joint.bone.quaternion.multiply(CREATOR_BREATH_SCRATCH);
     }
   }
 
   /**
-   * Neck and head bones the idle writes every frame, so the gaze can be added
-   * on top of the mixer's output without ever integrating. The stabilised idle
-   * holds them at the clip's neutral frame; a reaction clip moves them, and
-   * the gaze simply rides along.
+   * Neck and head. The stabilised idle holds them on one constant value, which
+   * is exactly the case where the mixer stops writing them, so the gaze is
+   * added on top of the pose `additivePose` restores each frame rather than on
+   * whatever the bone happened to hold. A reaction clip moves them, and the
+   * gaze rides along.
    */
-  private captureGazeJoints(model: THREE.Object3D, idle: THREE.AnimationClip): void {
+  private captureGazeJoints(model: THREE.Object3D): void {
     const joints: CreatorGazeJoint[] = [];
-    const written = clipNodeNames(idle);
     model.traverse((node) => {
       for (const spec of CREATOR_GAZE_JOINTS) {
         if (!spec.names.has(node.name.toLowerCase())) continue;
-        if (!written.has(node.name.toLowerCase())) {
-          console.warn(`Creator gaze skipped ${node.name}: the idle does not write it.`);
-          continue;
-        }
+        this.additivePose.register(node);
         joints.push({ bone: node, share: spec.share });
       }
     });
+    if (joints.length !== CREATOR_GAZE_JOINTS.length) {
+      console.warn(`Creator gaze resolved ${joints.length} of ${CREATOR_GAZE_JOINTS.length} joints.`);
+    }
     this.gazeJoints = joints;
     this.gaze.set(0, 0);
   }
@@ -983,6 +1008,7 @@ export class CreationAvatarPreview {
 
   private stopPreviewMotion(resetPose = false): void {
     this.breathJoints = [];
+    this.additivePose.clear();
     if (this.mixer && this.model) {
       this.mixer.stopAllAction();
       this.mixer.uncacheRoot(this.model);
@@ -1042,8 +1068,8 @@ export class CreationAvatarPreview {
         // would render the figure tiny and then jump on the next re-frame.
         mixer.update(0);
         model.updateMatrixWorld(true);
-        this.captureBreathJoints(model, clip);
-        this.captureGazeJoints(model, clip);
+        this.captureBreathJoints(model);
+        this.captureGazeJoints(model);
         this.updatePreviewFraming();
       })
       .catch((error) => {
@@ -1155,7 +1181,9 @@ export class CreationAvatarPreview {
     const now = performance.now();
     const deltaSeconds = Math.min(0.05, Math.max(0, (now - this.lastFrameAt) / 1000));
     this.lastFrameAt = now;
+    this.additivePose.restore();
     this.mixer?.update(deltaSeconds);
+    this.additivePose.snapshot();
     this.applyBreath(deltaSeconds);
     this.applyGaze(deltaSeconds);
     this.applyLights(deltaSeconds);
