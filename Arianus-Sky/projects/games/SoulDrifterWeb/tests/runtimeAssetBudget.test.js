@@ -109,4 +109,63 @@ describe("runtime asset budget", () => {
       .rejects.toThrow();
     await expect(readFile(resolve(root, "assets/index.js"), "utf8")).resolves.toContain("review-library.glb");
   });
+
+  it("ships a protected file even when a development-only glob covers its folder", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
+    temporaryRoots.push(root);
+    await Promise.all([
+      writeFixture(root, "assets/3d/animations/human-foundation-pilot/review-packs/review-shooter-01.glb"),
+      writeFixture(root, "assets/3d/animations/human-foundation-pilot/authored-farewell.glb"),
+      writeFixture(root, "assets/3d/characters/human-foundation-pilot/runtime-4k.glb"),
+      writeFixture(root, "assets/3d/characters/human-foundation-pilot/modular-head-base.glb"),
+      writeFixture(root, "assets/index.js", 'const creator = "authored-farewell.glb";'),
+    ]);
+    const manifest = {
+      excludeGlobs: [],
+      developmentOnlyGlobs: [
+        "assets/3d/animations/human-foundation-pilot/**",
+        "assets/3d/characters/human-foundation-pilot/**",
+      ],
+      protectedPaths: [
+        "assets/index.js",
+        "assets/3d/animations/human-foundation-pilot/authored-farewell.glb",
+        "assets/3d/characters/human-foundation-pilot/runtime-4k.glb",
+      ],
+    };
+
+    const result = await pruneAssetRoot(root, manifest);
+
+    expect(result.removedDevelopmentOnlyFiles).toBe(2);
+    await expect(readFile(resolve(root, "assets/3d/animations/human-foundation-pilot/review-packs/review-shooter-01.glb")))
+      .rejects.toThrow();
+    await expect(readFile(resolve(root, "assets/3d/characters/human-foundation-pilot/modular-head-base.glb")))
+      .rejects.toThrow();
+    await expect(readFile(resolve(root, "assets/3d/animations/human-foundation-pilot/authored-farewell.glb"), "utf8"))
+      .resolves.toContain("authored-farewell");
+    await expect(readFile(resolve(root, "assets/3d/characters/human-foundation-pilot/runtime-4k.glb"), "utf8"))
+      .resolves.toContain("runtime-4k");
+  });
+
+  it("protects exactly the Human foundation files the creator and in-game bodies fetch", async () => {
+    const manifest = await loadAssetManifest();
+    const publicRoot = resolve(import.meta.dirname, "../public");
+    const shipped = [
+      "assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+      "assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.glb",
+      "assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-male-locomotion-01.glb",
+      "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb",
+      "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb",
+    ];
+
+    expect(manifest.developmentOnlyGlobs).toEqual([
+      "assets/3d/animations/human-foundation-pilot/**",
+      "assets/3d/characters/human-foundation-pilot/**",
+    ]);
+    for (const assetPath of shipped) {
+      expect(manifest.protectedPaths).toContain(assetPath);
+      await expect(readFile(resolve(publicRoot, assetPath))).resolves.toBeTruthy();
+    }
+    const foundationProtected = manifest.protectedPaths.filter((assetPath) => assetPath.includes("human-foundation-pilot"));
+    expect(foundationProtected.sort()).toEqual([...shipped].sort());
+  });
 });

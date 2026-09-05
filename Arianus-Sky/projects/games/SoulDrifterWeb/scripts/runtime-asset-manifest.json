@@ -34,7 +34,12 @@
     "lore-atlas/assets/maps/labyrinth_painted.png",
     "lore-atlas/assets/maps/nexus_painted.png",
     "lore-atlas/assets/maps/pryan_painted.png",
-    "lore-atlas/index.html"
+    "lore-atlas/index.html",
+    "assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+    "assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.glb",
+    "assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-male-locomotion-01.glb",
+    "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb",
+    "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb"
   ],
   "targets": [
     {

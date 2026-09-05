@@ -121,8 +121,13 @@ export async function directoryBytes(root) {
 
 export async function pruneAssetRoot(assetRoot, manifest) {
   await assertProtectedAssets(assetRoot, manifest.protectedPaths);
-  const sourceCandidates = await collectPrunableFiles(assetRoot, manifest.excludeGlobs);
-  const developmentCandidates = await collectPrunableFiles(assetRoot, manifest.developmentOnlyGlobs ?? []);
+  // A protected asset is shipped even when a glob covers its folder: the
+  // Human foundation folders are development-only as a whole, and the five
+  // files the creator and the in-game bodies fetch are listed as protected.
+  const shipped = new Set(manifest.protectedPaths.map((assetPath) => resolve(assetRoot, normalizeAssetPath(assetPath))));
+  const prunable = (paths) => paths.filter((path) => !shipped.has(path));
+  const sourceCandidates = prunable(await collectPrunableFiles(assetRoot, manifest.excludeGlobs));
+  const developmentCandidates = prunable(await collectPrunableFiles(assetRoot, manifest.developmentOnlyGlobs ?? []));
   await assertCandidatesAreUnreferenced(assetRoot, sourceCandidates);
   const candidates = [...new Set([...sourceCandidates, ...developmentCandidates])];
   const removedBytes = (await Promise.all(candidates.map(async (path) => (await stat(path)).size)))
