@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AWAKEN_CLIP_CAP_MS,
   CREATOR_CUE_AMPLITUDE,
-  CREATOR_CUE_REGION_HEADS,
+  CREATOR_CUE_FULL_REACH_HEAD_PX,
   CREATOR_CUE_REGION_PX,
   CREATOR_CUE_TIMING,
   CREATOR_GAZE_DRIFT,
@@ -13,8 +13,8 @@ import {
   awakenTimeline,
   cueDurationMs,
   cueEnvelope,
+  cueReach,
   cueRegion,
-  cueRegionSize,
   gazeDriftYaw,
   gazeTargetFromPointer,
   holdEnvelope,
@@ -24,6 +24,7 @@ import {
   nodPitchDegrees,
   resolveWithin,
   scaleGazeAngles,
+  shakeYawDegrees,
   stationGazeLimits,
   type CreatorCue,
   type CreatorStation,
@@ -126,12 +127,24 @@ describe("creator station gaze scale", () => {
   });
 });
 
-describe("creator nod reach", () => {
-  it("gives the nod its reach only where the camera frames the whole body", () => {
-    const fullBody: CreatorStation[] = ["race", "body", "calling"];
-    for (const station of Object.keys(CREATOR_STATION_CHOREOGRAPHY) as CreatorStation[]) {
-      expect(CREATOR_STATION_CHOREOGRAPHY[station].nodReach, station).toBe(fullBody.includes(station) ? 1 : 0);
-    }
+describe("creator cue reach", () => {
+  it("brings the body in as the head shrinks below the gate's crop, fully at half its side", () => {
+    // Head-to-chest and face stops at 1440x900: the head fills or exceeds the crop.
+    expect(cueReach(243.6)).toBe(0);
+    expect(cueReach(517)).toBe(0);
+    expect(cueReach(CREATOR_CUE_REGION_PX)).toBe(0);
+    // Full-body stops (93 px at 1440x900, 84 at 390x844, 80 at 375x812).
+    expect(cueReach(CREATOR_CUE_FULL_REACH_HEAD_PX)).toBe(1);
+    expect(cueReach(93)).toBe(1);
+    expect(cueReach(80)).toBe(1);
+    // The phone's name and memory stops sit between.
+    expect(cueReach(150)).toBeCloseTo(0.5, 9);
+    expect(cueReach(124)).toBeCloseTo(0.76, 9);
+    expect(cueReach(132)).toBeCloseTo(0.68, 9);
+    // Before the first frame the head has no height: the design's head-only cue.
+    expect(cueReach(0)).toBe(0);
+    expect(cueReach(-5)).toBe(0);
+    expect(cueReach(Number.NaN)).toBe(0);
   });
 
   it("keeps the design's head-only seven degrees at reach zero and brings the neck and chest in at one", () => {
@@ -147,6 +160,20 @@ describe("creator nod reach", () => {
     expect(nodPitchDegrees(4)).toEqual(nodPitchDegrees(1));
     expect(nodPitchDegrees(-1)).toEqual(nodPitchDegrees(0));
     expect(nodPitchDegrees(Number.NaN)).toEqual(nodPitchDegrees(0));
+  });
+
+  it("keeps the design's head-only ten degrees of shake at reach zero and turns the neck and chest with it at one", () => {
+    expect(shakeYawDegrees(0)).toEqual({ head: CREATOR_CUE_AMPLITUDE.shakeYawDegrees, neck: 0, spine: 0 });
+    const { headYawDegrees, neckYawDegrees, spineYawDegrees } = CREATOR_CUE_AMPLITUDE.shakeReach;
+    expect(shakeYawDegrees(1)).toEqual({
+      head: CREATOR_CUE_AMPLITUDE.shakeYawDegrees + headYawDegrees,
+      neck: neckYawDegrees,
+      spine: spineYawDegrees,
+    });
+    expect(shakeYawDegrees(0.25).spine).toBeCloseTo(spineYawDegrees / 4, 9);
+    expect(shakeYawDegrees(2)).toEqual(shakeYawDegrees(1));
+    expect(shakeYawDegrees(-0.5)).toEqual(shakeYawDegrees(0));
+    expect(shakeYawDegrees(Number.NaN)).toEqual(shakeYawDegrees(0));
   });
 });
 
@@ -363,11 +390,12 @@ describe("creator cue player on a real mixer", () => {
     const h = harness();
     const peakFrames = Math.round(CREATOR_CUE_TIMING.nod.riseMs / (1000 / 60));
     const full = nodPitchDegrees(1);
-    h.cues.setNodReach(1);
-    h.cues.play("nod", h.now());
-    // The station moving on mid-nod (the name station binds, then the camera pulls back)
-    // does not change the nod in flight.
-    h.cues.setNodReach(0);
+    h.cues.play("nod", h.now(), 1);
+    expect(h.cues.reachOf("nod")).toBe(1);
+    // A shake starting mid-nod with its own reach does not alter the nod in flight.
+    h.cues.play("shake", h.now(), 0);
+    h.cues.cancel();
+    h.cues.play("nod", h.now(), 1);
     h.frames(peakFrames);
     expect(headOffsetDeg(h.head)).toBeCloseTo(full.head, 1);
     expect(angleDeg(h.neck)).toBeCloseTo(full.neck, 1);
@@ -383,12 +411,48 @@ describe("creator cue player on a real mixer", () => {
     expect(headOffsetDeg(h.head)).toBeCloseTo(0, 6);
     expect(angleDeg(h.neck)).toBeCloseTo(0, 6);
     expect(angleDeg(h.spine1)).toBeCloseTo(0, 6);
-    // The next nod takes the reach the station holds now.
+    expect(h.cues.reachOf("nod")).toBeNull();
+    // The next nod latches its own reach: none here, so the head nods alone.
     h.cues.play("nod", h.now());
     h.frames(peakFrames);
     expect(headOffsetDeg(h.head)).toBeCloseTo(CREATOR_CUE_AMPLITUDE.nodPitchDegrees, 1);
     expect(angleDeg(h.neck)).toBeCloseTo(0, 6);
     expect(angleDeg(h.spine1)).toBeCloseTo(0, 6);
+    // Out-of-range and NaN reaches clamp like the pure helper.
+    h.cues.play("nod", h.now(), 7);
+    expect(h.cues.reachOf("nod")).toBe(1);
+    h.cues.play("nod", h.now(), Number.NaN);
+    expect(h.cues.reachOf("nod")).toBe(0);
+  });
+
+  it("carries a full-reach shake from the neck and chest about their up axes, and lets all of it go", () => {
+    const h = harness();
+    const swingFrames = Math.round(CREATOR_CUE_TIMING.shake.swingMs / (1000 / 60));
+    const full = shakeYawDegrees(1);
+    h.cues.play("shake", h.now(), 1);
+    h.frames(swingFrames);
+    expect(headOffsetDeg(h.head)).toBeCloseTo(full.head, 0);
+    expect(angleDeg(h.neck)).toBeCloseTo(full.neck, 0);
+    expect(angleDeg(h.spine1)).toBeCloseTo(full.spine, 0);
+    // Every joint turns about its own up axis, so no up axis moves ...
+    for (const node of [h.head, h.neck, h.spine1]) {
+      const rest = node === h.head ? HELD_HEAD : new THREE.Quaternion();
+      const up = new THREE.Vector3(0, 1, 0).applyQuaternion(node.quaternion);
+      expect(up.angleTo(new THREE.Vector3(0, 1, 0).applyQuaternion(rest))).toBeCloseTo(0, 6);
+    }
+    // ... and they all turn the same way: forward (+Z) swings toward -X on the first swing.
+    const sign = Math.sign(new THREE.Vector3(0, 0, 1).applyQuaternion(h.neck.quaternion).x);
+    expect(sign).not.toBe(0);
+    expect(Math.sign(new THREE.Vector3(0, 0, 1).applyQuaternion(h.spine1.quaternion).x)).toBe(sign);
+    h.frames(swingFrames);
+    // Second swing: the other side.
+    expect(Math.sign(new THREE.Vector3(0, 0, 1).applyQuaternion(h.neck.quaternion).x)).toBe(-sign);
+    expect(angleDeg(h.neck)).toBeCloseTo(full.neck, 0);
+    h.frames(Math.ceil(cueDurationMs("shake") / (1000 / 60)) + 2);
+    expect(headOffsetDeg(h.head)).toBeCloseTo(0, 6);
+    expect(angleDeg(h.neck)).toBeCloseTo(0, 6);
+    expect(angleDeg(h.spine1)).toBeCloseTo(0, 6);
+    expect(h.cues.reachOf("shake")).toBeNull();
   });
 
   it("shakes the head about its up axis and squares the shoulders on a brace", () => {
@@ -637,17 +701,22 @@ describe("pixel gate statistics", () => {
     expect(meanAbsoluteRgbDifference(new Uint8Array(0), new Uint8Array(0))).toEqual({ r: 0, g: 0, b: 0 });
   });
 
-  it("sizes the gate's crop to the head on screen below the design's 200 px", () => {
-    // Head-to-chest stop at 1440x900: the head is taller than the crop.
-    expect(cueRegionSize(243.4)).toBe(CREATOR_CUE_REGION_PX);
-    // Full-body stop at 1440x900 and at 390x844.
-    expect(cueRegionSize(93)).toBe(Math.round(93 * CREATOR_CUE_REGION_HEADS));
-    expect(cueRegionSize(87.2)).toBe(Math.round(87.2 * CREATOR_CUE_REGION_HEADS));
-    expect(cueRegionSize(0)).toBe(CREATOR_CUE_REGION_PX);
-    expect(cueRegionSize(Number.NaN)).toBe(CREATOR_CUE_REGION_PX);
-    expect(cueRegionSize(0.1)).toBe(1);
-    expect(cueRegion({ x: 465.5, y: 80.2 }, 93)).toEqual({ x: 405, y: 20, w: 121, h: 121 });
-    expect(cueRegion({ x: 509, y: 176 }, 300)).toEqual({ x: 409, y: 76, w: 200, h: 200 });
+  it("places the design's 200 px crop on the part and keeps it inside the canvas", () => {
+    const desktop = { width: 1440, height: 900 };
+    const phone = { width: 390, height: 844 };
+    expect(cueRegion({ x: 483, y: 273 }, desktop)).toEqual({ x: 383, y: 173, w: 200, h: 200 });
+    expect(cueRegion({ x: 465.5, y: 80.2 }, desktop)).toEqual({ x: 366, y: 0, w: 200, h: 200 });
+    // The head at the top of the phone's full-body framing: the crop slides down to fit.
+    expect(cueRegion({ x: 191, y: 60 }, phone)).toEqual({ x: 91, y: 0, w: 200, h: 200 });
+    // Off the right edge: slides left.
+    expect(cueRegion({ x: 380, y: 400 }, phone)).toEqual({ x: 190, y: 300, w: 200, h: 200 });
+    // The hips at the head-to-chest stop sit below the canvas: no crop, not a crop of zeros.
+    expect(cueRegion({ x: 720, y: 925 }, desktop)).toBeNull();
+    expect(cueRegion({ x: -1, y: 400 }, desktop)).toBeNull();
+    expect(cueRegion({ x: Number.NaN, y: 400 }, desktop)).toBeNull();
+    // A canvas smaller than the crop bounds it; a collapsed canvas has none.
+    expect(cueRegion({ x: 60, y: 60 }, { width: 120, height: 300 })).toEqual({ x: 0, y: 0, w: 120, h: 120 });
+    expect(cueRegion({ x: 0, y: 0 }, { width: 0, height: 0 })).toBeNull();
   });
 
   it("is symmetric and refuses crops of different sizes", () => {

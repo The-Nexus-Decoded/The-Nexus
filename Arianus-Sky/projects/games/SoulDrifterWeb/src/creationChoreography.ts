@@ -44,23 +44,16 @@ export interface CreatorStationChoreography {
   gazeClamp?: CreatorGazeLimitsDegrees;
   /** Weight-shift amplitude once the figure has been left alone: 1 full, 0.5 half, 0 off. */
   settle: number;
-  /**
-   * How much of the body joins a nod: 0 the head alone (the design's figure, right where
-   * the camera frames head to chest), 1 the neck and chest too. The full-body stops draw
-   * the head 93 px tall at 1440x900, where a 7 deg head-only nod moves the chin about
-   * five pixels: legible up close, a flicker from across the stage.
-   */
-  nodReach: number;
 }
 
 export const CREATOR_STATION_CHOREOGRAPHY: Readonly<Record<CreatorStation, CreatorStationChoreography>> = Object.freeze({
-  name: { gazeScale: 0.4, settle: 0, nodReach: 0 },
-  race: { gazeScale: 1, settle: 1, nodReach: 1 },
-  body: { gazeScale: 1, settle: 1, nodReach: 1 },
-  face: { gazeScale: 1, gazeClamp: { yawDegrees: 16, pitchDegrees: 8 }, settle: 0.5, nodReach: 0 },
-  calling: { gazeScale: 1, settle: 0, nodReach: 1 },
-  memory: { gazeScale: 1, settle: 0, nodReach: 0 },
-  review: { gazeScale: 0.6, settle: 0, nodReach: 0 },
+  name: { gazeScale: 0.4, settle: 0 },
+  race: { gazeScale: 1, settle: 1 },
+  body: { gazeScale: 1, settle: 1 },
+  face: { gazeScale: 1, gazeClamp: { yawDegrees: 16, pitchDegrees: 8 }, settle: 0.5 },
+  calling: { gazeScale: 1, settle: 0 },
+  memory: { gazeScale: 1, settle: 0 },
+  review: { gazeScale: 0.6, settle: 0 },
 });
 
 /** A hover or swatch override never turns the head past this share of the station's limit. */
@@ -157,19 +150,33 @@ export const CREATOR_CUE_TIMING = Object.freeze({
   settle: { durationMs: 900 },
 });
 
+/**
+ * How much of the body joins a nod or a shake, 0..1, from how tall the head is on screen.
+ * The design's figures (head 7 deg, shake 10 deg) are the head alone, sized for the
+ * head-to-chest stop where the head fills the gate's 200 px crop; at the full-body stops
+ * the head is 84-93 px tall and a head-only cue moves the chin a few pixels: legible up
+ * close, a flicker from across the stage. The reach comes in as the head shrinks below
+ * the crop and is full at half its side, so the phone's name and memory stops (head
+ * 124-132 px) get a share and the face close-up none.
+ */
+export function cueReach(headHeightPx: number): number {
+  if (!(headHeightPx > 0)) return 0;
+  return clamp((CREATOR_CUE_REGION_PX - headHeightPx) / (CREATOR_CUE_REGION_PX - CREATOR_CUE_FULL_REACH_HEAD_PX), 0, 1);
+}
+
 export const CREATOR_CUE_AMPLITUDE = Object.freeze({
   /** Head, about its ear-to-ear axis; positive nods down. */
   nodPitchDegrees: 7,
   /**
-   * What a full reach (`CreatorStationChoreography.nodReach` 1) adds: the head a little
-   * further, the neck and Spine1 pitching with it, so the nod carries from the neck the
-   * way an emphatic one does. Driven frames at the full-body stop, per-pixel mean absolute
-   * difference at the 183 ms peak: on the crop sized to the head (`cueRegionSize`) the head
-   * alone at 7 deg reads 11.8-12.6/255 and this reach 14.5-18.5 (1440x900 and 390x844);
-   * on the design's fixed 200 px square, four fifths background at that distance, the head
-   * alone reads 3.7-4.6 and this reach 6.7-7.5 at 1440x900, 5.6-6.7 at 390x844.
+   * What a full reach (`cueReach` 1) adds: the head a little further, the neck and Spine1
+   * pitching with it, so the nod carries from the neck the way an emphatic one does.
+   * Measured on the gate's 200 px crop at the full-body stops (driven frames, per-pixel
+   * mean absolute difference at the 183 ms peak, lowest channel, the cue against the same
+   * frame with the cue off): the head alone at 7 deg reads 3.7-4.6/255; head 10 / neck 6 /
+   * spine 3 read 5.9-7.9, on the line on the phone; these figures read 8.3-8.5 at 390x844,
+   * 7.7-7.9 at 375x812 and 8.6-10.8 at 1440x900.
    */
-  nodReach: { headPitchDegrees: 3, neckPitchDegrees: 6, spinePitchDegrees: 3 },
+  nodReach: { headPitchDegrees: 6, neckPitchDegrees: 10, spinePitchDegrees: 6 },
   /**
    * Head, about its up axis; the swing alternates sides. Four degrees past the design's
    * first figure (6): at 6 a 200x200 crop on the crown moved 5.8/255 per pixel at
@@ -177,6 +184,14 @@ export const CREATOR_CUE_AMPLITUDE = Object.freeze({
    * reads 7.3-8.8 and every crop centred on the head 10.4-17.0.
    */
   shakeYawDegrees: 10,
+  /**
+   * What a full reach adds to a shake: the neck and Spine1 turning with the head, so the
+   * shoulders answer the "no" too. The head alone at 10 deg reads 2.8-5.1/255 on the 200 px
+   * crop at the full-body stops (measured the same way as the nod); with these figures
+   * every swing there reads 8.5 or more at 375x812, 9.0 or more at 390x844 and 9.4 or
+   * more at 1440x900.
+   */
+  shakeReach: { headYawDegrees: 5, neckYawDegrees: 10, spineYawDegrees: 6 },
   /**
    * Spine1 lifts the chest; the shoulders square by mirrored rotations about their length.
    * Twice the design's first figures (-2.5 / 1.5): at those a 200x200 shoulder crop at
@@ -189,14 +204,32 @@ export const CREATOR_CUE_AMPLITUDE = Object.freeze({
   settleSpineRollDegrees: 1.2,
 });
 
-/** Degrees of pitch the head, neck and Spine1 carry at a nod's peak for the station's reach. */
-export function nodPitchDegrees(reach: number): { head: number; neck: number; spine: number } {
+/** Degrees the head, neck and Spine1 each carry at a cue's peak. */
+export interface CueChainDegrees {
+  head: number;
+  neck: number;
+  spine: number;
+}
+
+/** Degrees of pitch the head, neck and Spine1 carry at a nod's peak for the given reach. */
+export function nodPitchDegrees(reach: number): CueChainDegrees {
   const r = Number.isFinite(reach) ? clamp(reach, 0, 1) : 0;
   const { headPitchDegrees, neckPitchDegrees, spinePitchDegrees } = CREATOR_CUE_AMPLITUDE.nodReach;
   return {
     head: CREATOR_CUE_AMPLITUDE.nodPitchDegrees + headPitchDegrees * r,
     neck: neckPitchDegrees * r,
     spine: spinePitchDegrees * r,
+  };
+}
+
+/** Degrees of yaw the head, neck and Spine1 carry at a shake's swing for the given reach. */
+export function shakeYawDegrees(reach: number): CueChainDegrees {
+  const r = Number.isFinite(reach) ? clamp(reach, 0, 1) : 0;
+  const { headYawDegrees, neckYawDegrees, spineYawDegrees } = CREATOR_CUE_AMPLITUDE.shakeReach;
+  return {
+    head: CREATOR_CUE_AMPLITUDE.shakeYawDegrees + headYawDegrees * r,
+    neck: neckYawDegrees * r,
+    spine: spineYawDegrees * r,
   };
 }
 
@@ -258,25 +291,30 @@ export interface CreationRegion {
 /** The body part a cue moves, and the crop the pixel gate samples over it. */
 export type CreatorCuePart = "head" | "shoulders" | "hips";
 
-/** The gate's crop is this wide where the head is at least that tall on screen ... */
+/** Side of the square the gate samples over a part, the design's figure at every stop. */
 export const CREATOR_CUE_REGION_PX = 200;
-/** ... and this many head heights where it is smaller, so the crop stays over the part. */
-export const CREATOR_CUE_REGION_HEADS = 1.3;
+/** A head this tall on screen, or shorter, takes a cue's full reach (`cueReach`). */
+export const CREATOR_CUE_FULL_REACH_HEAD_PX = 100;
 
 /**
- * Side of the square the gate samples. The design's 200 px is the head-to-chest stop's
- * figure (head 243 px tall at 1440x900); at the full-body stop the head is 93 px and a
- * 200 px crop over it is four fifths background, so the crop follows the head instead.
+ * The gate's crop centred on a projected point (CSS pixels from the canvas's top-left),
+ * kept inside the canvas so `gl.readPixels` never reads the zeros outside the buffer: a
+ * crop that would overhang slides in, and a part whose centre is off the canvas (the hips
+ * at the head-to-chest stop) yields null rather than a silent zero diff.
  */
-export function cueRegionSize(headHeightPx: number): number {
-  if (!(headHeightPx > 0)) return CREATOR_CUE_REGION_PX;
-  return Math.max(1, Math.min(CREATOR_CUE_REGION_PX, Math.round(headHeightPx * CREATOR_CUE_REGION_HEADS)));
-}
-
-/** The gate's crop centred on a projected point (CSS pixels), sized to the head on screen. */
-export function cueRegion(centre: { x: number; y: number }, headHeightPx: number): CreationRegion {
-  const size = cueRegionSize(headHeightPx);
-  return { x: Math.round(centre.x - size / 2), y: Math.round(centre.y - size / 2), w: size, h: size };
+export function cueRegion(
+  centre: { x: number; y: number },
+  canvas: { width: number; height: number },
+): CreationRegion | null {
+  if (!(canvas.width >= 1) || !(canvas.height >= 1)) return null;
+  if (!(centre.x >= 0) || !(centre.y >= 0) || centre.x > canvas.width || centre.y > canvas.height) return null;
+  const size = Math.min(CREATOR_CUE_REGION_PX, Math.floor(canvas.width), Math.floor(canvas.height));
+  return {
+    x: clamp(Math.round(centre.x - size / 2), 0, Math.floor(canvas.width) - size),
+    y: clamp(Math.round(centre.y - size / 2), 0, Math.floor(canvas.height) - size),
+    w: size,
+    h: size,
+  };
 }
 
 export interface RgbMean {

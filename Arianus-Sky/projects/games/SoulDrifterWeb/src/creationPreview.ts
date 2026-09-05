@@ -40,6 +40,7 @@ import {
   CREATOR_STATION_CHOREOGRAPHY,
   cueDurationMs,
   cueEnvelope,
+  cueReach,
   cueRegion,
   easeInOutCubic,
   easeOutQuad,
@@ -50,6 +51,7 @@ import {
   meanRgb,
   nodPitchDegrees,
   scaleGazeAngles,
+  shakeYawDegrees,
   stationGazeLimits,
   type CreationRegion,
   type CreatorCue,
@@ -230,7 +232,7 @@ const CREATOR_CUE_BONES = {
   hips: boneNameVariants("mixamorig:Hips", "Hips"),
 } as const;
 type CreatorCueBone = keyof typeof CREATOR_CUE_BONES;
-/** Read, never written: the crown, which sizes the pixel gate's crop to the head on screen. */
+/** Read, never written: the crown, whose height on screen sets a cue's reach. */
 const CREATOR_CUE_HEAD_TOP = boneNameVariants("mixamorig:HeadTop_End", "HeadTop_End");
 // Bone-local axes of the upright mixamorig spine and head: X ear-to-ear (a positive
 // turn nods down), Y up the bone, Z forward. The shoulders rotate about their own Z.
@@ -252,10 +254,8 @@ const CREATOR_SETTLE_AMPLITUDE_SECONDS = 0.3;
 export class CreatorCuePlayer {
   private readonly bones = new Map<CreatorCueBone, THREE.Object3D>();
   private headTopBone: THREE.Object3D | null = null;
-  private readonly startedAt = new Map<Exclude<CreatorCue, "settle">, number>();
-  /** The station's reach (`CreatorStationChoreography.nodReach`), latched by each nod as it starts. */
-  private nodReachTarget = 0;
-  private nodReach = 0;
+  /** Each cue in flight: when it started and the reach (`cueReach`) it latched as it did. */
+  private readonly inFlight = new Map<Exclude<CreatorCue, "settle">, { startedAt: number; reach: number }>();
   private settleFrom = 0;
   private settleTo = 0;
   private settleStartedAt = 0;
@@ -301,7 +301,7 @@ export class CreatorCuePlayer {
     return target.add(second.getWorldPosition(CREATOR_CUE_SCRATCH_VECTOR)).multiplyScalar(0.5);
   }
 
-  /** World-space base and crown of the head, whose distance on screen sizes the gate's crop. */
+  /** World-space base and crown of the head, whose distance on screen sets a cue's reach. */
   public headSpan(base: THREE.Vector3, crown: THREE.Vector3): boolean {
     const head = this.bones.get("head");
     if (!head || !this.headTopBone) return false;
@@ -312,19 +312,17 @@ export class CreatorCuePlayer {
 
   /** Drops every cue in flight; the next `apply` writes nothing. */
   public cancel(): void {
-    this.startedAt.clear();
+    this.inFlight.clear();
     this.settleFrom = 0;
     this.settleTo = 0;
     this.settleAmplitude = 0;
   }
 
-  /** The station's nod reach; a nod already in flight keeps the reach it started with. */
-  public setNodReach(reach: number): void {
-    this.nodReachTarget = reach;
-  }
-
-  public play(cue: CreatorCue, now: number): void {
-    if (cue === "nod") this.nodReach = this.nodReachTarget;
+  /**
+   * Starts a cue. `reach` (0..1, `cueReach` of the head's height on screen) is latched
+   * here, so a camera move mid-cue does not alter the cue in flight; the settle has none.
+   */
+  public play(cue: CreatorCue, now: number, reach = 0): void {
     if (cue === "settle") {
       // Alternate sides from wherever the last shift left the figure.
       this.settleFrom = this.settleValue(now);
@@ -332,13 +330,18 @@ export class CreatorCuePlayer {
       this.settleStartedAt = now;
       return;
     }
-    this.startedAt.set(cue, now);
+    this.inFlight.set(cue, { startedAt: now, reach: Number.isFinite(reach) ? Math.min(1, Math.max(0, reach)) : 0 });
   }
 
   public isPlaying(cue: CreatorCue, now: number): boolean {
     if (cue === "settle") return this.settleTo !== 0 && now - this.settleStartedAt < cueDurationMs("settle");
-    const startedAt = this.startedAt.get(cue);
-    return startedAt !== undefined && now - startedAt < cueDurationMs(cue);
+    const flight = this.inFlight.get(cue);
+    return flight !== undefined && now - flight.startedAt < cueDurationMs(cue);
+  }
+
+  /** The reach a cue in flight latched, or null when it is not playing. */
+  public reachOf(cue: Exclude<CreatorCue, "settle">): number | null {
+    return this.inFlight.get(cue)?.reach ?? null;
   }
 
   /** The side the figure is settled toward, -1..1 (0 when standing square). */
@@ -363,16 +366,21 @@ export class CreatorCuePlayer {
     const shake = this.envelope("shake", now);
     const brace = this.envelope("brace", now);
     const settle = this.settleValue(now) * this.settleAmplitude;
-    const nodPitch = nodPitchDegrees(this.nodReach);
+    const nodPitch = nodPitchDegrees(this.reachOf("nod") ?? 0);
+    const shakeYaw = shakeYawDegrees(this.reachOf("shake") ?? 0);
     const head = this.bones.get("head");
     if (head && (nod !== 0 || shake !== 0)) {
-      this.rotate(head, CREATOR_CUE_AXIS_Y, shake * CREATOR_CUE_AMPLITUDE.shakeYawDegrees);
+      this.rotate(head, CREATOR_CUE_AXIS_Y, shake * shakeYaw.head);
       this.rotate(head, CREATOR_CUE_AXIS_X, nod * nodPitch.head);
     }
     const neck = this.bones.get("neck");
-    if (neck && nod !== 0) this.rotate(neck, CREATOR_CUE_AXIS_X, nod * nodPitch.neck);
+    if (neck && (nod !== 0 || shake !== 0)) {
+      this.rotate(neck, CREATOR_CUE_AXIS_Y, shake * shakeYaw.neck);
+      this.rotate(neck, CREATOR_CUE_AXIS_X, nod * nodPitch.neck);
+    }
     const spine1 = this.bones.get("spine1");
-    if (spine1 && (nod !== 0 || brace !== 0 || settle !== 0)) {
+    if (spine1 && (nod !== 0 || shake !== 0 || brace !== 0 || settle !== 0)) {
+      this.rotate(spine1, CREATOR_CUE_AXIS_Y, shake * shakeYaw.spine);
       this.rotate(spine1, CREATOR_CUE_AXIS_X, nod * nodPitch.spine + brace * CREATOR_CUE_AMPLITUDE.braceSpinePitchDegrees);
       // Counter-roll: a positive turn about the forward axis leans the torso toward -X
       // while the hips slide toward +X, so the head stays over the feet.
@@ -389,11 +397,11 @@ export class CreatorCuePlayer {
   }
 
   private envelope(cue: Exclude<CreatorCue, "settle">, now: number): number {
-    const startedAt = this.startedAt.get(cue);
-    if (startedAt === undefined) return 0;
-    const elapsed = now - startedAt;
+    const flight = this.inFlight.get(cue);
+    if (flight === undefined) return 0;
+    const elapsed = now - flight.startedAt;
     if (elapsed >= cueDurationMs(cue)) {
-      this.startedAt.delete(cue);
+      this.inFlight.delete(cue);
       return 0;
     }
     return cueEnvelope(cue, elapsed);
@@ -848,7 +856,6 @@ export class CreationAvatarPreview {
     this.onLoadFailure = options.onLoadFailure;
     // Until a station speaks, the figure behaves as it does on the body station.
     this.cues.setSettleAmplitude(this.gazeProfile.settle, performance.now());
-    this.cues.setNodReach(this.gazeProfile.nodReach);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1183,7 +1190,6 @@ export class CreationAvatarPreview {
     const now = performance.now();
     this.gazeProfile = profile;
     this.cues.setSettleAmplitude(profile.settle, now);
-    this.cues.setNodReach(profile.nodReach);
     this.lastSettleAt = now;
   }
 
@@ -1216,11 +1222,15 @@ export class CreationAvatarPreview {
     this.gazeBias = { pitch: THREE.MathUtils.degToRad(pitchDegrees), startedAt: performance.now(), holdMs, blendMs };
   }
 
-  /** Plays one additive cue on the rig; nothing under reduced motion or before the idle binds. */
+  /**
+   * Plays one additive cue on the rig; nothing under reduced motion or before the idle
+   * binds. A nod or a shake takes its reach from how tall the head is on screen at the
+   * camera as last drawn, so the same cue carries from the neck at the full-body stops.
+   */
   public playCue(cue: CreatorCue): void {
     if (this.reducedMotion) return;
     const now = performance.now();
-    this.cues.play(cue, now);
+    this.cues.play(cue, now, cueReach(this.headHeightPx() ?? 0));
     this.lastSettleAt = now;
   }
 
@@ -1271,18 +1281,25 @@ export class CreationAvatarPreview {
   }
 
   /**
-   * The crop the pixel gate samples over a part the cues move, at the current camera:
-   * centred on the part's projected centre and sized to the head on screen (the design's
-   * 200 px where the head is at least that tall, `cueRegionSize` otherwise). Null until
-   * the rig and canvas are up. Read after a frame; the projection is the last one drawn.
+   * The crop the pixel gate samples over a part the cues move, at the current camera: the
+   * design's 200 px square centred on the part's projected centre, kept inside the canvas.
+   * Null until the rig and canvas are up, or when the part is off the canvas. Read after a
+   * frame; the projection is the last one drawn.
    */
   public cueRegion(part: CreatorCuePart): CreationRegion | null {
     if (this.disposed || this.cssWidth === 0 || this.cssHeight === 0) return null;
     const centre = this.cues.partCentre(part, CREATOR_REGION_CENTRE);
-    if (!centre || !this.cues.headSpan(CREATOR_REGION_HEAD_BASE, CREATOR_REGION_HEAD_CROWN)) return null;
+    if (!centre) return null;
+    return cueRegion(this.toCanvasPixels(centre), { width: this.cssWidth, height: this.cssHeight });
+  }
+
+  /** How tall the head is on screen, CSS pixels from its base to its crown at the camera as last drawn. */
+  private headHeightPx(): number | null {
+    if (this.disposed || this.cssWidth === 0 || this.cssHeight === 0) return null;
+    if (!this.cues.headSpan(CREATOR_REGION_HEAD_BASE, CREATOR_REGION_HEAD_CROWN)) return null;
     const base = this.toCanvasPixels(CREATOR_REGION_HEAD_BASE);
     const crown = this.toCanvasPixels(CREATOR_REGION_HEAD_CROWN);
-    return cueRegion(this.toCanvasPixels(centre), Math.hypot(crown.x - base.x, crown.y - base.y));
+    return Math.hypot(crown.x - base.x, crown.y - base.y);
   }
 
   /** A world point to CSS pixels from the canvas's top-left, through the camera as last drawn. */
