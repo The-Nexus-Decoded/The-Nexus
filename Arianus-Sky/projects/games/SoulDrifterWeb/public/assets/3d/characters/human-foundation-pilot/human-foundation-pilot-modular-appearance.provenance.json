@@ -625,7 +625,7 @@
           "conversionStep": "EVALUATED_INTERPOLATED_HAIR_CURVES_TO_SURFACE_ORIENTED_RUNTIME_CARDS"
         }
       },
-      "SK_Hair_Parted": {
+      "SK_Hair_Parted_Straight": {
         "route": "PROJECT_AUTHORED_EXACT_HEAD_DESIGNED_VOLUME_CARDS",
         "sourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
         "license": "PROJECT_ORIGINAL",
@@ -641,11 +641,11 @@
         },
         "buildScript": {
           "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_build.py",
-          "sha256": "88B271ECD4355D5E77C7F0B5C2F407F8B02F2C523274FC50A0BEE31637FB1E65"
+          "sha256": "BD78A66818C9CED8686CA331625BE391B2A8C025B3D6DD8C457DB064482C7C36"
         },
         "postScript": {
           "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
-          "sha256": "F865699D5682682367C53B095CC7C71C60DE1AA6D02420D38F16018F13647E75"
+          "sha256": "4215905DAEC53E4719D3028CE63FC7D8011CC3E1BD2F11FEB13DDB7CFA776527"
         },
         "atlas": {
           "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-parted-cards-atlas.png",
@@ -662,77 +662,77 @@
           "undercoatStrength": 0.3,
           "uvSet": "UVMap"
         },
-        "build": "cards: 1272 ({'edge': 217, 'short': 393, 'clump': 150, 'lane': 45, 'nape': 129, 'surface': 338}); verts 25312",
+        "build": "cards: 1342 ({'edge': 218, 'short': 393, 'clump': 149, 'nape': 129, 'surface': 453}); verts 27350",
         "meshes": {
-          "SK_Hair_Parted_Cards": {
-            "vertices": 25312,
-            "triangles": 22768,
-            "material": "MAT_HumanHair_Tintable_Parted_Cards"
+          "SK_Hair_Parted_Straight_Cards": {
+            "vertices": 27350,
+            "triangles": 24666,
+            "material": "MAT_HumanHair_Tintable_Parted_Straight_Cards"
           },
-          "SK_Hair_Parted_Mass": {
-            "vertices": 6802,
-            "triangles": 12560,
-            "material": "MAT_HumanHair_Tintable_Parted_Mass"
+          "SK_Hair_Parted_Straight_Mass": {
+            "vertices": 10674,
+            "triangles": 19956,
+            "material": "MAT_HumanHair_Tintable_Parted_Straight_Mass"
           }
         },
-        "runtimeMaterial": "MAT_HumanHair_Tintable_Parted (cards + mass), alphaMode MASK, doubleSided, KHR_materials_anisotropy, KHR_materials_specular, souldrifterTintChannel HAIR",
+        "runtimeMaterial": "MAT_HumanHair_Tintable_Parted_Straight (cards + mass), alphaMode MASK, doubleSided, KHR_materials_anisotropy, KHR_materials_specular, souldrifterTintChannel HAIR",
         "evidence": {
-          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v5",
-          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v5\\owner-contact-sheet.png"
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v7b",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v7b\\owner-contact-sheet.png"
         },
         "silhouetteVsDraft11": {
           "01-front": {
-            "iou": 0.9606,
-            "areaRatio": 0.9739,
-            "topOutlineMeanPx": 10.2,
-            "topOutlineMaxPx": 46,
-            "onlyInCardsPx": 1370,
-            "onlyInDraftPx": 6651
+            "iou": 0.9463,
+            "areaRatio": 0.957,
+            "topOutlineMeanPx": 10.6,
+            "topOutlineMaxPx": 35,
+            "onlyInCardsPx": 1109,
+            "onlyInDraftPx": 9792
           },
           "02-front34-L": {
-            "iou": 0.9566,
-            "areaRatio": 0.9644,
-            "topOutlineMeanPx": 9.9,
-            "topOutlineMaxPx": 60,
-            "onlyInCardsPx": 833,
-            "onlyInDraftPx": 8218
+            "iou": 0.9422,
+            "areaRatio": 0.9462,
+            "topOutlineMeanPx": 9.6,
+            "topOutlineMaxPx": 53,
+            "onlyInCardsPx": 428,
+            "onlyInDraftPx": 11587
           },
           "03-front34-R": {
-            "iou": 0.9605,
-            "areaRatio": 0.9682,
-            "topOutlineMeanPx": 8.9,
-            "topOutlineMaxPx": 69,
-            "onlyInCardsPx": 812,
-            "onlyInDraftPx": 7423
+            "iou": 0.9449,
+            "areaRatio": 0.9538,
+            "topOutlineMeanPx": 8.7,
+            "topOutlineMaxPx": 67,
+            "onlyInCardsPx": 952,
+            "onlyInDraftPx": 10556
           },
           "04-profile-L": {
-            "iou": 0.9587,
-            "areaRatio": 0.9714,
-            "topOutlineMeanPx": 7.7,
-            "topOutlineMaxPx": 28,
-            "onlyInCardsPx": 1299,
-            "onlyInDraftPx": 7057
+            "iou": 0.9482,
+            "areaRatio": 0.9612,
+            "topOutlineMeanPx": 7.5,
+            "topOutlineMaxPx": 33,
+            "onlyInCardsPx": 1335,
+            "onlyInDraftPx": 9144
           },
           "09-crown": {
-            "iou": 0.947,
-            "areaRatio": 0.9608,
-            "topOutlineMeanPx": 10.5,
-            "topOutlineMaxPx": 110,
-            "onlyInCardsPx": 1582,
-            "onlyInDraftPx": 10378
+            "iou": 0.9288,
+            "areaRatio": 0.9311,
+            "topOutlineMeanPx": 13.5,
+            "topOutlineMaxPx": 204,
+            "onlyInCardsPx": 278,
+            "onlyInDraftPx": 15720
           },
           "11-pitch+25": "reference mask empty (draft-11 render of this view is blank); skipped",
           "12-pitch-25": {
-            "iou": 0.9608,
-            "areaRatio": 0.9722,
-            "topOutlineMeanPx": 11.1,
-            "topOutlineMaxPx": 63,
-            "onlyInCardsPx": 1318,
-            "onlyInDraftPx": 7578
+            "iou": 0.9495,
+            "areaRatio": 0.9583,
+            "topOutlineMeanPx": 12.0,
+            "topOutlineMaxPx": 53,
+            "onlyInCardsPx": 1016,
+            "onlyInDraftPx": 10431
           }
         }
       },
-      "SK_Hair_CurlyCoiled": {
+      "SK_Hair_Cropped_Curly": {
         "route": "PROJECT_AUTHORED_EXACT_HEAD_COIL_MASS_PLUS_FUR_SHELLS",
         "sourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
         "license": "PROJECT_ORIGINAL",
@@ -746,11 +746,11 @@
         },
         "buildScript": {
           "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_build.py",
-          "sha256": "88B271ECD4355D5E77C7F0B5C2F407F8B02F2C523274FC50A0BEE31637FB1E65"
+          "sha256": "BD78A66818C9CED8686CA331625BE391B2A8C025B3D6DD8C457DB064482C7C36"
         },
         "postScript": {
           "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\hair_pack_post.py",
-          "sha256": "F865699D5682682367C53B095CC7C71C60DE1AA6D02420D38F16018F13647E75"
+          "sha256": "4215905DAEC53E4719D3028CE63FC7D8011CC3E1BD2F11FEB13DDB7CFA776527"
         },
         "atlas": {
           "path": "H:\\CodexData\\souldrifter-toolchain\\hair-pack\\atlas\\hair-coily-shell-tile.png",
@@ -769,21 +769,21 @@
         },
         "build": "coily shells: 5 x 6447 verts = 32235",
         "meshes": {
-          "SK_Hair_CurlyCoiled_Cards": {
+          "SK_Hair_Cropped_Curly_Cards": {
             "vertices": 32380,
             "triangles": 62800,
-            "material": "MAT_HumanHair_Tintable_CurlyCoiled_Cards"
+            "material": "MAT_HumanHair_Tintable_Cropped_Curly_Cards"
           },
-          "SK_Hair_CurlyCoiled_Mass": {
+          "SK_Hair_Cropped_Curly_Mass": {
             "vertices": 6456,
             "triangles": 12560,
-            "material": "MAT_HumanHair_Tintable_CurlyCoiled_Mass"
+            "material": "MAT_HumanHair_Tintable_Cropped_Curly_Mass"
           }
         },
-        "runtimeMaterial": "MAT_HumanHair_Tintable_CurlyCoiled (shells + mass), alphaMode MASK, doubleSided, KHR_materials_anisotropy, KHR_materials_specular, souldrifterTintChannel HAIR; shells cut by texture alpha x COLOR_0 alpha at alphaCutoff",
+        "runtimeMaterial": "MAT_HumanHair_Tintable_Cropped_Curly (shells + mass), alphaMode MASK, doubleSided, KHR_materials_anisotropy, KHR_materials_specular, souldrifterTintChannel HAIR; shells cut by texture alpha x COLOR_0 alpha at alphaCutoff",
         "evidence": {
-          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v5",
-          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v5\\owner-contact-sheet-coily.png"
+          "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v7b",
+          "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v7b\\owner-contact-sheet-coily.png"
         }
       }
     }
@@ -794,16 +794,20 @@
     "boneCount": 65,
     "materialFamily": "MAT_HumanHair_Tintable",
     "moduleNames": [
-      "SK_Hair_Parted",
-      "SK_Hair_CurlyCoiled"
+      "SK_Hair_Parted_Straight",
+      "SK_Hair_Cropped_Curly"
     ],
     "requiredModuleNames": [
-      "SK_Hair_Cropped",
-      "SK_Hair_Parted",
-      "SK_Hair_CurlyCoiled",
-      "SK_Hair_Long",
-      "SK_Hair_TiedBack",
-      "SK_Hair_Braided",
+      "SK_Hair_Cropped_Straight",
+      "SK_Hair_Cropped_Curly",
+      "SK_Hair_Parted_Straight",
+      "SK_Hair_Parted_Curly",
+      "SK_Hair_Long_Straight",
+      "SK_Hair_Long_Curly",
+      "SK_Hair_TiedBack_Straight",
+      "SK_Hair_TiedBack_Curly",
+      "SK_Hair_Braided_Straight",
+      "SK_Hair_Braided_Curly",
       "SK_FacialHair_Stubble",
       "SK_FacialHair_Moustache",
       "SK_FacialHair_Goatee",
@@ -811,10 +815,14 @@
       "SK_FacialHair_FullBeard"
     ],
     "withheldModules": {
-      "SK_Hair_Cropped": "owner live review revoked the prior approval; source fit/material must be rebuilt and re-proven against the exact head",
-      "SK_Hair_Long": "new exact-head strand candidate remains under front/side/rear/collision QA",
-      "SK_Hair_TiedBack": "owner live review found a glossy rigid cap plus ear/neck/body penetration",
-      "SK_Hair_Braided": "owner live review found a glossy rigid cap plus ear/neck/body penetration",
+      "SK_Hair_Cropped_Straight": "owner live review revoked the prior approval; source fit/material must be rebuilt and re-proven against the exact head",
+      "SK_Hair_Parted_Curly": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Long_Straight": "new exact-head strand candidate remains under front/side/rear/collision QA",
+      "SK_Hair_Long_Curly": "no validated module authored for this style under this texture yet",
+      "SK_Hair_TiedBack_Straight": "owner live review found a glossy rigid cap plus ear/neck/body penetration",
+      "SK_Hair_TiedBack_Curly": "no validated module authored for this style under this texture yet",
+      "SK_Hair_Braided_Straight": "owner live review found a glossy rigid cap plus ear/neck/body penetration",
+      "SK_Hair_Braided_Curly": "no validated module authored for this style under this texture yet",
       "SK_FacialHair_Stubble": "candidate reads as patchy bulk instead of surface stubble",
       "SK_FacialHair_Moustache": "owner live review found the prior moustache floating and misfitted",
       "SK_FacialHair_Goatee": "candidate projects as a detached chin shelf",
@@ -825,7 +833,6 @@
       "shaved-buzzed",
       "cropped",
       "parted",
-      "curly-coiled",
       "long",
       "tied-back",
       "braided"
@@ -837,30 +844,35 @@
       "goatee",
       "short-beard",
       "full-beard"
-    ]
+    ],
+    "hairTextures": [
+      "straight",
+      "curly"
+    ],
+    "hairModuleNaming": "SK_Hair_<Style>_<Texture>; shaved-buzzed is the scalp under every texture"
   },
   "modules": {
-    "SK_Hair_Parted": {
+    "SK_Hair_Parted_Straight": {
       "status": "LOCAL_AUTHORING_VALIDATED",
       "children": [
-        "SK_Hair_Parted_Cards",
-        "SK_Hair_Parted_Mass"
+        "SK_Hair_Parted_Straight_Cards",
+        "SK_Hair_Parted_Straight_Mass"
       ],
       "meshes": {
-        "SK_Hair_Parted_Cards": {
-          "vertices": 25312,
-          "triangles": 22768,
-          "material": "MAT_HumanHair_Tintable_Parted_Cards"
+        "SK_Hair_Parted_Straight_Cards": {
+          "vertices": 27350,
+          "triangles": 24666,
+          "material": "MAT_HumanHair_Tintable_Parted_Straight_Cards"
         },
-        "SK_Hair_Parted_Mass": {
-          "vertices": 6802,
-          "triangles": 12560,
-          "material": "MAT_HumanHair_Tintable_Parted_Mass"
+        "SK_Hair_Parted_Straight_Mass": {
+          "vertices": 10674,
+          "triangles": 19956,
+          "material": "MAT_HumanHair_Tintable_Parted_Straight_Mass"
         }
       },
       "materials": [
-        "MAT_HumanHair_Tintable_Parted_Cards",
-        "MAT_HumanHair_Tintable_Parted_Mass"
+        "MAT_HumanHair_Tintable_Parted_Straight_Cards",
+        "MAT_HumanHair_Tintable_Parted_Straight_Mass"
       ],
       "images": [
         "hair-coily-shell-tile",
@@ -870,27 +882,27 @@
       ],
       "headWeighted": true
     },
-    "SK_Hair_CurlyCoiled": {
+    "SK_Hair_Cropped_Curly": {
       "status": "LOCAL_AUTHORING_VALIDATED",
       "children": [
-        "SK_Hair_CurlyCoiled_Cards",
-        "SK_Hair_CurlyCoiled_Mass"
+        "SK_Hair_Cropped_Curly_Cards",
+        "SK_Hair_Cropped_Curly_Mass"
       ],
       "meshes": {
-        "SK_Hair_CurlyCoiled_Cards": {
+        "SK_Hair_Cropped_Curly_Cards": {
           "vertices": 32380,
           "triangles": 62800,
-          "material": "MAT_HumanHair_Tintable_CurlyCoiled_Cards"
+          "material": "MAT_HumanHair_Tintable_Cropped_Curly_Cards"
         },
-        "SK_Hair_CurlyCoiled_Mass": {
+        "SK_Hair_Cropped_Curly_Mass": {
           "vertices": 6456,
           "triangles": 12560,
-          "material": "MAT_HumanHair_Tintable_CurlyCoiled_Mass"
+          "material": "MAT_HumanHair_Tintable_Cropped_Curly_Mass"
         }
       },
       "materials": [
-        "MAT_HumanHair_Tintable_CurlyCoiled_Cards",
-        "MAT_HumanHair_Tintable_CurlyCoiled_Mass"
+        "MAT_HumanHair_Tintable_Cropped_Curly_Cards",
+        "MAT_HumanHair_Tintable_Cropped_Curly_Mass"
       ],
       "images": [
         "hair-coily-shell-tile",
@@ -911,15 +923,15 @@
     "allVerticesHeadWeighted": true,
     "permanentFusion": false,
     "visualGate": "PASS_FAIL_CLOSED_PER_MODULE",
-    "silhouetteGate": "PASS_IOU_GE_0.93_VS_OWNER_APPROVED_DRAFT11",
-    "silhouetteGateModule": "SK_Hair_Parted",
+    "silhouetteGate": "REVIEW_IOU_BELOW_0.93",
+    "silhouetteGateModule": "SK_Hair_Parted_Straight",
     "silhouetteIoUByView": {
-      "01-front": 0.9606,
-      "02-front34-L": 0.9566,
-      "03-front34-R": 0.9605,
-      "04-profile-L": 0.9587,
-      "09-crown": 0.947,
-      "12-pitch-25": 0.9608
+      "01-front": 0.9463,
+      "02-front34-L": 0.9422,
+      "03-front34-R": 0.9449,
+      "04-profile-L": 0.9482,
+      "09-crown": 0.9288,
+      "12-pitch-25": 0.9495
     },
     "withheldModulesExcluded": true
   },
@@ -927,8 +939,8 @@
     "status": "PASS",
     "meshCount": 4,
     "moduleNames": [
-      "SK_Hair_CurlyCoiled",
-      "SK_Hair_Parted"
+      "SK_Hair_Cropped_Curly",
+      "SK_Hair_Parted_Straight"
     ],
     "boneCount": 65,
     "rootBones": [
@@ -938,25 +950,25 @@
     "approvalMetadataRoundTrips": true
   },
   "evidence": {
-    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v5",
-    "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v5\\owner-contact-sheet.png",
-    "ownerViews": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v5\\owner-view",
-    "silhouettes": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v5\\silhouette",
+    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v7b",
+    "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v7b\\owner-contact-sheet.png",
+    "ownerViews": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v7b\\owner-view",
+    "silhouettes": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v7b\\silhouette",
     "hairTint": "preview multiply (0.42, 0.27, 0.17); runtime tints from HAIR_COLORS",
     "renderer": "Blender 5.2.1 EEVEE, 1024 px, ortho 0.215",
     "modules": {
-      "SK_Hair_Parted": {
-        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v5\\owner-contact-sheet.png"
+      "SK_Hair_Parted_Straight": {
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v7b\\owner-contact-sheet.png"
       },
-      "SK_Hair_CurlyCoiled": {
-        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v5\\owner-contact-sheet-coily.png"
+      "SK_Hair_Cropped_Curly": {
+        "contactSheet": "H:/CodexData/souldrifter-toolchain/evidence/487/hair-pack-v7b\\owner-contact-sheet-coily.png"
       }
     }
   },
   "output": {
     "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb\\public/assets/3d/characters/human-foundation-pilot\\human-foundation-pilot-modular-appearance.glb",
-    "bytes": 8196232,
-    "sha256": "68691127F690CE49E41ED4FDFE5A73C6C52CDDC5AEF395BC1C71817833317525"
+    "bytes": 8715940,
+    "sha256": "1CC3EAB205F8AB5B1F09828C36FF73A45CDDC84497AB399EEEB6C520E572E935"
   },
   "runtimeNotes": [
     "Shaved-buzzed remains the zero-volume baseline and is not duplicated.",
@@ -971,6 +983,7 @@
     "Every shipped hair module is skinned 100% to mixamorig:Head and rebound to the target skeleton by bone name; none contains a scalp/underlay child.",
     "Module extras carry the approved follicle-mask contract (souldrifterFollicleMask*), so the exact Tripo scalp darkens under the cut; the mask lives in follicle-masks/ and is protected in the runtime asset manifest.",
     "All hair materials declare souldrifterTintChannel HAIR: the runtime recolors the neutral-grey maps from HAIR_COLORS and forces alpha-to-coverage, double-sided, roughness >= 0.58.",
-    "SK_Hair_CurlyCoiled is a coil mass under five fur shells; each shell's COLOR_0 alpha scales the puff alpha so the runtime alphaCutoff keeps fewer, smaller puffs per step out."
+    "SK_Hair_CurlyCoiled is a coil mass under five fur shells; each shell's COLOR_0 alpha scales the puff alpha so the runtime alphaCutoff keeps fewer, smaller puffs per step out.",
+    "SK_Hair_Cropped_Curly is a coil mass under five fur shells; each shell's COLOR_0 alpha scales the puff alpha so the runtime alphaCutoff keeps fewer, smaller puffs per step out."
   ]
 }

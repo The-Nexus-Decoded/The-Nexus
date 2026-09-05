@@ -17,12 +17,12 @@ const follicleMaskUrl = new URL(
 );
 
 const HEAD_SHA256 = "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8";
-const shippedModules = ["SK_Hair_Parted", "SK_Hair_CurlyCoiled"];
+const shippedModules = ["SK_Hair_Parted_Straight", "SK_Hair_Cropped_Curly"];
+const HAIR_STYLE_MODULES = ["Cropped", "Parted", "Long", "TiedBack", "Braided"];
+const HAIR_TEXTURE_MODULES = ["Straight", "Curly"];
 const withheldModules = [
-  "SK_Hair_Cropped",
-  "SK_Hair_Long",
-  "SK_Hair_TiedBack",
-  "SK_Hair_Braided",
+  ...HAIR_STYLE_MODULES.flatMap((style) => HAIR_TEXTURE_MODULES.map((texture) => `SK_Hair_${style}_${texture}`))
+    .filter((name) => !shippedModules.includes(name)),
   "SK_FacialHair_Stubble",
   "SK_FacialHair_Moustache",
   "SK_FacialHair_Goatee",
@@ -75,7 +75,7 @@ function readAccessor(json, bin, index) {
 const bytes = readFileSync(fileURLToPath(assetUrl));
 const { json, bin } = glb(bytes);
 const nodes = json.nodes ?? [];
-const module = nodes.find((node) => node.name === "SK_Hair_Parted");
+const module = nodes.find((node) => node.name === "SK_Hair_Parted_Straight");
 const modules = Object.fromEntries(shippedModules.map((name) => [name, nodes.find((node) => node.name === name)]));
 
 describe("Human foundation modular appearance pack", () => {
@@ -157,8 +157,8 @@ describe("Human foundation modular appearance pack", () => {
   });
 
   it("stacks the coily fur shells with a falling vertex alpha so alphaCutoff thins them outward", () => {
-    const stats = vertexAlphaStats("SK_Hair_CurlyCoiled_Cards");
-    const mass = json.meshes.find((entry) => entry.name === "SK_Hair_CurlyCoiled_Mass");
+    const stats = vertexAlphaStats("SK_Hair_Cropped_Curly_Cards");
+    const mass = json.meshes.find((entry) => entry.name === "SK_Hair_Cropped_Curly_Mass");
     const massCount = json.accessors[mass.primitives[0].attributes.POSITION].count;
     // five shells over the mass, every vertex carrying its shell's coverage
     expect(stats.count).toBeGreaterThanOrEqual(massCount * 5 - 5 * 64);
@@ -169,10 +169,10 @@ describe("Human foundation modular appearance pack", () => {
 
   it("uses alpha-tested, double-sided, tintable hair materials with anisotropy", () => {
     expect(json.materials.map((material) => material.name).sort()).toEqual([
-      "MAT_HumanHair_Tintable_CurlyCoiled_Cards",
-      "MAT_HumanHair_Tintable_CurlyCoiled_Mass",
-      "MAT_HumanHair_Tintable_Parted_Cards",
-      "MAT_HumanHair_Tintable_Parted_Mass",
+      "MAT_HumanHair_Tintable_Cropped_Curly_Cards",
+      "MAT_HumanHair_Tintable_Cropped_Curly_Mass",
+      "MAT_HumanHair_Tintable_Parted_Straight_Cards",
+      "MAT_HumanHair_Tintable_Parted_Straight_Mass",
     ]);
     for (const material of json.materials) {
       expect(material.alphaMode).toBe("MASK");
@@ -219,12 +219,12 @@ describe("Human foundation modular appearance pack", () => {
       source: {
         exactHead: { sha256: HEAD_SHA256 },
         localAuthoredHair: {
-          SK_Hair_Parted: {
+          SK_Hair_Parted_Straight: {
             license: "PROJECT_ORIGINAL",
             sourceHeadSha256: HEAD_SHA256,
             ownerApproval: { silhouetteDraft: "draft11", date: "2026-09-04" },
           },
-          SK_Hair_CurlyCoiled: {
+          SK_Hair_Cropped_Curly: {
             license: "PROJECT_ORIGINAL",
             sourceHeadSha256: HEAD_SHA256,
             ownerApproval: { status: "PENDING_LIVE_REVIEW" },
@@ -254,7 +254,7 @@ describe("Human foundation modular appearance pack", () => {
       },
     });
     expect(Object.keys(provenance.contract.withheldModules).sort()).toEqual([...withheldModules].sort());
-    expect(provenance.source.localAuthoredHair.SK_Hair_Parted.follicleMask.sha256)
+    expect(provenance.source.localAuthoredHair.SK_Hair_Parted_Straight.follicleMask.sha256)
       .toBe(module.extras.souldrifterFollicleMaskSha256);
     expect(provenance.output.bytes).toBe(bytes.length);
     expect(provenance.output.sha256).toBe(sha256(bytes));
