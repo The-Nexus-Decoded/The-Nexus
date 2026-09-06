@@ -1,0 +1,465 @@
+{
+ "version": 1,
+ "issue": 487,
+ "basePath": "/assets/3d/characters/human-foundation-pilot/appearance-modules",
+ "textures": [
+  {
+   "file": "hair-coily-shell-tile.png",
+   "bytes": 737764
+  },
+  {
+   "file": "hair-coily-cap-tile.png",
+   "bytes": 500846
+  },
+  {
+   "file": "hair-parted-cards-atlas.png",
+   "bytes": 688099
+  },
+  {
+   "file": "hair-parted-cap-tile.png",
+   "bytes": 17994
+  }
+ ],
+ "modules": [
+  {
+   "name": "SK_Hair_Afro_Curly",
+   "file": "SK_Hair_Afro_Curly.glb",
+   "bytes": 2812424,
+   "sha256": "793F0219E67729D942692EC0311832BE3116F1A7710BB2F844FB17AE6DA4BA06",
+   "vertices": 38892,
+   "meshes": [
+    "SK_Hair_Afro_Curly_Cards",
+    "SK_Hair_Afro_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "rounded-natural-coil-shells-v1",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Braided_Curly",
+   "file": "SK_Hair_Braided_Curly.glb",
+   "bytes": 7722320,
+   "sha256": "5C6D04D324CC01D10B08F07BB66FDAC97C89E9D979397E6AB7A900B61BC42863",
+   "vertices": 109156,
+   "meshes": [
+    "SK_Hair_Braided_Curly_Cards",
+    "SK_Hair_Braided_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "gathered-three-strand-chevron-plaits-coiled-v13",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Braided_Straight",
+   "file": "SK_Hair_Braided_Straight.glb",
+   "bytes": 7488828,
+   "sha256": "A4C529E3A2A5E0F28665328C6E99F6900CD66358C453290D2D94EF3E1CC93428",
+   "vertices": 105642,
+   "meshes": [
+    "SK_Hair_Braided_Straight_Cards",
+    "SK_Hair_Braided_Straight_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "gathered-three-strand-chevron-plaits-straight-v13",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Bun_Curly",
+   "file": "SK_Hair_Bun_Curly.glb",
+   "bytes": 7059012,
+   "sha256": "1EC5BCE390B1B98671427EF0AAEF4ABF70236BEBBE95A3578E443BE15733E989",
+   "vertices": 94177,
+   "meshes": [
+    "SK_Hair_Bun_Curly_Cards",
+    "SK_Hair_Bun_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "swept-back-gathered-wound-knot-coils-v3",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Bun_Straight",
+   "file": "SK_Hair_Bun_Straight.glb",
+   "bytes": 8545540,
+   "sha256": "D23D6D89AD77B694E23D041CBA01B43C193C7289E000720F00E0EAEF9354C213",
+   "vertices": 120838,
+   "meshes": [
+    "SK_Hair_Bun_Straight_Cards",
+    "SK_Hair_Bun_Straight_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "swept-back-gathered-wound-knot-cards-v4",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Cornrows_Curly",
+   "file": "SK_Hair_Cornrows_Curly.glb",
+   "bytes": 6864188,
+   "sha256": "4249548437562459EEB6100B05C621D14B44FB8951D42A8B150B11B1501672AB",
+   "vertices": 96399,
+   "meshes": [
+    "SK_Hair_Cornrows_Curly_Cards",
+    "SK_Hair_Cornrows_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "scalp-rows-three-strand-braid-swirl-v11",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Cornrows_Straight",
+   "file": "SK_Hair_Cornrows_Straight.glb",
+   "bytes": 7306320,
+   "sha256": "44E20416D934972C18F8F44C56B7E44368C6A63DEDA05B7E8066F8F8E4092081",
+   "vertices": 102690,
+   "meshes": [
+    "SK_Hair_Cornrows_Straight_Cards",
+    "SK_Hair_Cornrows_Straight_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "scalp-rows-three-strand-braid-v11",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Cropped_Curly",
+   "file": "SK_Hair_Cropped_Curly.glb",
+   "bytes": 2809080,
+   "sha256": "93F102B02AD6A05939D1DFF14586FC2958A28A478DD0FFC5EFD2568F8B94F47D",
+   "vertices": 38836,
+   "meshes": [
+    "SK_Hair_Cropped_Curly_Cards",
+    "SK_Hair_Cropped_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "compact-coils-shells-v2",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Cropped_Straight",
+   "file": "SK_Hair_Cropped_Straight.glb",
+   "bytes": 2288900,
+   "sha256": "3FAE001F4C51E9A55E0954107BCB278356CAA55BC33F6E4DDDFA03CB20D55891",
+   "vertices": 35758,
+   "meshes": [
+    "SK_Hair_Cropped_Straight_Cards",
+    "SK_Hair_Cropped_Straight_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "even-volume-outward-cards-v1",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Fade_Curly",
+   "file": "SK_Hair_Fade_Curly.glb",
+   "bytes": 2345800,
+   "sha256": "05397EDA500380C55C8A06526CC1E4BFEFA9F3DCBEC6BFA672032FDA4B953FF6",
+   "vertices": 32371,
+   "meshes": [
+    "SK_Hair_Fade_Curly_Cards",
+    "SK_Hair_Fade_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "tapered-sides-full-top-coils-v1",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Fade_Straight",
+   "file": "SK_Hair_Fade_Straight.glb",
+   "bytes": 1349332,
+   "sha256": "8AF24434F01C2E8B8D229D4E10E8DDB0A7CEB19DCB2EFD004600C4A2FAAACE45",
+   "vertices": 20460,
+   "meshes": [
+    "SK_Hair_Fade_Straight_Cards",
+    "SK_Hair_Fade_Straight_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "tapered-sides-full-top-cards-v1",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Locs_Curly",
+   "file": "SK_Hair_Locs_Curly.glb",
+   "bytes": 11837908,
+   "sha256": "3A3586A0F6CB03D2D567E2296236DD1FE2A58B4E152BCD43055C27C31AB306D4",
+   "vertices": 150825,
+   "meshes": [
+    "SK_Hair_Locs_Curly_Cards",
+    "SK_Hair_Locs_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "combed-back-locs-swept-tubes-coily-v11",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Locs_Straight",
+   "file": "SK_Hair_Locs_Straight.glb",
+   "bytes": 11486220,
+   "sha256": "6B50BD352E2D2F170025251B31950A32C7A921B152BB91C88B68E619073552A5",
+   "vertices": 146477,
+   "meshes": [
+    "SK_Hair_Locs_Straight_Cards",
+    "SK_Hair_Locs_Straight_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "combed-back-locs-swept-tubes-v11",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Long_Curly",
+   "file": "SK_Hair_Long_Curly.glb",
+   "bytes": 13609664,
+   "sha256": "DC7F02D6BDB3B9998423E356FE63895C28506F225BD6F0395C622908FB11B556",
+   "vertices": 191214,
+   "meshes": [
+    "SK_Hair_Long_Curly_Cards",
+    "SK_Hair_Long_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "falling-gravity-guides-shoulder-length-ringlets-v13",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Long_Straight",
+   "file": "SK_Hair_Long_Straight.glb",
+   "bytes": 10113632,
+   "sha256": "3F75B6F846F74F458F72C033E27CFE5F76E4BB3D21537037461F81D305D1D578",
+   "vertices": 142086,
+   "meshes": [
+    "SK_Hair_Long_Straight_Cards",
+    "SK_Hair_Long_Straight_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "falling-gravity-guides-shoulder-length-flat-sheets-v13",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Parted_Curly",
+   "file": "SK_Hair_Parted_Curly.glb",
+   "bytes": 3034228,
+   "sha256": "584DD69D8D76D5ADD0AB6FED8B617370B6E16D032A74C3C0A22F4BE17410C112",
+   "vertices": 41964,
+   "meshes": [
+    "SK_Hair_Parted_Curly_Cards",
+    "SK_Hair_Parted_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "coil-shells-parted-v1",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Parted_Straight",
+   "file": "SK_Hair_Parted_Straight.glb",
+   "bytes": 3739356,
+   "sha256": "CEF56999A464279BBE91285500EE06B10BC4A1167C2D5083E1755044FB8EF164",
+   "vertices": 56667,
+   "meshes": [
+    "SK_Hair_Parted_Straight_Cards",
+    "SK_Hair_Parted_Straight_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "draft11-designed-volume-cards-v1",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_TiedBack_Curly",
+   "file": "SK_Hair_TiedBack_Curly.glb",
+   "bytes": 5498224,
+   "sha256": "BAA2E638DCB68C3F32DED2132C72D975764AB0993320A9C3AD9FA5246FD77814",
+   "vertices": 79720,
+   "meshes": [
+    "SK_Hair_TiedBack_Curly_Cards",
+    "SK_Hair_TiedBack_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "swept-back-gathered-tail-coils-v3",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_TiedBack_Straight",
+   "file": "SK_Hair_TiedBack_Straight.glb",
+   "bytes": 8092188,
+   "sha256": "1A9D4733858A1F5777E49DFD9DC5EDFE57F124A56967C99D51DE8AE12BE92725",
+   "vertices": 114627,
+   "meshes": [
+    "SK_Hair_TiedBack_Straight_Cards",
+    "SK_Hair_TiedBack_Straight_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "swept-back-gathered-tail-cards-v4",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  },
+  {
+   "name": "SK_Hair_Twists_Curly",
+   "file": "SK_Hair_Twists_Curly.glb",
+   "bytes": 15966088,
+   "sha256": "574A79FC7205DCD07B5E2BFF17EEF3F35B185037318344DE8A7820D72F32203A",
+   "vertices": 204646,
+   "meshes": [
+    "SK_Hair_Twists_Curly_Cards",
+    "SK_Hair_Twists_Curly_Mass"
+   ],
+   "extras": {
+    "souldrifterApprovalStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterHeadBone": "mixamorig:Head",
+    "souldrifterAuthoring": "two-strand-twists-laid-double-helix-v11",
+    "souldrifterFollicleMaskStatus": "LOCAL_AUTHORING_VALIDATED",
+    "souldrifterFollicleMaskUrl": "/assets/3d/characters/human-foundation-pilot/follicle-masks/hair-parted-scalp-v1.png",
+    "souldrifterFollicleMaskSha256": "221299A3FE6EB00D1E725AF55CCA7A9C12DEDE8ABA6757414518EEA674A15667",
+    "souldrifterFollicleMaskUvSet": "UVMap",
+    "souldrifterFollicleMaskSourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "souldrifterFollicleUndercoatStrength": 0.3
+   }
+  }
+ ]
+}

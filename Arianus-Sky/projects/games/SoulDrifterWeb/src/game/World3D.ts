@@ -116,6 +116,7 @@ import { applyPilotSkinPreset, type PilotSkinPresetId } from "./pilotSkinReview"
 import { FacialAnimationDriver, type FacialAnimationCapabilityStatus } from "./facialAnimationDriver";
 import {
   createHumanAppearancePortraitController,
+  ensureWornHumanAppearanceModules,
   hydrateHumanAppearanceModules,
 } from "./humanAppearanceAssembly";
 import {
@@ -1196,7 +1197,10 @@ export class World3D {
     const appearance = id === "player" && !this.pilotReviewEnabled
       ? this.profile.appearance
       : NPC_APPEARANCES[id];
-    if (appearance && path === HUMAN_FOUNDATION_MODEL_PATH) await hydrateHumanAppearanceModules(model);
+    if (appearance && path === HUMAN_FOUNDATION_MODEL_PATH) {
+      await hydrateHumanAppearanceModules(model);
+      await ensureWornHumanAppearanceModules(model, appearance);
+    }
     const importedHelpers: THREE.Object3D[] = [];
     model.traverse((child) => {
       if (child instanceof THREE.Camera || child instanceof THREE.Light

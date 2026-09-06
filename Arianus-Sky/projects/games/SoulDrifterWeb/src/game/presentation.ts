@@ -15,6 +15,7 @@ import {
   hasValidatedAppearanceAncestor,
   HUMAN_FACIAL_HAIR_MODULE_NAMES,
   humanHairModuleName,
+  requestHumanAppearanceModule,
 } from "./humanAppearanceAssembly";
 
 export interface PointerHitCandidate<TTile> {
@@ -230,7 +231,8 @@ export interface ModularAppearance {
   facialHairGreying?: number;
 }
 
-export type ModularAssetApplication = "applied" | "none" | "missing-provider-asset";
+/** `loading` means the pack carries the module and it is on its way, which is not a failure. */
+export type ModularAssetApplication = "applied" | "none" | "loading" | "missing-provider-asset";
 
 export interface ModularAppearanceResult {
   hair: ModularAssetApplication;
@@ -627,13 +629,24 @@ function findApprovedModule(model: THREE.Object3D, name: string): THREE.Object3D
   return match;
 }
 
-function hideAppearanceModules(model: THREE.Object3D): void {
+const HAIR_MODULE_NAME = /^SK_Hair_(?:Buzzed|CurlyCoiled|(?:Cropped|Fade|Parted|Afro|Cornrows|Locs|Twists|Bun|TiedBack|Braided|Long)(?:_(?:Straight|Curly))?)$/i;
+const FACIAL_HAIR_MODULE_NAME = /^SK_FacialHair_(?:Stubble|Moustache|Goatee|ShortBeard|FullBeard)$/i;
+
+/**
+ * Clears the modules this pass is about to re-decide. When a newly chosen module is still being
+ * fetched, its group is left alone so the figure keeps the hair it is already wearing instead of
+ * going bald for the length of a download.
+ */
+function hideAppearanceModules(
+  model: THREE.Object3D,
+  keepVisible?: { hair?: boolean; facialHair?: boolean },
+): void {
   model.traverse((child) => {
-    if (/^SK_Hair_(?:Buzzed|CurlyCoiled|(?:Cropped|Fade|Parted|Afro|Cornrows|Locs|Twists|Bun|TiedBack|Braided|Long)(?:_(?:Straight|Curly))?)$/i.test(child.name)
-      || /^SK_HairScalp$/i.test(child.name)
-      || /^SK_SilverHairClump/i.test(child.name)
-      || /^SK_FacialHair_(?:Stubble|Moustache|Goatee|ShortBeard|FullBeard)$/i.test(child.name)
-      || /^SK_Beard_Full$/i.test(child.name)) {
+    if (HAIR_MODULE_NAME.test(child.name) || /^SK_SilverHairClump/i.test(child.name)) {
+      if (!keepVisible?.hair) child.visible = false;
+    } else if (FACIAL_HAIR_MODULE_NAME.test(child.name) || /^SK_Beard_Full$/i.test(child.name)) {
+      if (!keepVisible?.facialHair) child.visible = false;
+    } else if (/^SK_HairScalp$/i.test(child.name)) {
       child.visible = false;
     }
   });
@@ -776,28 +789,35 @@ export function applyModularAppearance(
     ...appearance,
     skinTone: appearance.skinTone ?? "ashen",
   });
-  hideAppearanceModules(model);
+  const missingProviderAssets: string[] = [];
+  const hairName = humanHairModuleName(resolved.hairStyle, resolved.hairTexture) ?? SHAVED_HAIR_MODULE_NAME;
+  const hairModule = findApprovedModule(model, hairName);
+  const hairPending = !hairModule && resolved.hairStyle !== "shaved-buzzed"
+    && requestHumanAppearanceModule(model, hairName);
+  const facialHairName = resolved.facialHair === "none"
+    ? undefined
+    : FACIAL_HAIR_MODULE_NAMES[resolved.facialHair];
+  const facialHairModule = facialHairName ? findApprovedModule(model, facialHairName) : undefined;
+  const facialHairPending = !facialHairModule && facialHairName !== undefined
+    && requestHumanAppearanceModule(model, facialHairName);
+
+  hideAppearanceModules(model, { hair: hairPending, facialHair: facialHairPending });
   model.traverse((child) => {
     if (/SK_PointEar_(?:L|R)/i.test(child.name)) child.visible = appearance.raceId === "elf";
   });
 
-  const missingProviderAssets: string[] = [];
-  const hairName = humanHairModuleName(resolved.hairStyle, resolved.hairTexture) ?? SHAVED_HAIR_MODULE_NAME;
-  const hairModule = findApprovedModule(model, hairName);
   let hair: ModularAssetApplication = "applied";
   if (hairModule) hairModule.visible = true;
   else if (resolved.hairStyle === "shaved-buzzed") hair = "none";
+  else if (hairPending) hair = "loading";
   else {
     hair = "missing-provider-asset";
     missingProviderAssets.push(hairName);
   }
 
-  const facialHairName = resolved.facialHair === "none"
-    ? undefined
-    : FACIAL_HAIR_MODULE_NAMES[resolved.facialHair];
-  const facialHairModule = facialHairName ? findApprovedModule(model, facialHairName) : undefined;
   let facialHair: ModularAssetApplication = resolved.facialHair === "none" ? "none" : "applied";
   if (facialHairModule) facialHairModule.visible = true;
+  else if (facialHairPending) facialHair = "loading";
   else if (facialHairName) {
     facialHair = "missing-provider-asset";
     missingProviderAssets.push(facialHairName);

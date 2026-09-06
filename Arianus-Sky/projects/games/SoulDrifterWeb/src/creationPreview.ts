@@ -22,6 +22,7 @@ import {
   skinToneMaterialColor,
 } from "./game/presentation";
 import {
+  ensureWornHumanAppearanceModules,
   hydrateHumanAppearanceModules,
   inspectHumanAppearanceAvailability,
 } from "./game/humanAppearanceAssembly";
@@ -1014,7 +1015,14 @@ export class CreationAvatarPreview {
         const model = cloneSkeleton(gltf.scene);
         // Hydrate before cloning materials so the base body and every attached
         // appearance module receive preview-local tint and shader instances.
-        if (!raceId || raceId === "human") await hydrateHumanAppearanceModules(model);
+        if (!raceId || raceId === "human") {
+          // The manifest is small and says what the grid may offer; a style chosen later is
+          // fetched on its own and re-applied through this callback when it lands.
+          await hydrateHumanAppearanceModules(model, {
+            onModuleReady: () => { if (this.model === model) this.applyAppearance(); },
+          });
+          await ensureWornHumanAppearanceModules(model, this.appearance);
+        }
         if (this.disposed || this.modelUrl !== url) return;
         const helpers: THREE.Object3D[] = [];
         model.traverse((child) => {

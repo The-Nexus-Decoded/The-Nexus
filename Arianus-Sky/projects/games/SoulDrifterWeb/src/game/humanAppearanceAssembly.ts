@@ -2,11 +2,13 @@ import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 
-import type {
-  CanonicalHairStyleId,
-  CanonicalHairTextureId,
-  FaceTypeId,
-  FacialHairId,
+import {
+  resolveCharacterAppearance,
+  type CanonicalHairStyleId,
+  type CanonicalHairTextureId,
+  type CharacterAppearance,
+  type FaceTypeId,
+  type FacialHairId,
 } from "./character";
 import {
   DIALOGUE_FACIAL_MORPH_NAMES,
@@ -15,7 +17,30 @@ import {
   type TimedMetaVisemeCue,
 } from "./facialAnimationDriver";
 
-export const HUMAN_MODULAR_APPEARANCE_MODEL_PATH = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.glb";
+/**
+ * Hair is chosen once, when a profile is created, and changing it afterwards is a paid edit. So
+ * the pack ships as one file per module behind a manifest: the creator reads the manifest to know
+ * what it may offer, and a module's geometry is fetched only when something actually wears it.
+ */
+export const HUMAN_APPEARANCE_MODULE_BASE_PATH = "/assets/3d/characters/human-foundation-pilot/appearance-modules";
+export const HUMAN_APPEARANCE_MODULE_MANIFEST_PATH = `${HUMAN_APPEARANCE_MODULE_BASE_PATH}/manifest.json`;
+
+export interface HumanAppearanceModuleEntry {
+  name: string;
+  file: string;
+  bytes: number;
+  sha256: string;
+  vertices: number;
+  meshes: readonly string[];
+  extras: Readonly<Record<string, unknown>>;
+}
+
+export interface HumanAppearanceModuleManifest {
+  version: number;
+  basePath: string;
+  modules: readonly HumanAppearanceModuleEntry[];
+}
+
 
 export const HUMAN_FACE_TYPES: ReadonlyArray<{ id: FaceTypeId; name: string; description: string }> = [
   { id: "foundation", name: "Foundation face", description: "The accepted topology-neutral Human foundation." },
@@ -78,6 +103,7 @@ export const HUMAN_FACIAL_HAIR_MODULE_NAMES: Readonly<Record<Exclude<FacialHairI
 const LOCAL_AUTHORING_VALIDATED = "LOCAL_AUTHORING_VALIDATED";
 const LEGACY_PROVIDER_APPROVED = "PROVIDER_APPROVED";
 const APPEARANCE_HYDRATION_KEY = "souldrifterCanonicalAppearanceHydrated";
+const APPEARANCE_MODULE_STATE_KEY = "souldrifterAppearanceModuleState";
 
 export interface HumanAppearanceAvailability {
   faceTypes: readonly FaceTypeId[];
@@ -93,7 +119,11 @@ export interface HumanAppearanceAvailability {
 }
 
 export interface HumanAppearanceHydrationResult {
+  /** Modules whose geometry is attached to this actor right now. */
   attachedModules: readonly string[];
+  /** Modules the manifest offers, each fetchable on demand. */
+  availableModules?: readonly string[];
+  /** Contract modules the pack does not carry at all. */
   missingModules: readonly string[];
 }
 
@@ -136,13 +166,23 @@ function facialHeadReady(model: THREE.Object3D): boolean {
   return ready;
 }
 
-function hasValidatedNamedModule(model: THREE.Object3D, name: string): boolean {
+function hasAttachedNamedModule(model: THREE.Object3D, name: string): boolean {
   let available = false;
   model.traverse((child) => {
     available ||= child.name.toLowerCase() === name.toLowerCase()
       && hasValidatedAppearanceAncestor(child, model);
   });
   return available;
+}
+
+/**
+ * A module counts as offerable once the manifest lists it, well before its geometry arrives.
+ * Falls back to walking the actor so a model assembled by hand still reports what it carries.
+ */
+function hasValidatedNamedModule(model: THREE.Object3D, name: string): boolean {
+  const state = model.userData[APPEARANCE_MODULE_STATE_KEY] as { entries: Map<string, unknown> } | undefined;
+  if (state?.entries.has(name)) return true;
+  return hasAttachedNamedModule(model, name);
 }
 
 /** Discovers exactly what the loaded, locally validated canonical assembly can safely expose. */
@@ -244,10 +284,11 @@ function isolateAppearanceModuleMaterials(module: THREE.Object3D): void {
 export function attachValidatedHumanAppearanceModules(
   target: THREE.Object3D,
   source: THREE.Object3D,
+  only?: readonly string[],
 ): HumanAppearanceHydrationResult {
   const attachedModules: string[] = [];
   const missingModules: string[] = [];
-  const names = [
+  const names = only ?? [
     ...Object.values(HUMAN_HAIR_MODULE_NAMES),
     ...Object.values(HUMAN_FACIAL_HAIR_MODULE_NAMES),
   ];
@@ -281,38 +322,163 @@ export function attachValidatedHumanAppearanceModules(
 }
 
 const gltfLoader = new GLTFLoader();
-let appearanceAssetPromise: Promise<GLTF> | null = null;
+const moduleAssets = new Map<string, Promise<GLTF | null>>();
+let manifestPromise: Promise<HumanAppearanceModuleManifest | null> | null = null;
 
-function loadAppearanceAsset(): Promise<GLTF> {
-  appearanceAssetPromise ??= new Promise<GLTF>((resolve, reject) => {
-    gltfLoader.load(HUMAN_MODULAR_APPEARANCE_MODEL_PATH, resolve, undefined, reject);
-  }).catch((error) => {
-    appearanceAssetPromise = null;
-    throw error;
-  });
-  return appearanceAssetPromise;
+/** Every module name the appearance contract can name, whether or not the pack carries it. */
+export const HUMAN_APPEARANCE_CONTRACT_MODULE_NAMES: readonly string[] = Object.freeze([
+  ...Object.values(HUMAN_HAIR_MODULE_NAMES),
+  ...Object.values(HUMAN_FACIAL_HAIR_MODULE_NAMES),
+]);
+
+function loadAppearanceManifest(): Promise<HumanAppearanceModuleManifest | null> {
+  manifestPromise ??= fetch(HUMAN_APPEARANCE_MODULE_MANIFEST_PATH)
+    .then((response) => (response.ok ? response.json() as Promise<HumanAppearanceModuleManifest> : null))
+    .catch(() => null)
+    .then((manifest) => {
+      if (!manifest || !Array.isArray(manifest.modules)) {
+        manifestPromise = null;
+        return null;
+      }
+      return manifest;
+    });
+  return manifestPromise;
 }
 
-/** Loads and installs the canonical modular hair asset once per actor. */
-export async function hydrateHumanAppearanceModules(target: THREE.Object3D): Promise<HumanAppearanceHydrationResult> {
-  const previous = target.userData[APPEARANCE_HYDRATION_KEY] as HumanAppearanceHydrationResult | undefined;
-  if (previous) return previous;
-  try {
-    const gltf = await loadAppearanceAsset();
-    const result = attachValidatedHumanAppearanceModules(target, cloneSkeleton(gltf.scene));
-    target.userData[APPEARANCE_HYDRATION_KEY] = result;
-    return result;
-  } catch {
-    const result: HumanAppearanceHydrationResult = {
-      attachedModules: [],
-      missingModules: [
-        ...Object.values(HUMAN_HAIR_MODULE_NAMES),
-        ...Object.values(HUMAN_FACIAL_HAIR_MODULE_NAMES),
-      ],
-    };
-    target.userData[APPEARANCE_HYDRATION_KEY] = result;
-    return result;
+function loadAppearanceModuleAsset(entry: HumanAppearanceModuleEntry, basePath: string): Promise<GLTF | null> {
+  const existing = moduleAssets.get(entry.name);
+  if (existing) return existing;
+  const url = `${basePath.replace(/\/$/, "")}/${entry.file}`;
+  const pending = new Promise<GLTF>((resolve, reject) => {
+    gltfLoader.load(url, resolve, undefined, reject);
+  }).catch((error) => {
+    // A failed fetch must not poison the cache; a later selection may succeed.
+    moduleAssets.delete(entry.name);
+    console.warn(`Appearance module ${entry.name} could not be loaded.`, error);
+    return null;
+  });
+  moduleAssets.set(entry.name, pending);
+  return pending;
+}
+
+interface AppearanceModuleState {
+  manifest: HumanAppearanceModuleManifest;
+  entries: Map<string, HumanAppearanceModuleEntry>;
+  attached: Set<string>;
+  inFlight: Map<string, Promise<boolean>>;
+  onModuleReady?: (name: string) => void;
+}
+
+function moduleState(target: THREE.Object3D): AppearanceModuleState | undefined {
+  return target.userData[APPEARANCE_MODULE_STATE_KEY] as AppearanceModuleState | undefined;
+}
+
+/** Names this actor could still wear: already attached, or listed in the manifest. */
+export function humanAppearanceModuleNames(target: THREE.Object3D): ReadonlySet<string> {
+  const state = moduleState(target);
+  if (!state) return new Set();
+  return new Set([...state.entries.keys(), ...state.attached]);
+}
+
+/**
+ * Attaches one module's geometry, fetching it the first time it is asked for. Resolves false when
+ * the pack does not carry it, so a caller can fall back rather than wait forever.
+ */
+export async function ensureHumanAppearanceModule(target: THREE.Object3D, name: string): Promise<boolean> {
+  const state = moduleState(target);
+  if (!state) return false;
+  if (state.attached.has(name)) return true;
+  const running = state.inFlight.get(name);
+  if (running) return running;
+  const entry = state.entries.get(name);
+  if (!entry) return false;
+  const pending = loadAppearanceModuleAsset(entry, state.manifest.basePath ?? HUMAN_APPEARANCE_MODULE_BASE_PATH)
+    .then((gltf) => {
+      if (!gltf) return false;
+      const result = attachValidatedHumanAppearanceModules(target, cloneSkeleton(gltf.scene), [name]);
+      const attached = result.attachedModules.includes(name);
+      if (attached) {
+        state.attached.add(name);
+        const hydration = target.userData[APPEARANCE_HYDRATION_KEY] as HumanAppearanceHydrationResult | undefined;
+        if (hydration) {
+          target.userData[APPEARANCE_HYDRATION_KEY] = {
+            ...hydration,
+            attachedModules: [...state.attached],
+          } satisfies HumanAppearanceHydrationResult;
+        }
+      }
+      return attached;
+    })
+    .finally(() => { state.inFlight.delete(name); });
+  state.inFlight.set(name, pending);
+  return pending;
+}
+
+/**
+ * Starts a fetch for a module that is not attached yet, and reports whether one is now under way.
+ * A renderer calls this from its synchronous apply pass and keeps showing what it already has.
+ */
+export function requestHumanAppearanceModule(target: THREE.Object3D, name: string): boolean {
+  const state = moduleState(target);
+  if (!state || state.attached.has(name) || !state.entries.has(name)) return false;
+  void ensureHumanAppearanceModule(target, name).then((attached) => {
+    if (attached) state.onModuleReady?.(name);
+  });
+  return true;
+}
+
+/**
+ * Reads the module manifest and records what this actor may wear. No geometry is fetched here;
+ * `ensureHumanAppearanceModule` brings a module in when something selects it.
+ */
+export async function hydrateHumanAppearanceModules(
+  target: THREE.Object3D,
+  options?: { onModuleReady?: (name: string) => void },
+): Promise<HumanAppearanceHydrationResult> {
+  const existing = moduleState(target);
+  if (existing) {
+    existing.onModuleReady = options?.onModuleReady;
+    return target.userData[APPEARANCE_HYDRATION_KEY] as HumanAppearanceHydrationResult;
   }
+  const manifest = await loadAppearanceManifest();
+  const entries = new Map<string, HumanAppearanceModuleEntry>();
+  for (const entry of manifest?.modules ?? []) {
+    if (HUMAN_APPEARANCE_CONTRACT_MODULE_NAMES.includes(entry.name)) entries.set(entry.name, entry);
+  }
+  const state: AppearanceModuleState = {
+    manifest: manifest ?? { version: 0, basePath: HUMAN_APPEARANCE_MODULE_BASE_PATH, modules: [] },
+    entries,
+    attached: new Set(),
+    inFlight: new Map(),
+    onModuleReady: options?.onModuleReady,
+  };
+  target.userData[APPEARANCE_MODULE_STATE_KEY] = state;
+  const result: HumanAppearanceHydrationResult = {
+    attachedModules: [],
+    availableModules: [...entries.keys()],
+    missingModules: HUMAN_APPEARANCE_CONTRACT_MODULE_NAMES.filter((name) => !entries.has(name)),
+  };
+  target.userData[APPEARANCE_HYDRATION_KEY] = result;
+  return result;
+}
+
+/** The modules an actor wearing this appearance needs on screen: a hairstyle, and maybe a beard. */
+export function humanAppearanceWornModules(appearance: Partial<CharacterAppearance> | undefined): string[] {
+  const resolved = resolveCharacterAppearance(appearance);
+  const worn: string[] = [];
+  const hair = humanHairModuleName(resolved.hairStyle, resolved.hairTexture);
+  if (hair) worn.push(hair);
+  if (resolved.facialHair !== "none") worn.push(HUMAN_FACIAL_HAIR_MODULE_NAMES[resolved.facialHair]);
+  return worn;
+}
+
+/** Fetches exactly what this appearance wears, so an actor never pays for the rest of the catalogue. */
+export async function ensureWornHumanAppearanceModules(
+  target: THREE.Object3D,
+  appearance: Partial<CharacterAppearance> | undefined,
+): Promise<void> {
+  await Promise.all(humanAppearanceWornModules(appearance)
+    .map((name) => ensureHumanAppearanceModule(target, name)));
 }
 
 export interface HumanAppearancePortraitController {

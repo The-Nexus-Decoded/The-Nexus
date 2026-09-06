@@ -149,9 +149,15 @@ describe("runtime asset budget", () => {
   it("protects exactly the Human foundation files the creator, the parted hair, and in-game bodies fetch", async () => {
     const manifest = await loadAssetManifest();
     const publicRoot = resolve(import.meta.dirname, "../public");
+    // Hair ships as one file per module behind a manifest, so the protected set is whatever that
+    // manifest names. Reading it here keeps the two from drifting apart as styles are added.
+    const appearanceBase = "assets/3d/characters/human-foundation-pilot/appearance-modules";
+    const appearance = JSON.parse(await readFile(resolve(publicRoot, appearanceBase, "manifest.json"), "utf8"));
     const shipped = [
       "assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
-      "assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.glb",
+      `${appearanceBase}/manifest.json`,
+      ...appearance.modules.map((entry) => `${appearanceBase}/${entry.file}`),
+      ...appearance.textures.map((entry) => `${appearanceBase}/${entry.file}`),
       "assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-male-locomotion-01.glb",
       "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb",
       "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb",
