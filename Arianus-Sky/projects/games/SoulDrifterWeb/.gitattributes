@@ -1,0 +1,4 @@
+# The appearance module manifest is attested byte for byte in the pack provenance receipt, so git
+# must hand it back exactly as it was written. Line-ending translation on checkout would change
+# its size and hash without changing a single character of its content.
+public/assets/3d/characters/human-foundation-pilot/appearance-modules/manifest.json -text

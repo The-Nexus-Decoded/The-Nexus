@@ -2584,8 +2584,8 @@
   "basePath": "/assets/3d/characters/human-foundation-pilot/appearance-modules",
   "manifest": {
    "file": "manifest.json",
-   "bytes": 20774,
-   "sha256": "4ECDB8DA4DF22541428285CB5B047A07DF1CD98CA547790B9D0A09743C95EA40"
+   "bytes": 20310,
+   "sha256": "9A0636D144F89F98AE81F2C61EEC7F68E164CA87C1ECD72B0071585F2A62C915"
   },
   "moduleCount": 20,
   "totalBytes": 141913955,
