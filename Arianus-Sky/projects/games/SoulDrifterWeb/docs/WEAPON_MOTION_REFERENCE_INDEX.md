@@ -1,14 +1,14 @@
-# SoulDrifter Weapon Motion Reference Index
+# The Sundered Spheres Weapon Motion Reference Index
 
 This index is the mandatory research gate before any weapon stance, locomotion set, attack, defense, skill, or spell-focus animation is authored. It complements [`ANIMATION_PRODUCTION_PIPELINE.md`](ANIMATION_PRODUCTION_PIPELINE.md).
 
-The rule is simple: identify the exact weapon family, grip, skill tier, stance, force path, footwork, and recovery from credible human references before touching the rig. A convenient mocap clip must never decide what a SoulDrifter skill becomes.
+The rule is simple: identify the exact weapon family, grip, skill tier, stance, force path, footwork, and recovery from credible human references before touching the rig. A convenient mocap clip must never decide what a Sundered Spheres skill becomes.
 
 ## Required reference packet
 
 Every new weapon action must record:
 
-1. exact SoulDrifter weapon and skill ID;
+1. exact Sundered Spheres weapon and skill ID;
 2. one-handed, hand-and-a-half, two-handed, paired, weapon-and-shield, or focus grip;
 3. beginner, trained, specialized, or supernatural tier;
 4. two or more credible stance/movement references, including at least one video or motion sequence when available;
@@ -20,7 +20,7 @@ Every new weapon action must record:
 
 Reference material informs body mechanics. It does not grant permission to redistribute somebody else's video, model, rig, or mocap. Downloaded media remains outside shipping assets unless its license explicitly permits inclusion.
 
-## Current SoulDrifter weapon inventory
+## Current Sundered Spheres weapon inventory
 
 This inventory comes from the current character and class documentation. It prevents an animation from being designed for a generic label such as `sword`, `staff`, or `gun` when the actual equipment, grip, and class context are more specific.
 
@@ -64,7 +64,7 @@ These are starter defaults, not equipment locks. The universal learnable familie
 - Free hand: visible balance/guard gesture; it does not pretend to grip the hilt.
 - Forbidden: overhead chop, two-handed power cut, face-crossing blade, limp dangling wrist, huge lunge, flourish, rune effect, or advanced magical technique.
 
-Primary stance/grip reference: [Wychwood Single-handed Sword: Basics](https://wychwood.wikidot.com/fighting-sword). It describes a balanced slightly-forward stance, bent knees, a relaxed wrist aligned with the forearm, and a single-handed on-guard position. Its reenactment contact rules are safety rules, not SoulDrifter hit design.
+Primary stance/grip reference: [Wychwood Single-handed Sword: Basics](https://wychwood.wikidot.com/fighting-sword). It describes a balanced slightly-forward stance, bent knees, a relaxed wrist aligned with the forearm, and a single-handed on-guard position. Its reenactment contact rules are safety rules, not Sundered Spheres hit design.
 
 Supplemental thrust/recovery reference: [British Fencing Step Lunge](https://ef-api.britishfencing.com/games/step-lunge/) and [British Fencing glossary](https://www.britishfencing.com/glossary-of-terms/). Use these only for readable extension, balance, and rapid recovery; the starter attack is shorter and less athletic than a full sport-fencing lunge.
 
@@ -78,11 +78,11 @@ Supplemental thrust/recovery reference: [British Fencing Step Lunge](https://ef-
 
 The same Wychwood single-sword reference establishes the one-handed grip, aligned wrist, balanced stance, and whole-blade control. The recorded body-mechanics trial is Federico Malagutti HEMA's [Arming Sword Basics 2 - Medieval one handed Sword](https://www.youtube.com/watch?v=kp1ieHPIRmw), `5:43.5-5:46.5` (Exercises chapter). Retain its continuous one-hand grip, bent-knee planted load, coordinated hilt/shoulder/hip drive, far-side follow-through, and centered recovery. Reject its higher diagonal blade plane, travel distance, and unrelated free-hand gesture.
 
-The Siphon attack line instead follows ARMA's [horizontal crosscut taxonomy](https://www.thearma.org/MSsup.htm) (right-to-left or left-to-right) and [whole-body cut mechanics](https://www.thearma.org/essays/howacutworks.htm): the hilt advances while the point travels a circular arc through coordinated footwork, body motion, grip, and follow-through. SoulDrifter keeps the feet planted/in-place and adds the free hand's inward life-draw, but must not reduce the cut to a wrist-only swing.
+The Siphon attack line instead follows ARMA's [horizontal crosscut taxonomy](https://www.thearma.org/MSsup.htm) (right-to-left or left-to-right) and [whole-body cut mechanics](https://www.thearma.org/essays/howacutworks.htm): the hilt advances while the point travels a circular arc through coordinated footwork, body motion, grip, and follow-through. The Sundered Spheres keeps the feet planted/in-place and adds the free hand's inward life-draw, but must not reduce the cut to a wrist-only swing.
 
 Biomechanics reference: [ARMA, "How a Cut Works"](https://thearma.org/essays/howacutworks.htm). For this animation, retain its core mechanics: the hilt advances, the point travels through a controlled circular arc, the edge leads, and footwork, hips, torso, shoulder, arm, grip, follow-through, and recovery contribute together. Do not copy its text, images, or media into the game; it is a copyrighted reference-only source.
 
-Motion taxonomy reference: [ARMA medieval swordsmanship supplement](https://thearma.org/MSsup.htm). It distinguishes horizontal right-to-left and left-to-right crosscuts from rising, descending, and straight-thrust actions. Siphon uses the horizontal crosscut family, then stylizes the far-side recovery and restrained drain release for SoulDrifter. Accessed 2026-08-08; reference-only use.
+Motion taxonomy reference: [ARMA medieval swordsmanship supplement](https://thearma.org/MSsup.htm). It distinguishes horizontal right-to-left and left-to-right crosscuts from rising, descending, and straight-thrust actions. Siphon uses the horizontal crosscut family, then stylizes the far-side recovery and restrained drain release for The Sundered Spheres. Accessed 2026-08-08; reference-only use.
 
 Recorded human-motion candidate: [Federico Malagutti HEMA, "Arming Sword Basics 2 - Medieval one handed Sword"](https://www.youtube.com/watch?v=kp1ieHPIRmw). This is not approved merely because it exists. The animator must visually review it, record the exact useful timestamp or trial, identify the compatible one-handed guard/cut/recovery mechanics, and reject any passage whose weapon, hand count, attack line, or intensity conflicts with the beginner Siphon brief. Reference-only; no video or audio may ship with the game.
 
@@ -94,7 +94,7 @@ If the weapon is missing, hidden by a disarm/broken-item state, or later reaches
 
 ## Weapon-family research map
 
-| Family | Current SoulDrifter examples | Reference starting points | Research status and animation gate |
+| Family | Current Sundered Spheres examples | Reference starting points | Research status and animation gate |
 | --- | --- | --- | --- |
 | One-handed sword with free offhand | Shadowknight starter longsword; Warrior starter longsword | [Wychwood single sword](https://wychwood.wikidot.com/fighting-sword); [British Fencing beginner movement](https://www.britishfencing.com/explore-fencing-app/); [ARMA cut biomechanics](https://thearma.org/essays/howacutworks.htm) | Starter stab stance and mechanics are approved as a reference baseline. Every cut, thrust, counter, and advancing action still needs its own packet. |
 | One-handed sword and shield | Paladin starter shortsword and battered shield | [Liber de Arte Dimicatoria / MS I.33](https://wiktenauer.com/wiki/Liber_de_Arte_Dimicatoria); [Wiktenauer arming-sword index](https://www.wiktenauer.com/wiki/Arming_Sword) | Research started. Block animation until the exact shield size, guard, sword line, shield cover, foot lead, and recorded human sequence are selected. Never bolt a shield onto the free-offhand sword animation. |

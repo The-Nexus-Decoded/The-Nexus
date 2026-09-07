@@ -1,4 +1,4 @@
-# SoulDrifter Technical-Art Vertical Slice
+# The Sundered Spheres Technical-Art Vertical Slice
 
 Status: active production gate for the first playable proof.
 
@@ -10,7 +10,7 @@ This document prevents the browser prototype from drifting back to placeholder-q
 - Location: the cyan Soulwell tutorial/training chamber from `public/assets/generated/first-breach-environment-v1.png`.
 - Character reference: `public/assets/generated/characters/elf-shadowknight.png`.
 - Guide reference: `public/assets/generated/npcs/ilyra.png`.
-- Camera: elevated three-quarter RPG camera with Ultima VII/Ultima Online readability, implemented as original SoulDrifter art.
+- Camera: elevated three-quarter RPG camera with Ultima VII/Ultima Online readability, implemented as original Sundered Spheres art.
 - Gear state: faded common tunic and pants, cracked leather belt/boots, basic dull-iron longsword, no visible armor pieces, no high-level magic equipment.
 - Magic state: mortal Fire-Realm necromancy and restrained life-drain only. Aether-Scribed/Flesh-Forged runes are unavailable at levels 1-19.
 - Expansion rule: rooms two and three are not visually expanded until this proof is approved.
@@ -100,7 +100,7 @@ Every animation source, retarget, authored skill pass, runtime integration, visu
 
 Before any weapon pose or motion is authored, its exact weapon subtype, grip, progression tier, stance, force path, and recovery must also be researched and logged through [`WEAPON_MOTION_REFERENCE_INDEX.md`](WEAPON_MOTION_REFERENCE_INDEX.md). The chosen reference must match the skill; an available dramatic mocap clip cannot redefine a beginner action.
 
-- Use Adobe Mixamo as the fast prototype library for humanoid idle, walk, run, turns, hit reactions, and common weapon foundations. Its clips are retargeted onto the SoulDrifter 65-bone deformation rig; Mixamo characters do not replace our custom models.
+- Use Adobe Mixamo as the fast prototype library for humanoid idle, walk, run, turns, hit reactions, and common weapon foundations. Its clips are retargeted onto the Sundered Spheres 65-bone deformation rig; Mixamo characters do not replace our custom models.
 - Keep Siphon Cleave, Cinder Guard, rune application, spell channels, boss tells, and other class-signature choreography project-authored. A generic mocap slash may supply body mechanics, but timing, hand contacts, weapon path, silhouette, and VFX synchronization are edited for the class.
 - Evaluate ActorCore and Rokoko libraries later for higher-fidelity locomotion and combat capture only after a per-pack license and redistribution review.
 - Every imported clip must pass foot-lock, ground contact, root-motion, weapon-contact, loop, transition, and gameplay-camera checks. Raw mocap is source material, not a shippable final animation.
@@ -109,19 +109,19 @@ Before any weapon pose or motion is authored, its exact weapon subtype, grip, pr
 
 | Asset | Source | License/status | Use decision |
 | --- | --- | --- | --- |
-| First Breach environment concept | SoulDrifter generated concept | Project-owned working asset | Locked visual target. |
-| Elf Shadowknight concept | SoulDrifter generated concept | Project-owned working asset | Locked silhouette/material target. |
-| Ilyra concept | SoulDrifter generated concept | Project-owned working asset | Locked NPC target. |
+| First Breach environment concept | Sundered Spheres generated concept | Project-owned working asset | Locked visual target. |
+| Elf Shadowknight concept | Sundered Spheres generated concept | Project-owned working asset | Locked silhouette/material target. |
+| Ilyra concept | Sundered Spheres generated concept | Project-owned working asset | Locked NPC target. |
 | Universal Base Characters | Quaternius official pack | CC0 | Preferred adult-proportion humanoid base, subject to intake validation. |
 | Modular Character Outfits - Fantasy | Quaternius official pack | CC0 | Candidate modular starter clothing/armor source, reworked to match the concept. |
-| Elf Shadowknight GLB | Original SoulDrifter build over Quaternius Ranger deformation rig/underlayer | Project-authored additions; Quaternius source CC0 | Integrated first playable hero: 23,866 triangles, 65 bones, 11 in-place clips, common starter clothing, basic longsword, and no rune content. Validation report ships beside the GLB. |
+| Elf Shadowknight GLB | Original Sundered Spheres build over Quaternius Ranger deformation rig/underlayer | Project-authored additions; Quaternius source CC0 | Integrated first playable hero: 23,866 triangles, 65 bones, 11 in-place clips, common starter clothing, basic longsword, and no rune content. Validation report ships beside the GLB. |
 | Universal Animation Library 1/2 | Quaternius official packs | CC0 | Candidate locomotion/combat library, retargeted and curated per state. |
-| Adobe Mixamo animation library | Adobe Mixamo | Royalty-free game use under the current Mixamo FAQ; biped humanoids only | Preferred rapid prototype source for natural locomotion, turns, impacts, and common weapon foundations; always retargeted to custom SoulDrifter characters. |
+| Adobe Mixamo animation library | Adobe Mixamo | Royalty-free game use under the current Mixamo FAQ; biped humanoids only | Preferred rapid prototype source for natural locomotion, turns, impacts, and common weapon foundations; always retargeted to custom Sundered Spheres characters. |
 | Current Ultimate Animated Character models | Quaternius CC0 | Legal but visually rejected | May remain only as hidden engineering fixtures; never used for approval captures. |
 | First-room flagstone PBR (`Tiles083`, 1K JPG) | ambientCG | CC0 1.0 | Shipped color, OpenGL normal, roughness, and AO maps for the authored chamber floor. |
 | First-room masonry PBR (`Bricks102`, 1K JPG) | ambientCG | CC0 1.0 | Shipped color, OpenGL normal, roughness, and AO maps for chamber walls, arches, and well stone. |
 | Exult/Ultima/UO assets | Third-party copyrighted game data | Not approved for redistribution | Reference behavior only; do not ship copied art, maps, audio, or proprietary data. |
-| Original procedural room kit | SoulDrifter implementation | Project-owned | Reusable authored architecture, collision proxies, set dressing, and fog volumes. |
+| Original procedural room kit | Sundered Spheres implementation | Project-owned | Reusable authored architecture, collision proxies, set dressing, and fog volumes. |
 
 External generation probes on this workstation currently report `TRIPO_API_KEY=MISSING` and `GEMINI_API_KEY=MISSING`. No generated 3D task may be claimed unless its task ID, downloaded source, license, and intake diagnostics are recorded here.
 

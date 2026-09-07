@@ -1,4 +1,4 @@
-# SoulDrifter Animation Import and Audit Contract
+# The Sundered Spheres Animation Import and Audit Contract
 
 Last audited: 2026-08-09
 
@@ -6,7 +6,7 @@ Last audited: 2026-08-09
 
 Every compatible humanoid action uses the same route that fixed Siphon Cleave:
 
-1. Export the animation from Mixamo on the canonical SoulDrifter humanoid rig.
+1. Export the animation from Mixamo on the canonical Sundered Spheres humanoid rig.
 2. Convert the untouched action to a standalone GLB. Do not reconstruct poses, pelvis motion, feet, or weapon arcs by hand.
 3. Verify the source hash and exact skeleton compatibility.
 4. Bind the raw bone curves to the live cloned actor.
