@@ -1,4 +1,4 @@
-# SoulDrifter Character and Living-Story System
+# The Sundered Spheres Character and Living-Story System
 
 Status: implemented foundation for the first browser slice  
 Scope: character creation, starter presentation, NPC dialogue, tutorials, and story-state persistence
@@ -44,7 +44,9 @@ Favored ancestry/calling pairings grant a named resonance passive and one additi
 
 The external Weaving chooses the character's name, ancestry, base calling, and four memory answers. The first room does not repeat or replace those decisions.
 
-Before the Memory Loom will answer, Ilyra opens the required **Chronicle of Returning**: seven concise illustrated boards covering Old Earth's Age of Dust, the rise of Sartan and Patryn, the Sundering, Xar and Haplo, the four-realm journey, the Seventh Gate, and the explicit boundary where SoulDrifter's original continuation begins. The final boards explain the Collision with the Book-of-Life reality, the weakening seals, the expected return of the old powers, and why many SoulDrifters have been resurrected to stabilize and prepare the mensch realms. Each board has readable text and temporary browser narration and is composed as a keyframe for a later animated opening. On the first run, all seven boards must be visited in order, but any individual voice segment may be skipped immediately. Closing early pauses and saves the current board without unlocking refinement. Recorded narration files can replace browser speech board-by-board without changing scripts or progression.
+Before the Memory Loom will answer, Ilyra opens the required **Chronicle of Returning**: seven concise illustrated boards covering Old Earth's Age of Dust, the rise of Sartan and Patryn, the Sundering, Xar and Haplo, the four-realm journey, the Seventh Gate, and the explicit boundary where The Sundered Spheres' original continuation begins. The final boards explain the Collision with the Book-of-Life reality, the weakening seals, the expected return of the old powers, and why many Sphere Drifters have been resurrected to stabilize and prepare the mensch realms. Each board has readable text and temporary browser narration and is composed as a keyframe for a later animated opening. On the first run, all seven boards must be visited in order, but any individual voice segment may be skipped immediately. Closing early pauses and saves the current board without unlocking refinement. Recorded narration files can replace browser speech board-by-board without changing scripts or progression.
+
+Wellkeeper Ilyra is a Guardian: the sect that keeps the Soul Wells, gathers the souls of fallen Sphere Drifters, and judges each one before returning it. The gatherers who found the player are the Guardians' field members.
 
 Wellkeeper Ilyra introduces a final level-one refinement at the Memory Loom:
 
@@ -121,7 +123,7 @@ The dialogue builder merges an optional saved story override over the base recor
 
 ## Browser story database
 
-The implemented IndexedDB database is named `souldrifter-story` and contains:
+The implemented IndexedDB database is named `souldrifter-story` (legacy name kept for save compatibility) and contains:
 
 | Store | Purpose |
 | --- | --- |

@@ -84,7 +84,7 @@ The Warden uses a seeded pattern—Cinder Sweep, Ash Call, or Soul Tax—with a 
 ## Nine-step tutorial
 
 1. Awaken and move.
-2. Complete Ilyra's illustrated Chronicle of Returning and accept the shared SoulDrifter mission.
+2. Complete Ilyra's illustrated Chronicle of Returning and accept the shared Sphere Drifter mission.
 3. Learn why this ancestry/calling returned, then seal three stat points, an ancestry boon, and a base discipline.
 4. Inspect equipped starter gear, recover supplies into the backpack, and rehearse level-one actions.
 5. Choose Wayfarer or Oathbreaker.

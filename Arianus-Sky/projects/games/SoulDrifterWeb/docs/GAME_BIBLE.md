@@ -1,4 +1,4 @@
-# SoulDrifter Tile-Based Game Bible
+# The Sundered Spheres: Thalenyr — Game Bible
 
 Status: AI-build handoff draft v2  
 Created: 2026-08-07  
@@ -6,7 +6,7 @@ Source channel: Discord `#games-vr`, channel `1480483545431412877`
 
 ## Purpose
 
-This document preserves the established SoulDrifter world, lore, class fantasies, races, realm laws, progression ideas, and visual identity while translating the game from a third-person 3D / future-XR concept into a tile-based tactical RPG.
+This document preserves the established Sundered Spheres world, lore, class fantasies, races, realm laws, progression ideas, and visual identity while translating the game from a third-person 3D / future-XR concept into a tile-based tactical RPG.
 
 Default build interpretation:
 
@@ -29,7 +29,7 @@ This handoff was synthesized from:
 - a complete paginated Discord export containing 10,720 messages
 - export range: 2026-03-09 through 2026-04-25
 - the later live Discord status window
-- current SoulDrifter class, gear, lore, realm, and taxonomy documents
+- current Sundered Spheres class, gear, lore, realm, and taxonomy documents
 
 Important source reconciliation:
 
@@ -41,12 +41,12 @@ Important source reconciliation:
 
 ## Preservation Guarantee
 
-The tile-based combat and visual adaptation does not replace or discard the existing SoulDrifter content.
+The tile-based combat and visual adaptation does not replace or discard the existing Sundered Spheres content.
 
 Preserve throughout implementation:
 
-- the SoulDrift collision origin and merged-world premise
-- Soul Drifter player identity, Soul Essences, soul memory, rebirth, and realm-restoration choices
+- the Drift collision origin and merged-world premise
+- Sphere Drifter player identity, Soul Essences, soul memory, rebirth, and realm-restoration choices
 - all four realm concepts and their gravity, density/heat, light/water, and sound/death laws
 - the original eight class identities and the later five-starting-class taxonomy
 - every documented subclass path
@@ -60,11 +60,13 @@ Only the delivery format is changed: classic isometric low-poly 3D, real-time ex
 
 ## High Concept
 
-SoulDrifter is a party-based fantasy tactical RPG set after two incompatible realities collide. A world built around life, resurrection, seeds, and deferred souls is torn open by wars of magical overreach. Its rifts strike a second broken reality made of divided elemental realms, living rune craft, formal shaping magic, soul memory, and death pressure.
+The Sundered Spheres is a party-based fantasy tactical RPG set after two incompatible realities collide. A world built around life, resurrection, seeds, and deferred souls is torn open by wars of magical overreach. Its rifts strike a second broken reality made of divided elemental realms, living rune craft, formal shaping magic, soul memory, and death pressure.
 
 The collision does not destroy either world. It merges them badly.
 
-Seas pour into skies. Mountains remember dead worlds. Forests root through basalt ruins. Contradictory laws of gravity, heat, light, sound, life, and death overlap on the same battlefield. Survivors awaken with memories from more than one reality and become Soul Drifters: living fragments able to cross unstable realm seams, recover Soul Essences, and decide whether the joined worlds should be healed, stabilized, separated, or transformed.
+Seas pour into skies. Mountains remember dead worlds. Forests root through basalt ruins. Contradictory laws of gravity, heat, light, sound, life, and death overlap on the same battlefield. Survivors awaken with memories from more than one reality and become Sphere Drifters: living fragments able to cross unstable realm seams, recover Soul Essences, and decide whether the joined worlds should be healed, stabilized, separated, or transformed.
+
+Naming note: *the Sundering* remains the in-world name for the original act that split the world into the elemental spheres. *The Drift* is the later collision that merged the second reality into them. The title *The Sundered Spheres* names the worlds that first act left behind, across which the game is set; it does not rename either event.
 
 ## Player Promise
 
@@ -228,7 +230,7 @@ Accessibility and pacing:
 
 ## Four Realm Structure
 
-Internal inspiration names may remain in development documents. Shipping-facing names should become original SoulDrifter names before release.
+Internal inspiration names may remain in development documents. Shipping-facing names should become original Sundered Spheres names before release.
 
 | Realm | Element / Theme | Core Tile Law | Tactical Expression | Materials / Look |
 | --- | --- | --- | --- | --- |
@@ -280,13 +282,13 @@ Internal inspiration names may remain in development documents. Shipping-facing 
 
 The first world believed magic could preserve life after the world could no longer sustain it. Its people created seeds of life, resurrection pools, soul vessels, and rituals that deferred awakening across ages. These systems began as mercy and became prizes in wars of power.
 
-Rival rulers, orders, mages, and sorcerers opened rifts seeking refuge, weapons, power, and control over death. The rifts answered one another and struck the broken elemental reality now called the SoulDrift.
+Rival rulers, orders, mages, and sorcerers opened rifts seeking refuge, weapons, power, and control over death. The rifts answered one another and struck the broken elemental reality now called the Drift.
 
-The rifts behaved as wounds, not doors. Landmasses folded together. Magic systems braided. Survivors changed. The Tree of Life bent but did not break, and the first Soul Drifters awakened around its roots carrying memories that belonged to more than one world.
+The rifts behaved as wounds, not doors. Landmasses folded together. Magic systems braided. Survivors changed. The Tree of Life bent but did not break, and the first Sphere Drifters awakened around its roots carrying memories that belonged to more than one world.
 
-### The SoulDrift
+### The Drift
 
-No one agrees whether the SoulDrift is:
+No one agrees whether the Drift is:
 
 - a place between realities
 - the scar created by the collision
@@ -298,7 +300,7 @@ This disagreement should drive factions, faiths, and ending choices.
 
 ### Player Identity
 
-The player characters are Soul Drifters: living fragments tied to the realm-root and capable of surviving crossings that fracture ordinary souls.
+The player characters are Sphere Drifters: living fragments tied to the realm-root and capable of surviving crossings that fracture ordinary souls.
 
 Their goals evolve from survival to responsibility:
 
@@ -313,7 +315,7 @@ Their goals evolve from survival to responsibility:
 Use a hub built around these translated concepts:
 
 - `Nexus Tree` or `Realm Root`: the living structure binding the merged landmasses
-- `Soul Well`: resurrection, recovery, respec, and memory access
+- `Soul Well`: resurrection, recovery, respec, and memory access; the Well is a Guardian house (see The Guardians)
 - `Memory Chamber`: class imprints, recovered lore, and companion histories
 - `Breach Table`: realm/mission selection
 - `Forge`: rune slots, gear upgrades, and material crafting
@@ -321,6 +323,18 @@ Use a hub built around these translated concepts:
 - `Ward Hall`: corruption removal and oath management
 
 Final shipping names are not yet locked.
+
+### The Guardians
+
+The Guardians are the sect that keeps the Soul Wells. When a Sphere Drifter falls, the Guardians gather the soul from the seams and carry it back to a Well to be returned. They judge each soul first: those found evil or undeserving are not returned; the Guardians leave them in the Void.
+
+- Their field members are called gatherers ("our gatherers found you").
+- Wellkeeper Ilyra is the Guardian of the Realm-Lock Vestibule.
+- The Void the Guardians consign souls to is the same Void the Void magic school draws on.
+- A Guardian's judgment is the in-fiction basis for revival at the Soul Well, respec, and the Soul Fracture condition (a soul brought back damaged).
+- Player choices that read as evil should raise the risk that the Guardians leave a fallen Sphere Drifter in the Void.
+
+Guardian ranks and titles, and whether the order is one body across all spheres or one chapter per sphere, remain to be written.
 
 ### Narrative Themes
 
@@ -732,7 +746,7 @@ The browser vertical slice uses one connected dungeon crawl:
 - The player awakens beside the Soul Well with fragmented memories.
 - Teach floor navigation, inspection, movement, facing, interaction, action icons, dry activation, out-of-combat buffs, cooldowns, and finite recovery.
 - Ancestry and base calling were already chosen in the Weaving. Wellkeeper Ilyra explains why that specific ancestry/calling returned.
-- Ilyra presents the required illustrated Chronicle of Returning. Historical Death Gate events are labeled separately from the original SoulDrifter continuation, and the final page explains the player's shared mission among many resurrected SoulDrifters.
+- Ilyra presents the required illustrated Chronicle of Returning. Historical Death Gate events are labeled separately from the original Sundered Spheres continuation, and the final page explains the player's shared mission among many resurrected Sphere Drifters.
 - At the Memory Loom, the player distributes exactly three final stat points, selects one ancestry boon, and selects one base-calling discipline.
 - The returned body begins with worn C-tier clothing and a mundane calling weapon already equipped. The Wayfarer's Coffer grants a binding charm and two recovery bands.
 - A battered effigy supports safe signature/defense rehearsal.
@@ -787,7 +801,7 @@ Create original factions around these positions:
 
 - those who want to restore the worlds exactly as they were
 - those who profit from permanent instability
-- those who worship the SoulDrift as judgment or evolution
+- those who worship the Drift as judgment or evolution
 - those who want to separate the worlds regardless of casualties
 - those who believe a new combined world should replace both old ones
 
@@ -853,7 +867,7 @@ Production interpretation:
 Originality boundary:
 
 - Do not copy RuneScape or Ultima Online models, sprites, textures, UI frames, maps, icons, fonts, sounds, palettes, or named content.
-- Match the era, readability, camera language, and production economy while keeping SoulDrifter's own realm materials, rune systems, cultures, silhouettes, and interface.
+- Match the era, readability, camera language, and production economy while keeping The Sundered Spheres' own realm materials, rune systems, cultures, silhouettes, and interface.
 
 ### Low-Poly 3D and Tile Pipeline
 
@@ -1074,7 +1088,7 @@ Vertical-slice acceptance criteria:
 
 ## Non-Negotiable Canon Rules for Another AI
 
-- Keep the SoulDrift collision premise.
+- Keep the Drift collision premise.
 - Keep the four-realm structure and gravity/density/light/sound gameplay threads.
 - Keep Soul Essence, soul memory, rebirth, and realm restoration themes.
 - Keep the original class ideas even when represented as subclasses.
@@ -1122,4 +1136,4 @@ Vertical-slice acceptance criteria:
 
 ## Current Operational Status
 
-Lord Xar has directly authorized this design-document update and its tile-based, classic isometric low-poly 3D, animated-turn-based direction. This file is approved as build and design input for the parallel SoulDrifter version. Publishing, production deployment, paid asset-generation spending, and overwriting the separate third-person project remain distinct decisions requiring explicit owner authorization.
+Lord Xar has directly authorized this design-document update and its tile-based, classic isometric low-poly 3D, animated-turn-based direction. This file is approved as build and design input for the parallel Sundered Spheres version. Publishing, production deployment, paid asset-generation spending, and overwriting the separate third-person project remain distinct decisions requiring explicit owner authorization.
