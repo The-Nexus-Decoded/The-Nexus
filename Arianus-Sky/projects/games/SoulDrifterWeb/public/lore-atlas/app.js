@@ -1,5 +1,5 @@
 /* ============================================================
-   SOULDRIFTER — LORE ATLAS (v1.0)
+   THE SUNDERED SPHERES — LORE ATLAS (v1.0)
    Interactive lore/maps tab. Vanilla JS, no build step.
 
    GAME INTEGRATION API (window.SOULDRIFTER_ATLAS):
@@ -15,6 +15,7 @@
    ============================================================ */
 
 (function () {
+  // compatibility: legacy 'souldrifter' key preserved for existing saves/cookies (#515)
   const LS_KEY = "souldrifter.atlasState.v1";
   const D = ATLAS_DATA;
 
@@ -64,7 +65,7 @@
   function headerHTML() {
     return `
       <div class="brand">
-        <div class="brand-title">SOULDRIFTER</div>
+        <div class="brand-title">THE SUNDERED SPHERES</div>
         <div class="brand-sub">Lore Atlas</div>
       </div>
       <nav class="tabs">
@@ -674,6 +675,7 @@
   }
 
   /* ---------------- public API ---------------- */
+  // compatibility: legacy 'souldrifter' key preserved for existing saves/cookies (#515)
   window.SOULDRIFTER_ATLAS = {
     getState: () => JSON.parse(JSON.stringify(state)),
     setState: (obj) => { state = obj; saveState(); render(); },

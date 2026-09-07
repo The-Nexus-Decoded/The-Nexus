@@ -1,4 +1,4 @@
-"""Retarget the reviewed Mixamo sword and unarmed motions onto SoulDrifter's rig.
+"""Retarget the reviewed Mixamo sword and unarmed motions onto The Sundered Spheres' rig.
 
 Run Blender with the existing animation-library .blend as the input file. The
 script only owns the named actions below; all other authored and imported
@@ -115,7 +115,7 @@ def main() -> None:
         source_armature = imported_armatures[0]
         imported_bones = [bone.name for bone in source_armature.data.bones]
         if imported_bones != target_bones:
-            raise RuntimeError(f"{source_name}: Mixamo skeleton no longer matches the SoulDrifter target rig")
+            raise RuntimeError(f"{source_name}: Mixamo skeleton no longer matches the Sundered Spheres target rig")
         source_action = new_actions[0]
         _, frame_range = bake_action_to_target(source_armature, source_action, target, action_name)
         if source_armature.animation_data:

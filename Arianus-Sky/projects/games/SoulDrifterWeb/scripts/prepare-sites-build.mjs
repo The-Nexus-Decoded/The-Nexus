@@ -12,6 +12,7 @@ const clientIndex = resolve(sitesClientRoot, "index.html");
 const pagesOutput = resolve(projectRoot, "dist-pages");
 const run = promisify(execFile);
 
+// compatibility: SOULDRIFTER_* env names are set by the external Pages deploy workflow; rename in lockstep with that repo (#515)
 async function resolveSourceCommit() {
   if (process.env.SOULDRIFTER_SOURCE_COMMIT) return process.env.SOULDRIFTER_SOURCE_COMMIT;
   if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
@@ -33,7 +34,7 @@ if (!workerTemplate.includes(marker)) throw new Error("Static Sites worker game-
 
 const sourceCommit = await resolveSourceCommit();
 const release = {
-  app: "SoulDrifter — The First Breach",
+  app: "The Sundered Spheres — The First Breach",
   sourceCommit,
   releaseId: process.env.SOULDRIFTER_RELEASE_ID ?? sourceCommit.slice(0, 12),
   builtAt: new Date().toISOString(),
@@ -56,6 +57,6 @@ await Promise.all([
 await writeFile(workerOutput, workerTemplate.replace(marker, `const EMBEDDED_GAME_HTML = ${JSON.stringify(gameHtml)};`));
 await writeFile(clientIndex, `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="cache-control" content="no-store"><title>SoulDrifter Beta</title>
+<meta http-equiv="cache-control" content="no-store"><title>The Sundered Spheres Beta</title>
 <meta http-equiv="refresh" content="0;url=/play"><link rel="canonical" href="/play"></head>
-<body><p><a href="/play">Enter SoulDrifter</a></p></body></html>`);
+<body><p><a href="/play">Enter The Sundered Spheres</a></p></body></html>`);
