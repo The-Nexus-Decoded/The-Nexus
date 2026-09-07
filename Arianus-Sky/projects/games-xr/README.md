@@ -1,5 +1,7 @@
 # Games & XR Projects — Samah's Domain
 
+> Legacy project. The current game is **The Sundered Spheres: Thalenyr** (Arianus-Sky/projects/games/SoulDrifterWeb). This folder is kept as history under its original name.
+
 Spatial computing and game development: VR, AR, MR, WebXR, visionOS, Three.js, Babylon.js, Unity, Unreal.
 
 ## What Goes Here
