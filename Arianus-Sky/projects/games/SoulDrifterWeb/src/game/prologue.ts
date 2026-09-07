@@ -1,6 +1,6 @@
 import type { CharacterProfile } from "./character";
 
-export type PrologueEra = "The Death Gate Cycle" | "SoulDrifter continuation" | "The present";
+export type PrologueEra = "The Death Gate Cycle" | "Sundered Spheres continuation" | "The present";
 
 export interface ProloguePage {
   id: string;
@@ -25,7 +25,7 @@ const ILYRA_ART = "/assets/generated/prologue/10-ilyra-awakening.webp";
 
 /**
  * Five concise boards summarize the established Cycle. The final two boards
- * are explicitly labeled as original SoulDrifter continuation. This boundary
+ * are explicitly labeled as original Sundered Spheres continuation. This boundary
  * prevents later game-lore edits from masquerading as lost novel canon.
  */
 export function prologuePages(profile: CharacterProfile): readonly ProloguePage[] {
@@ -91,16 +91,17 @@ export function prologuePages(profile: CharacterProfile): readonly ProloguePage[
       alt: "The Patryns Haplo and Marit join the Sartan Alfred in complementary sigla magic at the Seventh Gate while dragon-snakes circle beyond it.",
     },
     {
+      // compatibility: stable board id, do not rename (#515)
       id: "souldrift",
-      era: "SoulDrifter continuation",
-      kicker: "Original SoulDrifter timeline - After the novels",
-      title: "The SoulDrift Opened What Peace Had Sealed",
+      era: "Sundered Spheres continuation",
+      kicker: "Original Sundered Spheres timeline - After the novels",
+      title: "The Drift Opened What Peace Had Sealed",
       image: COLLISION_ART,
       narration: [
-        "Our original continuation begins after the Cycle. A second reality built resurrection pools and soul vessels to preserve life. Its ruptures struck the old conduits, folded incompatible laws together, and created the SoulDrift - and a new green realm born from the collision rather than the Sundering.",
-        "SoulDrifters are dead mensch returned through those damaged systems. Their souls can cross unstable realm laws, so the realm-root has raised many of them to repair the worlds before Sartan, Patryn, or dragon-serpent powers turn the next cataclysm into conquest.",
+        "Our original continuation begins after the Cycle. A second reality built resurrection pools and soul vessels to preserve life. Its ruptures struck the old conduits, folded incompatible laws together, and created the Drift - and a new green realm born from the collision rather than the Sundering.",
+        "Sphere Drifters are dead mensch returned through those damaged systems. Their souls can cross unstable realm laws, so the realm-root has raised many of them to repair the worlds before Sartan, Patryn, or dragon-serpent powers turn the next cataclysm into conquest.",
       ],
-      alt: "A living second reality collides with the elemental realms around a great tree, creating the SoulDrift and returning dead mensch as SoulDrifters.",
+      alt: "A living second reality collides with the elemental realms around a great tree, creating the Drift and returning dead mensch as Sphere Drifters.",
     },
     {
       id: "chosen",
@@ -109,10 +110,10 @@ export function prologuePages(profile: CharacterProfile): readonly ProloguePage[
       title: `${profile.name}, the Well Chose You Among Many`,
       image: ILYRA_ART,
       narration: [
-        `I am Ilyra, a mensch Wellkeeper who tends this Soul Well and guides the returned. You awakened as a ${profile.raceName} ${profile.callingName}: one of many SoulDrifters whose memories can survive laws that tear ordinary souls apart.`,
+        `I am Ilyra, a mensch Wellkeeper who tends this Soul Well and guides the returned. You awakened as a ${profile.raceName} ${profile.callingName}: one of many Sphere Drifters whose memories can survive laws that tear ordinary souls apart.`,
         "Stabilize each world. Repair its conduits. Learn which rulers can unite their people and which must be opposed. Grow strong enough to face returning powers without becoming another tyrant who mistakes control for salvation. Now the Memory Loom can shape how this body begins.",
       ],
-      alt: "Ilyra, a mensch Wellkeeper, welcomes the returned SoulDrifter beside a luminous Soul Well while the Chronicle's worlds glow behind her.",
+      alt: "Ilyra, a mensch Wellkeeper, welcomes the returned Sphere Drifter beside a luminous Soul Well while the Chronicle's worlds glow behind her.",
     },
   ];
 }

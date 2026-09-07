@@ -73,7 +73,7 @@ async function createCharacter() {
     await page.locator("#creation-next").click();
   }
   await page.locator("#creation-confirm").click();
-  await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_DEBUG__), null, { timeout: 120_000 });
+  await page.waitForFunction(() => Boolean(window.__SUNDEREDSPHERES_DEBUG__), null, { timeout: 120_000 });
   await page.locator('[data-hud-drawer="camera"]').click();
   for (let index = 0; index < 5; index += 1) await page.locator('[data-camera-control="zoom-in"]').click();
   await page.locator('[data-hud-drawer="camera"]').click();
@@ -109,12 +109,12 @@ try {
       const phase = PHASES[index];
       const weapon = clip.weapon(phase);
       await page.evaluate(({ animation, normalizedTime, weaponState }) => {
-        window.__SOULDRIFTER_DEBUG__.weapon(weaponState);
-        window.__SOULDRIFTER_DEBUG__.pose(animation, normalizedTime);
+        window.__SUNDEREDSPHERES_DEBUG__.weapon(weaponState);
+        window.__SUNDEREDSPHERES_DEBUG__.pose(animation, normalizedTime);
         document.querySelector("#animation-audit-label").textContent = `${animation} / ${Math.round(normalizedTime * 100)}% / ${weaponState}`;
       }, { animation: clip.name, normalizedTime: phase, weaponState: weapon });
       await page.waitForTimeout(80);
-      const state = await page.evaluate(() => window.__SOULDRIFTER_DEBUG__.snapshot());
+      const state = await page.evaluate(() => window.__SUNDEREDSPHERES_DEBUG__.snapshot());
       await page.screenshot({
         path: join(clipDir, `${String(index).padStart(2, "0")}.jpg`),
         type: "jpeg",

@@ -54,7 +54,7 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
 
   it("exposes an appearance revisit without replacing the saved character", () => {
     expect(html).toContain('id="appearance-edit"');
-    expect(ui).toContain('souldrifter:edit-appearance');
+    expect(ui).toContain('sunderedspheres:edit-appearance');
   });
 
   it("registers low corridor walls and checks occlusion against visible enemies", () => {

@@ -34,8 +34,8 @@ async function createCharacter() {
     await page.locator("#creation-next").click();
   }
   await page.locator("#creation-confirm").click();
-  await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_DEBUG__), null, { timeout: 120_000 });
-  await page.evaluate(() => window.__SOULDRIFTER_DEBUG__.weapon("drawn"));
+  await page.waitForFunction(() => Boolean(window.__SUNDEREDSPHERES_DEBUG__), null, { timeout: 120_000 });
+  await page.evaluate(() => window.__SUNDEREDSPHERES_DEBUG__.weapon("drawn"));
   await page.locator('[data-hud-drawer="camera"]').click();
   for (let index = 0; index < 5; index += 1) await page.locator('[data-camera-control="zoom-in"]').click();
   await page.locator('[data-hud-drawer="camera"]').click();
@@ -44,16 +44,16 @@ async function createCharacter() {
 try {
   await createCharacter();
   await page.locator("#basic-action").click();
-  await page.waitForFunction(() => window.__SOULDRIFTER_DEBUG__.snapshot().playerAnimation === "WeaponStrikeBaseline", null, { timeout: 15_000 });
+  await page.waitForFunction(() => window.__SUNDEREDSPHERES_DEBUG__.snapshot().playerAnimation === "WeaponStrikeBaseline", null, { timeout: 15_000 });
   await page.screenshot({ path: join(outputDir, "public-active.png") });
-  await page.waitForFunction(() => window.__SOULDRIFTER_DEBUG__.snapshot().playerAnimation !== "WeaponStrikeBaseline", null, { timeout: 15_000 });
+  await page.waitForFunction(() => window.__SUNDEREDSPHERES_DEBUG__.snapshot().playerAnimation !== "WeaponStrikeBaseline", null, { timeout: 15_000 });
   await page.screenshot({ path: join(outputDir, "public-recovery.png") });
   const phases = [0, 0.08, 0.16, 0.24, 0.3, 0.36, 0.44, 0.52, 0.6, 0.68, 0.76, 0.88, 1];
   const dense = [];
   for (const phase of phases) {
-    await page.evaluate((value) => window.__SOULDRIFTER_DEBUG__.pose("WeaponStrikeBaseline", value), phase);
+    await page.evaluate((value) => window.__SUNDEREDSPHERES_DEBUG__.pose("WeaponStrikeBaseline", value), phase);
     await page.waitForTimeout(70);
-    const state = await page.evaluate(() => window.__SOULDRIFTER_DEBUG__.snapshot());
+    const state = await page.evaluate(() => window.__SUNDEREDSPHERES_DEBUG__.snapshot());
     const suffix = String(Math.round(phase * 100)).padStart(3, "0");
     await page.screenshot({ path: join(outputDir, `source-${suffix}.png`) });
     dense.push({ phase, animation: state.playerAnimation, bounds: state.playerBounds, handSocket: state.playerHandSocket, rig: state.playerRigProbe });

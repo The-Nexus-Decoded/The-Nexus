@@ -2,7 +2,7 @@
    THE SUNDERED SPHERES — LORE ATLAS (v1.0)
    Interactive lore/maps tab. Vanilla JS, no build step.
 
-   GAME INTEGRATION API (window.SOULDRIFTER_ATLAS):
+   GAME INTEGRATION API (window.SUNDEREDSPHERES_ATLAS):
      getState()              -> current progress state object
      setState(obj)           -> replace state (game writes progress here)
      unlockRealm(id)         -> unlock a realm
@@ -21,7 +21,7 @@
 
   /* ---------------- state ---------------- */
   let state = loadState();
-  let previewAll = false;  // game build: locks and fog driven by SOULDRIFTER_ATLAS state
+  let previewAll = false;  // game build: locks and fog driven by SUNDEREDSPHERES_ATLAS state
   let currentTab = "wheel";
   let currentRealm = "thalenyr";
   let realmView = "lore";   // "lore" = clean painted map · "explore" = pins + key + fog of war
@@ -675,8 +675,8 @@
   }
 
   /* ---------------- public API ---------------- */
-  // compatibility: legacy 'souldrifter' key preserved for existing saves/cookies (#515)
-  window.SOULDRIFTER_ATLAS = {
+  // compatibility: the localStorage key above is the only legacy 'souldrifter' literal kept (#515)
+  window.SUNDEREDSPHERES_ATLAS = {
     getState: () => JSON.parse(JSON.stringify(state)),
     setState: (obj) => { state = obj; saveState(); render(); },
     unlockRealm: (id) => { state.realms[id] = state.realms[id] || {}; state.realms[id].unlocked = true; saveState(); render(); },
@@ -685,6 +685,7 @@
     importJSON: (str) => { state = JSON.parse(str); saveState(); render(); },
     reset: () => { state = JSON.parse(JSON.stringify(D.defaultState)); saveState(); render(); }
   };
+  window.SOULDRIFTER_ATLAS = window.SUNDEREDSPHERES_ATLAS; // deprecated alias (#515)
 
   /* The game writes exploration to the same localStorage key; when the atlas
      panel is open in its iframe, refresh live on every write. */

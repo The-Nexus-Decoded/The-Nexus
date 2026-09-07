@@ -27,7 +27,7 @@ export function characterPortraitPath(raceId: string, callingId: string): string
 type CreationStep = "name" | "race" | "appearance" | "calling" | "memory" | "review";
 
 interface CreationHistoryState {
-  souldrifterCreation: true;
+  sunderedspheresCreation: true;
   step: CreationStep;
   memoryIndex: number;
 }
@@ -60,7 +60,7 @@ export class CharacterCreation {
     private readonly savedProfile: CharacterProfile | null = null,
     private readonly savedAvatarPreview: string | null = null,
   ) {
-    window.addEventListener("souldrifter:edit-appearance", (event) => {
+    window.addEventListener("sunderedspheres:edit-appearance", (event) => {
       const profile = (event as CustomEvent<{ profile?: CharacterProfile }>).detail?.profile;
       if (profile) this.editAppearance(profile);
     });
@@ -70,12 +70,12 @@ export class CharacterCreation {
   }
 
   private creationHistoryState(): CreationHistoryState {
-    return { souldrifterCreation: true, step: this.step, memoryIndex: this.memoryIndex };
+    return { sunderedspheresCreation: true, step: this.step, memoryIndex: this.memoryIndex };
   }
 
   private readonly onPopState = (event: PopStateEvent): void => {
     const state = event.state as Partial<CreationHistoryState> | null;
-    if (!state?.souldrifterCreation || this.root.hidden || !state.step) return;
+    if (!state?.sunderedspheresCreation || this.root.hidden || !state.step) return;
     this.step = state.step;
     this.memoryIndex = Number.isInteger(state.memoryIndex) ? Math.max(0, state.memoryIndex ?? 0) : 0;
     this.render();
@@ -90,7 +90,7 @@ export class CharacterCreation {
 
   private navigateBack(fallbackStep: CreationStep, fallbackMemoryIndex = this.memoryIndex): void {
     const current = window.history.state as Partial<CreationHistoryState> | null;
-    if (current?.souldrifterCreation) {
+    if (current?.sunderedspheresCreation) {
       window.history.back();
       return;
     }

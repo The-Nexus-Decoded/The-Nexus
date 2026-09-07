@@ -11,7 +11,7 @@
         "opening": [
           "Easy, {name}. Your body is newly woven, but your soul is older than this chamber.",
           "Before the Memory Loom tells you how this life will begin, you must understand why the Well returned you at all.",
-          "I will show you seven memories: Old Earth's Age of Dust, the rise of Sartan and Patryn, the Sundering, Xar and Haplo, the four realm journey, the Seventh Gate, and the original SoulDrift that led to your return. Finish them, and then I will tell you what this soul has become."
+          "I will show you seven memories: Old Earth's Age of Dust, the rise of Sartan and Patryn, the Sundering, Xar and Haplo, the four realm journey, the Seventh Gate, and the original Drift that led to your return. Finish them, and then I will tell you what this soul has become."
         ],
         "raceLines": {
           "human": "Human souls adapt by borrowing the shape of every realm they survive. Yours carries several incompatible echoes at once. That is why the Well chose you—and why ordinary gates can no longer keep you out.",
@@ -34,7 +34,7 @@
             {
               "id": "refine-imprint",
               "label": "Open the Chronicle of Returning.",
-              "response": "Pass through all seven boards once. You may advance past any individual narration immediately, and leaving only pauses your place. The final memory names the shared SoulDrifter task; only then will the Loom accept three stat threads, one ancestry boon, and one mortal base discipline.",
+              "response": "Pass through all seven boards once. You may advance past any individual narration immediately, and leaving only pauses your place. The final memory names the shared Sphere Drifter task; only then will the Loom accept three stat threads, one ancestry boon, and one mortal base discipline.",
               "checkpoint": "starter-imprint-offered"
             },
             {
