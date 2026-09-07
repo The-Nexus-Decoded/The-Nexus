@@ -54,7 +54,7 @@ Preserve throughout implementation:
 - race/class independence and equal treatment of skin tones
 - class equipment, magic resources, party roles, gear tiers, and realm materials
 - secondary professions, Zone 1, training characters, enemy concepts, quests, bosses, factions, progression, and hub systems
-- African-influenced visual culture and the originality/IP boundaries
+- no single cultural skew for the game as a whole; individual towns, zones, or settlements may carry a specific cultural influence where their design calls for it; and the originality/IP boundaries
 
 Only the delivery format is changed: classic isometric low-poly 3D, real-time exploration, and animated hybrid combat with real-time and tactical scheduling options.
 
@@ -835,7 +835,7 @@ Names, leaders, symbols, and exact histories remain to be written.
 
 - fixed three-quarter isometric readability first
 - mythic but practical, realm-weathered rather than costume-shop fantasy
-- African-influenced geometric textiles, metalwork, beads, bronze details, and cultural patterning where established
+- no single cultural skew overall: the game's register is the Death Gate Cycle, the Lifepaper source, and Baldur's Gate / World of Warcraft / Diablo-style RPGs; individual towns, zones, or settlements may carry a specific cultural influence (textiles, metalwork, beads, patterning) as local flavour where their design calls for it
 - class identity readable at normal isometric gameplay-model scale
 - body, weapon, armor, and carried-item magic channels remain visually linked
 - realm materials visibly change gear without erasing the class silhouette
@@ -1101,7 +1101,7 @@ Vertical-slice acceptance criteria:
 - Asura power has visible cost and backlash.
 - Slayer identity depends on positioning and execution.
 - Race never forces a class or assigns morality.
-- Preserve African-influenced visual direction without reducing it to generic pattern decoration.
+- Do not skew the game to any one culture; where a town or zone carries a specific cultural influence, treat it as authored local flavour, not generic pattern decoration.
 - Realm mechanics must change gameplay.
 - Exploration is real time; combat is animated turn based with initiative.
 - Confirmed actions resolve as real-time 3D animation on the same world map.
