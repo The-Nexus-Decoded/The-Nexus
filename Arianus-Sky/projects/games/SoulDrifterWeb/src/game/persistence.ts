@@ -1,6 +1,7 @@
 import type { CharacterProfile } from "./character";
 import type { InventoryState } from "./equipment";
 
+// compatibility: legacy IndexedDB name preserved so existing browser saves keep loading (#515)
 const DATABASE_NAME = "souldrifter-story";
 const DATABASE_VERSION = 3;
 
@@ -20,7 +21,7 @@ function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   });
 }
 
-class SoulDrifterDatabase {
+class SunderedSpheresDatabase {
   private connection: Promise<IDBDatabase> | null = null;
 
   public async loadCharacter(): Promise<CharacterProfile | null> {
@@ -111,7 +112,7 @@ class SoulDrifterDatabase {
         if (!db.objectStoreNames.contains("avatarPreviews")) db.createObjectStore("avatarPreviews", { keyPath: "id" });
       };
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error ?? new Error("Unable to open the SoulDrifter story database."));
+      request.onerror = () => reject(request.error ?? new Error("Unable to open the Sundered Spheres story database."));
     });
     return this.connection;
   }
@@ -142,4 +143,4 @@ class SoulDrifterDatabase {
   }
 }
 
-export const storyDatabase = new SoulDrifterDatabase();
+export const storyDatabase = new SunderedSpheresDatabase();

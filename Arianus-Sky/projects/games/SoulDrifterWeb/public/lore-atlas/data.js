@@ -1,5 +1,5 @@
 /* ============================================================
-   SOULDRIFTER — LORE ATLAS DATA (v1.0)
+   THE SUNDERED SPHERES — LORE ATLAS DATA (v1.0)
    In-game lore/maps tab. No dev tags — approved content only.
    Canon basis: CANON_REGISTER.md D-1..D-7, DIR-1..DIR-4.
    Realm lore for the four engineered worlds is book-accurate
@@ -29,7 +29,7 @@ const ATLAS_DATA = {
         "Thalenyr is unclaimed by any engineered order — no Citadel, no machine, no system role. It is the only realm whose existence is the Wave's answer rather than someone's working, and the only realm that houses all the mortal races at once."
       ],
       pois: [
-        { id: "soulwell",   name: "The Soul Well & First Breach", type: "well",    x: 46.0, y: 38.5, region: "Heartvale",       desc: "The lock that bloomed. Souls still course to it, and Soul Drifters awaken beside it carrying memories that belonged to more than one world." },
+        { id: "soulwell",   name: "The Soul Well & First Breach", type: "well",    x: 46.0, y: 38.5, region: "Heartvale",       desc: "The lock that bloomed. Souls still course to it, and Sphere Drifters awaken beside it carrying memories that belonged to more than one world." },
         { id: "vaeldor",    name: "Vaeldor",                      type: "capital", x: 49.5, y: 47.5, region: "Heartvale",       desc: "Capital of the Verdant Echo, raised at the meeting of the rivers by the first waking generations. All roads in Thalenyr are measured from its well-stone." },
         { id: "anwel",      name: "Anwel",                        type: "city",    x: 46.0, y: 35.5, region: "Heartvale",       desc: "River-town above the Well, first roof most newly woken souls ever see." },
         { id: "thalensheir",name: "Thalen's Heir",                type: "city",    x: 46.5, y: 51.5, region: "Heartvale",       desc: "Said to stand where the first shepherd's weir once ran. The folk etymology survives here in song, whatever the academies say." },
@@ -376,7 +376,7 @@ const ATLAS_DATA = {
         "The old cosmos was bound by gates: the ring of four that linked the engineered worlds, the Fifth Gate at the paradise city, the Sixth at the maze's rim — and Death's Gate, the all-gate, through which everything passed and everything was watched.",
         "Death's Gate is not destroyed. It is corrupted. It has been shut before — sealed in fear of the serpents — and what it let through in the last age left it poisoned and observed. To travel it now is to be seen by whatever coils on the far side. It waits at the edge of the maps, an endgame door no one is ready to open.",
         "So the living found another way: the Soul Wells. They were always soul-locks, touching every realm's dead — the one network that already spanned all worlds. When the gates failed, the Wells inherited the work. And now the locks are reversing: what was built to hold souls in their course has begun, at last, to pass the living.",
-        "That is why a Soul Drifter's road runs from Well to Well — and why every unlocked realm on your map is a lock that chose to open."
+        "That is why a Sphere Drifter's road runs from Well to Well — and why every unlocked realm on your map is a lock that chose to open."
       ]
     }
   ],

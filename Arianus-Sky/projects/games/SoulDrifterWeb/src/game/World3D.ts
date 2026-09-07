@@ -315,6 +315,8 @@ interface DebugCommand {
 
 declare global {
   interface Window {
+    __SUNDEREDSPHERES_DEBUG__?: DebugBridge;
+    /** @deprecated alias for out-of-repo Playwright probes; remove after the folder-move PR (#515) */
     __SOULDRIFTER_DEBUG__?: DebugBridge;
   }
 }
@@ -533,6 +535,7 @@ export class World3D {
     this.environmentDisposers.forEach((dispose) => dispose());
     this.renderer.dispose();
     this.paperRenderer.dispose();
+    if (window.__SUNDEREDSPHERES_DEBUG__) delete window.__SUNDEREDSPHERES_DEBUG__;
     if (window.__SOULDRIFTER_DEBUG__) delete window.__SOULDRIFTER_DEBUG__;
   }
 
@@ -3815,6 +3818,8 @@ export class World3D {
       },
       respawn: async () => this.respawnAtSoulwellCheckpoint(),
     };
+    window.__SUNDEREDSPHERES_DEBUG__ = bridge;
+    // deprecated alias for out-of-repo Playwright probes; remove after the folder-move PR (#515)
     window.__SOULDRIFTER_DEBUG__ = bridge;
     const publish = (): void => {
       const serialized = JSON.stringify(this.debugSnapshot());
@@ -3826,7 +3831,7 @@ export class World3D {
       this.runDebugCommand(command, bridge, publish);
     });
     const commandObserver = new MutationObserver(() => {
-      const raw = document.documentElement.dataset.souldrifterCommand;
+      const raw = document.documentElement.dataset.sunderedspheresCommand;
       if (!raw) return;
       try {
         const command = JSON.parse(raw) as DebugCommand;
@@ -3835,7 +3840,7 @@ export class World3D {
         document.documentElement.dataset.souldrifterDebugError = "Invalid debug command JSON.";
       }
     });
-    commandObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-souldrifter-command"] });
+    commandObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-sunderedspheres-command"] });
     const debugInput = requiredElement<HTMLInputElement>("debug-command");
     debugInput.addEventListener("input", () => {
       if (!debugInput.value) return;

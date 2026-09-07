@@ -2,7 +2,7 @@
 
 ## Goal
 
-SoulDrifter should benefit from open-source ecosystem work without acquiring legal or distribution dependencies on Ultima game files.
+The Sundered Spheres should benefit from open-source ecosystem work without acquiring legal or distribution dependencies on Ultima game files.
 
 ## Allowed Intake Lanes
 
@@ -22,7 +22,7 @@ Use when behavior is useful but the source or assets are not reusable.
 1. Record observable behavior in neutral terms.
 2. Do not copy source code, art, sound, maps, dialogue, or proprietary data formats verbatim.
 3. Implement the behavior from the neutral specification in original TypeScript.
-4. Create original SoulDrifter names, code, data, visuals, and audio.
+4. Create original Sundered Spheres names, code, data, visuals, and audio.
 5. Keep research references and implementation commits auditable.
 
 ## Prohibited
@@ -63,4 +63,4 @@ These are research references, not bundled dependencies:
 - ClassicUO browser client: closed source and not a reusable dependency
 - ServUO: GPL server-emulator research; still expects Ultima data/content conventions
 
-The preferred approach is a SoulDrifter-native client, protocol, server, data model, and asset set.
+The preferred approach is a Sundered Spheres-native client, protocol, server, data model, and asset set.

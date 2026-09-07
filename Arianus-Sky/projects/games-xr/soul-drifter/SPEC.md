@@ -1,5 +1,7 @@
 # Soul Drifter — Death Gate Cycle VR Game (MVP)
 
+> Legacy project. The current game is **The Sundered Spheres: Thalenyr** (Arianus-Sky/projects/games/SoulDrifterWeb). This folder is kept as history under its original name.
+
 **Issue:** #196
 **Status:** Phase 1 — Spatial Foundation
 **Lead:** Samah (spatial architecture)

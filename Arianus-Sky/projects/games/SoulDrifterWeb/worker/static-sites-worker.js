@@ -1,5 +1,7 @@
+// compatibility: legacy 'souldrifter' key preserved for existing saves/cookies (#515)
 const COOKIE_NAME = "souldrifter_beta";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
+// compatibility: legacy 'souldrifter' key preserved for existing saves/cookies (#515)
 const SESSION_PURPOSE = "souldrifter-beta-access-v1";
 const encoder = new TextEncoder();
 const EMBEDDED_GAME_HTML = null;
@@ -23,7 +25,7 @@ function loginPage(error = "") {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SoulDrifter Beta Access</title>
+  <title>The Sundered Spheres Beta Access</title>
   <style>
     :root { color-scheme: dark; font-family: Georgia, "Times New Roman", serif; }
     * { box-sizing: border-box; }
@@ -47,7 +49,7 @@ function loginPage(error = "") {
   <main>
     <div class="sigil" aria-hidden="true"><span>◇</span></div>
     <p class="eyebrow">The First Breach</p>
-    <h1>SoulDrifter</h1>
+    <h1>The Sundered Spheres</h1>
     <p class="intro">This preview is sealed for invited beta testers. Enter the shared breach password to continue.</p>
     <form method="post" action="/beta-login">
       <label for="password">Beta password</label>
@@ -173,7 +175,7 @@ const worker = {
     }
 
     if (!env.ASSETS) {
-      return new Response("SoulDrifter static asset binding is unavailable.", { status: 500 });
+      return new Response("The Sundered Spheres static asset binding is unavailable.", { status: 500 });
     }
 
     const response = await env.ASSETS.fetch(request);

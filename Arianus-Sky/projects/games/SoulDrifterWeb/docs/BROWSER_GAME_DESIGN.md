@@ -1,22 +1,22 @@
-# SoulDrifter Browser Game Design
+# The Sundered Spheres: Thalenyr Browser Game Design
 
 Status: authoritative browser-edition override  
 Edition: first playable vertical slice
 
 ## Document precedence
 
-`GAME_BIBLE.md` remains the source of truth for SoulDrifter's world, realms, lore, classes, factions, characters, runes, sigils, color magic, quests, and progression concepts.
+`GAME_BIBLE.md` remains the source of truth for the Sundered Spheres world, realms, lore, classes, factions, characters, runes, sigils, color magic, quests, and progression concepts.
 
 This document overrides only the browser edition's presentation, controls, combat delivery, technical architecture, and asset policy. Where the older bible says the parallel edition is exclusively low-poly 3D or exclusively turn-based, this browser design takes precedence.
 
 ## Product statement
 
-Build a new, standalone SoulDrifter RPG for modern browsers. Its readable, object-dense isometric world should evoke the feeling of exploring a hand-authored 1990s immersive RPG, especially the spatial clarity of *Ultima VII* and the social-world readability of classic *Ultima Online*. It is not an Ultima port, shard, reskin, or rules clone.
+Build a new, standalone Sundered Spheres RPG for modern browsers. Its readable, object-dense isometric world should evoke the feeling of exploring a hand-authored 1990s immersive RPG, especially the spatial clarity of *Ultima VII* and the social-world readability of classic *Ultima Online*. It is not an Ultima port, shard, reskin, or rules clone.
 
-SoulDrifter owns the setting and game rules:
+The Sundered Spheres owns the setting and game rules:
 
 - Soul Resonance, Soul Essence, runes, sigils, glyphs, and color-aligned magic
-- the existing SoulDrifter realms, classes, factions, lore, characters, and quests
+- the existing Sundered Spheres realms, classes, factions, lore, characters, and quests
 - object interaction, systemic environments, exploration, dialogue, and party play
 - real-time action-bar combat by default, with player-selectable tactical turns
 
@@ -29,11 +29,11 @@ SoulDrifter owns the setting and game rules:
 - Characters use skeletal eight-direction-compatible locomotion, grounded feet, auto-facing, readable combat poses, and equipment-reflective model layers. Blender/glTF remains the production interchange.
 - Every final environment, character, icon, effect, animation, and sound is original or explicitly licensed for this project.
 
-## Magic is SoulDrifter magic
+## Magic is Sundered Spheres magic
 
 The browser edition must not inherit Ultima Online's reagent inventory, spell-circle progression, spell names, incantations, targeting rules, or mana balance.
 
-SoulDrifter abilities are assembled and learned through its own systems:
+Sundered Spheres abilities are assembled and learned through its own systems:
 
 - **Runes** define an action's core verb or force.
 - **Sigils** shape delivery, area, duration, binding, chaining, or protection.
@@ -78,14 +78,14 @@ The vertical slice begins in a ruined Soul Well complex:
 6. Learn the two combat schedulers from Breach Scout Orren and the level-one combat contract from Arena Warden Brannoc before crossing the encounter threshold.
 7. Defeat three standard Breachlings or five Oathbreaker variants, manage finite health/Stability/recovery resources, break the Cinderbound Warden, and claim the First Memory plus the selected trial reward.
 
-The level proves the camera, navigation, destructible/marked object interactions, inventory feedback, fog, environmental effects, shared combat simulation, two schedulers, SoulDrifter magic identity, branching NPC dialogue, starter character refinement, two difficulty presets on one randomized crawl, tutorial checkpoints, and local story persistence. The current Realm-Lock environment, 36 starter portraits, custom Elf Shadowknight model, three guides, Breachlings, and Warden are original prototype assets. Production-quality mocap retargeting and complete equipment layers remain separate work.
+The level proves the camera, navigation, destructible/marked object interactions, inventory feedback, fog, environmental effects, shared combat simulation, two schedulers, Sundered Spheres magic identity, branching NPC dialogue, starter character refinement, two difficulty presets on one randomized crawl, tutorial checkpoints, and local story persistence. The current Realm-Lock environment, 36 starter portraits, custom Elf Shadowknight model, three guides, Breachlings, and Warden are original prototype assets. Production-quality mocap retargeting and complete equipment layers remain separate work.
 
 Character, gear, dialogue, and persistence details are specified in `CHARACTER_AND_STORY_SYSTEM.md`.
 
 ## Multiplayer direction
 
-The first playable is local, but gameplay code must keep simulation state separate from rendering and interface state. Later multiplayer work should use a server-authoritative simulation with client prediction only where appropriate. Existing open-source clients or server emulators may be studied for architectural lessons when their licenses permit it; their data files, proprietary protocols, art, writing, and game rules are not the foundation of SoulDrifter.
+The first playable is local, but gameplay code must keep simulation state separate from rendering and interface state. Later multiplayer work should use a server-authoritative simulation with client prediction only where appropriate. Existing open-source clients or server emulators may be studied for architectural lessons when their licenses permit it; their data files, proprietary protocols, art, writing, and game rules are not the foundation of The Sundered Spheres.
 
 ## Asset intake rule
 
-Every imported item must be recorded in `third-party-assets.json` with source, author, license, modification notes, and proof location. If the license or ownership cannot be verified, the asset stays out of the repository. Similar-looking original work must be produced from SoulDrifter briefs and original source files, not by tracing, recoloring, or editing proprietary Ultima assets.
+Every imported item must be recorded in `third-party-assets.json` with source, author, license, modification notes, and proof location. If the license or ownership cannot be verified, the asset stays out of the repository. Similar-looking original work must be produced from Sundered Spheres briefs and original source files, not by tracing, recoloring, or editing proprietary Ultima assets.

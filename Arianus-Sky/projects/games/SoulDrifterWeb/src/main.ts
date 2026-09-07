@@ -32,7 +32,7 @@ async function launchGame(profile: CharacterProfile, resumeSavedSoul: boolean): 
   ]);
   const shell = document.getElementById("app-shell");
   const container = document.getElementById("game");
-  if (!shell || !container) throw new Error("Missing SoulDrifter application shell.");
+  if (!shell || !container) throw new Error("Missing Sundered Spheres application shell.");
   shell.hidden = false;
 
   activeWorld?.destroy();
@@ -74,7 +74,7 @@ async function bootstrap(): Promise<void> {
       savedProfile = normalizeLegacyCharacterProfile(loadedProfile);
     } catch (error) {
       savedProfileError = error instanceof Error ? error.message : "The saved soul uses an unsupported ancestry and calling.";
-      console.warn("Saved SoulDrifter profile was preserved but cannot be resumed.", error);
+      console.warn("Saved Sundered Spheres profile was preserved but cannot be resumed.", error);
     }
   }
   if (savedProfile && JSON.stringify(savedProfile) !== JSON.stringify(loadedProfile)) {

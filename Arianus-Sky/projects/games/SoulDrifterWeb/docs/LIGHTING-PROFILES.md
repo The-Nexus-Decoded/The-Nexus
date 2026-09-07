@@ -1,8 +1,8 @@
-# SoulDrifter Lighting Profile Contract
+# The Sundered Spheres Lighting Profile Contract
 
 Last updated: 2026-08-09
 
-SoulDrifter uses real-time Three.js lighting and shadows. The current renderer includes ACES tone mapping, exponential fog, hemisphere and ambient fill, a shadow-casting directional key, a directional rim, room and prop point lights, and meshes configured to cast and receive shadows.
+The Sundered Spheres uses real-time Three.js lighting and shadows. The current renderer includes ACES tone mapping, exponential fog, hemisphere and ambient fill, a shadow-casting directional key, a directional rim, room and prop point lights, and meshes configured to cast and receive shadows.
 
 The active profile is loaded from `public/config/lighting-tuning.json`. A backend or future admin screen can serve the same versioned JSON through `VITE_LIGHTING_TUNING_URL` without scattering new constants through room code.
 

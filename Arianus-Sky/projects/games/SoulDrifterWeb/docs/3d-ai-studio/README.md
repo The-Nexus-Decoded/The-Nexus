@@ -3,11 +3,11 @@
 Status: production contract proposed under [The-Nexus #435](https://github.com/The-Nexus-Decoded/The-Nexus/issues/435)  
 Scope: paid 3D AI Studio intake, base ancestry bodies, starter calling kits, separate weapons, Blender cleanup, rig compatibility, animation reuse, browser export, provenance, and visual QA
 
-This document defines how SoulDrifter uses 3D AI Studio without generating a fused character for every ancestry/calling combination. It complements [`ANIMATION_PRODUCTION_PIPELINE.md`](../ANIMATION_PRODUCTION_PIPELINE.md), [`WEAPON_MOTION_REFERENCE_INDEX.md`](../WEAPON_MOTION_REFERENCE_INDEX.md), [`CHARACTER_AND_STORY_SYSTEM.md`](../CHARACTER_AND_STORY_SYSTEM.md), and [`ASSET_AND_LICENSE_POLICY.md`](../ASSET_AND_LICENSE_POLICY.md).
+This document defines how The Sundered Spheres uses 3D AI Studio without generating a fused character for every ancestry/calling combination. It complements [`ANIMATION_PRODUCTION_PIPELINE.md`](../ANIMATION_PRODUCTION_PIPELINE.md), [`WEAPON_MOTION_REFERENCE_INDEX.md`](../WEAPON_MOTION_REFERENCE_INDEX.md), [`CHARACTER_AND_STORY_SYSTEM.md`](../CHARACTER_AND_STORY_SYSTEM.md), and [`ASSET_AND_LICENSE_POLICY.md`](../ASSET_AND_LICENSE_POLICY.md).
 
 ## Locked production decision
 
-SoulDrifter does **not** purchase or maintain an independent model for every ancestry/calling/appearance combination. The production set is assembled from reusable layers:
+The Sundered Spheres does **not** purchase or maintain an independent model for every ancestry/calling/appearance combination. The production set is assembled from reusable layers:
 
 - four current playable ancestry body archetypes: Human, Elf, Dwarf, and Halfling;
 - one shared C-tier starter clothing family, conformed to each body archetype;
@@ -134,7 +134,7 @@ Before a paid 3D request, prepare a consistent multi-view sheet:
 ### Base-body prompt template
 
 ```text
-Create a production reference sheet for an original SoulDrifter [ANCESTRY] adult humanoid.
+Create a production reference sheet for an original Sundered Spheres [ANCESTRY] adult humanoid.
 Show the exact same character from front, left, back, and right views in a neutral A-pose.
 Use grounded realistic-fantasy proportions and an adult face. The character wears a fitted,
 opaque, seam-simple neutral underlayer. No weapon, shield, armor, cape, robe, large hair,
@@ -149,7 +149,7 @@ Append only ancestry-specific requirements that have already been approved. Do n
 ### Weapon prompt template
 
 ```text
-Create one original low-level SoulDrifter [WEAPON] as an isolated game asset.
+Create one original low-level Sundered Spheres [WEAPON] as an isolated game asset.
 It is a worn C-tier mortal implement made from [MATERIALS], with believable construction,
 grip dimensions, thickness, and weight. No hand, character, sheath, floating particles,
 runes, relic glow, text, environment, or display stand. Center the entire object on a clean
@@ -160,7 +160,7 @@ clear unobstructed primary grip and a silhouette readable from an elevated isome
 ### Clothing or armor prompt template
 
 ```text
-Create one original modular C-tier [GARMENT OR ARMOR PIECE] for the approved SoulDrifter
+Create one original modular C-tier [GARMENT OR ARMOR PIECE] for the approved Sundered Spheres
 [BODY ARCHETYPE]. Show it fitted over the approved neutral body reference in front, left,
 back, and right views. The piece is worn, practical, low-level, and constructionally
 believable. No weapon, advanced rune language, relic glow, cape, unrelated accessories,
@@ -209,12 +209,12 @@ game-equipment mesh, not a permanently fused character.
 
 ### Phase 4: canonical rig compatibility proof
 
-3D AI Studio describes its Prism rig as Mixamo-compatible. That does not prove identity with SoulDrifter's current 65-bone deformation rig.
+3D AI Studio describes its Prism rig as Mixamo-compatible. That does not prove identity with the Sundered Spheres current 65-bone deformation rig.
 
 For the Human pilot:
 
 1. Export one unrigged cleaned mesh and one Prism-rigged FBX/GLB candidate.
-2. Compare bone names, hierarchy, count, bind pose, bone axes, rest transforms, root layout, skin weights, and animation track targets with the current SoulDrifter actor.
+2. Compare bone names, hierarchy, count, bind pose, bone axes, rest transforms, root layout, skin weights, and animation track targets with the current Sundered Spheres actor.
 3. Test the existing idle, walk, run, unarmed punch, and unarmed kick packs without editing them.
 4. If the skeleton is genuinely identical, use the direct animation-pack path.
 5. If it is compatible but not identical, retain the current canonical skeleton and create a documented Blender retarget/conform profile.

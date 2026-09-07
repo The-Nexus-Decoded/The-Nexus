@@ -38,13 +38,13 @@ describe("runtime asset budget", () => {
   });
 
   it("prunes matching unreferenced files while preserving required runtime assets", async () => {
-    const root = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
+    const root = await mkdtemp(resolve(tmpdir(), "sunderedspheres-assets-"));
     temporaryRoots.push(root);
     await Promise.all([
       writeFixture(root, "assets/generated/human-class-atlas-alpha-v1.png"),
       writeFixture(root, "assets/generated/characters/advanced/human-warrior.png"),
       writeFixture(root, "assets/generated/first-breach-environment-v1.png"),
-      writeFixture(root, "index.html", "<main>SoulDrifter</main>"),
+      writeFixture(root, "index.html", "<main>SunderedSpheres</main>"),
     ]);
     const manifest = {
       excludeGlobs: ["assets/generated/*-class-atlas-*-v1.png", "assets/generated/characters/advanced/**"],
@@ -61,7 +61,7 @@ describe("runtime asset budget", () => {
   });
 
   it("fails closed when a future runtime file references an excluded asset", async () => {
-    const root = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
+    const root = await mkdtemp(resolve(tmpdir(), "sunderedspheres-assets-"));
     temporaryRoots.push(root);
     await Promise.all([
       writeFixture(root, "lore-atlas/assets/P-ARIANUS_painted.png"),

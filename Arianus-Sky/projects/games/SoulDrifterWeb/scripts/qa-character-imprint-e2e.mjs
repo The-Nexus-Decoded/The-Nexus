@@ -46,11 +46,11 @@ async function completeHumanShadowknight(page) {
     await page.locator("#creation-next").click();
   }
   await page.locator("#creation-confirm").click();
-  await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_DEBUG__), null, { timeout: 120_000 });
+  await page.waitForFunction(() => Boolean(window.__SUNDEREDSPHERES_DEBUG__), null, { timeout: 120_000 });
 }
 
 async function completeIlyraAndImprint(page) {
-  await page.evaluate(() => window.__SOULDRIFTER_DEBUG__.interact("ilyra"));
+  await page.evaluate(() => window.__SUNDEREDSPHERES_DEBUG__.interact("ilyra"));
   await page.waitForSelector("#dialogue-panel:not([hidden])", { timeout: 30_000 });
   await page.locator("#dialogue-choices button").first().click();
   await page.locator("#dialogue-choices button", { hasText: "Continue" }).click();
@@ -101,7 +101,7 @@ async function completeIlyraAndImprint(page) {
   }
   if (storyBoards.length !== 7) throw new Error(`Expected seven storyboards, rendered ${storyBoards.length}.`);
   const storyText = storyBoards.map((board) => `${board.title} ${board.copy}`).join(" ");
-  for (const identity of ["not gods or demons", "war for control", "most powerful living Patryn", "Haplo opposed his lord", "Alfred", "Marit", "SoulDrifters are dead mensch", "I am Ilyra"]) {
+  for (const identity of ["not gods or demons", "war for control", "most powerful living Patryn", "Haplo opposed his lord", "Alfred", "Marit", "Sphere Drifters are dead mensch", "I am Ilyra"]) {
     if (!storyText.includes(identity)) throw new Error(`Storyboard never explains ${identity}.`);
   }
   await page.waitForSelector("#imprint-panel:not([hidden])", { timeout: 20_000 });
@@ -173,11 +173,11 @@ async function mobileFlow() {
   if (!savedImage?.startsWith("data:image/webp")) throw new Error("Saved-soul selector did not use the live 3D avatar preview.");
   await page.screenshot({ path: join(outputDir, "04-mobile-live-saved-avatar.jpg"), type: "jpeg", quality: 86 });
   await page.locator("#continue-character").click();
-  await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_DEBUG__), null, { timeout: 120_000 });
+  await page.waitForFunction(() => Boolean(window.__SUNDEREDSPHERES_DEBUG__), null, { timeout: 120_000 });
   if (await page.locator(".fatal-error").count()) throw new Error("Current saved Human Shadowknight crashed on resume.");
   await page.waitForTimeout(1_000);
   await page.screenshot({ path: join(outputDir, "06-mobile-cinematic-lighting.jpg"), type: "jpeg", quality: 88 });
-  const resumed = await page.evaluate(() => window.__SOULDRIFTER_DEBUG__.snapshot());
+  const resumed = await page.evaluate(() => window.__SUNDEREDSPHERES_DEBUG__.snapshot());
   await context.close();
   return { imprint, savedImagePrefix: savedImage.slice(0, 32), resumedAnimation: resumed.playerAnimation };
 }
@@ -233,9 +233,9 @@ async function desktopLegacyFlow() {
   const fallback = await page.locator("#continue-character img").getAttribute("src");
   if (fallback !== "/assets/generated/characters/dwarf-shadowknight-highlevel.png") throw new Error(`Legacy fallback portrait is wrong: ${fallback}`);
   await page.locator("#continue-character").click();
-  await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_DEBUG__), null, { timeout: 120_000 });
+  await page.waitForFunction(() => Boolean(window.__SUNDEREDSPHERES_DEBUG__), null, { timeout: 120_000 });
   if (await page.locator(".fatal-error").count()) throw new Error("Legacy Dwarf Shadowknight crashed on resume.");
-  const state = await page.evaluate(() => window.__SOULDRIFTER_DEBUG__.snapshot());
+  const state = await page.evaluate(() => window.__SUNDEREDSPHERES_DEBUG__.snapshot());
   await page.screenshot({ path: join(outputDir, "05-desktop-legacy-dwarf-resume.jpg"), type: "jpeg", quality: 86 });
   await context.close();
   return { fallback, animation: state.playerAnimation, bounds: state.playerBounds };

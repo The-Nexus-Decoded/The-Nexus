@@ -1,8 +1,8 @@
-# SoulDrifter dual deployment
+# The Sundered Spheres dual deployment
 
 Tracking: [The-Nexus #437](https://github.com/The-Nexus-Decoded/The-Nexus/issues/437)
 
-SoulDrifter has two release surfaces with different routing and access contracts:
+The Sundered Spheres has two release surfaces with different routing and access contracts:
 
 | Target | Source branch | URL | Audience | Entry route | Build artifact |
 |---|---|---|---|---|---|
@@ -33,7 +33,7 @@ Both artifacts contain a `release.json`, including the source commit and release
 
 ## GitHub Pages publication
 
-The public repository owns a `Deploy SoulDrifter` workflow. It detects a new PR merge on The-Nexus `main`, resolves the exact merge commit, runs the full SoulDrifter test and build gates, and uploads only `dist-pages/` through GitHub Pages. Unchanged commits are skipped, and no cross-repository write token is required.
+The public repository owns a `Deploy SoulDrifter` workflow. It detects a new PR merge on The-Nexus `main`, resolves the exact merge commit, runs the full Sundered Spheres test and build gates, and uploads only `dist-pages/` through GitHub Pages. Unchanged commits are skipped, and no cross-repository write token is required.
 
 Manual dispatch remains available for a reviewed rollback commit:
 

@@ -1,4 +1,4 @@
-# SoulDrifter Class and Magic Progression Codex
+# The Sundered Spheres: Thalenyr Class and Magic Progression Codex
 
 Status: locked system rules; individual class trees still require a dedicated design pass
 
@@ -32,7 +32,7 @@ Examples: a Basic Fire Staff has 5 base damage, while +10 Power, +20 Fire, and i
 
 ## Difficulty and leveling pace
 
-SoulDrifter is genuinely demanding but does not use grind as its primary clock.
+The Sundered Spheres is genuinely demanding but does not use grind as its primary clock.
 
 - Level 1 to 20 targets roughly 14–20 focused hours for a first character, normally spread across at least one week.
 - Experience comes mainly from quests, first-time encounters, exploration discoveries, class trials, professions, bosses, and story checkpoints. Repeated low-risk kills have sharply diminishing value.
@@ -46,7 +46,7 @@ The pacing target is a content and balance contract, not a hard real-time lock. 
 
 ## The two rune traditions
 
-These are SoulDrifter's original implementation of the air-written versus body-bound distinction that inspired the system.
+These are the Sundered Spheres' original implementation of the air-written versus body-bound distinction that inspired the system.
 
 ### Aether-Scribed
 
@@ -90,7 +90,7 @@ The taxonomy decision is locked: Stalker belongs under Slayer and is not a tenth
 
 ### Planned expansion: Monk
 
-Monk is the planned tenth base class, not a replacement or rename for any current calling. Its working space is mortal body discipline, breath, footwork, unarmed/hand-wrap technique, simple staff use, counters, and mobile control. It must receive a dedicated class pass before implementation to define its original SoulDrifter identity, resources, two level-one proof skills, armor rules, weapon interactions, and later specializations without becoming a generic martial-arts stereotype.
+Monk is the planned tenth base class, not a replacement or rename for any current calling. Its working space is mortal body discipline, breath, footwork, unarmed/hand-wrap technique, simple staff use, counters, and mobile control. It must receive a dedicated class pass before implementation to define its original Sundered Spheres identity, resources, two level-one proof skills, armor rules, weapon interactions, and later specializations without becoming a generic martial-arts stereotype.
 
 At levels 1-19, Monk uses learned mortal technique and does not begin with visible Aether-Scribed or Flesh-Forged runes. At the later awakening tier it may choose one compatible tradition, never both, under the same exclusivity rule as the other non-Paladin classes. Until that pass is approved, Monk is excluded from the current `4 x 9 = 36` ancestry/calling implementation and balance matrix.
 
@@ -129,4 +129,4 @@ Non-favored combinations remain fully playable and can produce unusual builds. T
 
 ## Major-boss direction
 
-The Worldcoil Serpents are original enormous predators formed where fear, hatred, and collapsed realm laws feed one another. They occupy the large-boss role and require multi-stage positioning, environmental counters, exposed weak points, and story choices. They are not copies of Death Gate dragon-snakes: names, biology, motives, visual language, histories, and encounter mechanics must be SoulDrifter-owned.
+The Worldcoil Serpents are original enormous predators formed where fear, hatred, and collapsed realm laws feed one another. They occupy the large-boss role and require multi-stage positioning, environmental counters, exposed weak points, and story choices. They are not copies of Death Gate dragon-snakes: names, biology, motives, visual language, histories, and encounter mechanics must be Sundered Spheres-owned.

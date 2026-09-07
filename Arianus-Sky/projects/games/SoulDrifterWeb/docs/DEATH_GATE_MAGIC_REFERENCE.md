@@ -1,4 +1,4 @@
-# Death Gate Cycle Magic Reference and SoulDrifter Translation
+# Death Gate Cycle Magic Reference and Sundered Spheres Translation
 
 Purpose: factual inspiration reference, not shipping canon  
 Original novels: Margaret Weis and Tracy Hickman, 1990–1994
@@ -39,9 +39,9 @@ The good dragons and evil dragon-snakes are metaphysical beings connected to mor
 
 ## Important correction for our design vocabulary
 
-`Void magic` and `Dark magic` are not clean standalone school categories in the Death Gate novels. They are SoulDrifter additions. `Death magic` maps loosely to the books' necromancy but SoulDrifter must define its own costs, creatures, spells, and metaphysics.
+`Void magic` and `Dark magic` are not clean standalone school categories in the Death Gate novels. They are Sundered Spheres additions. `Death magic` maps loosely to the books' necromancy but The Sundered Spheres must define its own costs, creatures, spells, and metaphysics.
 
-Likewise, SoulDrifter does not ship the proper names Sartan, Patryn, Death Gate, Abarrach, the Wave, or the book series' named characters and factions. Our production terms are Aether-Scribed, Flesh-Forged, possibility weaving, Fire Realm, Worldcoil Serpents, and the setting-specific names defined in the game bible.
+Likewise, The Sundered Spheres does not ship the proper names Sartan, Patryn, Death Gate, Abarrach, the Wave, or the book series' named characters and factions. Our production terms are Aether-Scribed, Flesh-Forged, possibility weaving, Fire Realm, Worldcoil Serpents, and the setting-specific names defined in the game bible.
 
 ## Sources used for this refresher
 

@@ -170,7 +170,7 @@ export class GameUI {
     });
     requiredElement<HTMLButtonElement>("appearance-edit").addEventListener("click", () => {
       if (!this.currentProfile) return;
-      window.dispatchEvent(new CustomEvent("souldrifter:edit-appearance", { detail: { profile: this.currentProfile } }));
+      window.dispatchEvent(new CustomEvent("sunderedspheres:edit-appearance", { detail: { profile: this.currentProfile } }));
     });
     this.equipmentPanel.addEventListener("click", (event) => {
       const control = (event.target as HTMLElement).closest<HTMLElement>("[data-equipment-item]");
@@ -846,6 +846,7 @@ export class GameUI {
 
   private savedLocomotionPreference(): LocomotionPreference {
     try {
+      // compatibility: legacy localStorage key preserved for existing saves (#515)
       const stored = localStorage.getItem("souldrifter-locomotion-preference");
       if (stored === "walk" || stored === "run") return stored;
     } catch {

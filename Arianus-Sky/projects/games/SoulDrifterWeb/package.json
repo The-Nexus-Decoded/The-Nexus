@@ -1,8 +1,8 @@
 {
-  "name": "souldrifter-web",
+  "name": "sunderedspheres-web",
   "version": "0.1.0",
   "private": true,
-  "description": "Browser-native isometric SoulDrifter RPG prototype.",
+  "description": "Browser-native isometric Sundered Spheres RPG prototype.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

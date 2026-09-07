@@ -5,6 +5,7 @@
  * actually visits places. Realm locks and POI reveals are never demoted here.
  */
 
+// compatibility: legacy localStorage key preserved so existing atlas progress keeps loading (#515)
 const ATLAS_LS_KEY = "souldrifter.atlasState.v1";
 
 export type AtlasPoiStatus = "rumored" | "explored" | "completed";

@@ -1,4 +1,4 @@
-# SoulDrifter Starter Perk Vetting Matrix
+# The Sundered Spheres Starter Perk Vetting Matrix
 
 Status: **OWNER REVIEW REQUIRED — DO NOT TREAT THE 36 COMBINATION PERKS AS APPROVED**  
 Scope: levels 1–19, Ilyra's training-hall Memory Loom, all 4 ancestries × 9 starting callings

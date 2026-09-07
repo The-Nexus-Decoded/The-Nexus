@@ -1,4 +1,4 @@
-# SoulDrifter Skill Animation Production Pipeline
+# The Sundered Spheres Skill Animation Production Pipeline
 
 This is the mandatory production gate for every weapon action, spell, summon, buff, defense, recovery, interaction, monster ability, class skill, and specialization skill. It applies to every race and body type and to player characters, friendly NPCs, hostile NPCs, classed enemies, bosses, summons, and PvP opponents.
 
@@ -37,7 +37,7 @@ Mixamo may accelerate the human-motion foundation, but it must not become a runt
 
 ### Direct same-rig animation-pack path
 
-Use this path when Mixamo returns the uploaded SoulDrifter rig with matching bone names and topology:
+Use this path when Mixamo returns the uploaded Sundered Spheres rig with matching bone names and topology:
 
 1. Convert the untouched returned FBX to a small animation-only GLB and prove the FBX-to-GLB bone trajectories remain equivalent before runtime integration.
 2. Keep the character, clothing, armor, hair, and weapon meshes in the stable character GLB. Load the animation-only GLB separately, validate every track target against the cloned actor, and bind the clip to that actor's existing bones.
@@ -97,7 +97,7 @@ Write a short action brief:
 
 Lock the correct motion family before selecting mocap or posing the rig. Do not turn a simple beginner action into a more advanced technique because a dramatic source clip is available. For example, the starter Shadowknight Weapon Strike is a compact one-handed stab: blade-forward guard, short controlled thrust with modest knee/hip/shoulder drive, then quick recovery. It is not an overhead chop, two-handed power cut, dash, flourish, or magical rune attack. Siphon Cleave is a separate one-handed sweeping/draining action and must have a different silhouette.
 
-Low-level SoulDrifter actions use mortal weapon technique, wizardry, necromancy, breath, posture, and restrained effects. They do not use visible Sartan/Patryn runes, high-level probability magic, or advanced class regalia unless the skill's progression tier explicitly unlocks them.
+Low-level Sundered Spheres actions use mortal weapon technique, wizardry, necromancy, breath, posture, and restrained effects. They do not use visible Sartan/Patryn runes, high-level probability magic, or advanced class regalia unless the skill's progression tier explicitly unlocks them.
 
 ### 2. Choose a licensed human-motion foundation
 
@@ -114,10 +114,10 @@ Before importing:
 
 ### 3. Retarget at the shared asset boundary
 
-- First test whether retargeting is required. A matching SoulDrifter/Mixamo skeleton uses the direct animation-pack path above; the following matrix-bake rules apply only when skeleton bases or topology differ, or when an approved authored edit explicitly requires Blender.
+- First test whether retargeting is required. A matching Sundered Spheres/Mixamo skeleton uses the direct animation-pack path above; the following matrix-bake rules apply only when skeleton bases or topology differ, or when an approved authored edit explicitly requires Blender.
 - Use the canonical humanoid rig and documented bone map.
 - Apply source-rest-to-source-pose global rotation deltas onto target-rest bones; do not blindly copy local Euler values between unrelated bases.
-- When a Mixamo FBX round trip preserves SoulDrifter bone names/topology but changes rest-axis bases, bake each evaluated source `PoseBone.matrix` in armature space onto the matching target bone before keying target-local channels. Never copy `matrix_basis` in that case: it recreates the twisted torso, looping arm, and lifted-foot failure even though the source preview is correct.
+- When a Mixamo FBX round trip preserves Sundered Spheres bone names/topology but changes rest-axis bases, bake each evaluated source `PoseBone.matrix` in armature space onto the matching target bone before keying target-local channels. Never copy `matrix_basis` in that case: it recreates the twisted torso, looping arm, and lifted-foot failure even though the source preview is correct.
 - Preserve useful rotations through pelvis, legs, spine, shoulders, neck, head, arms, hands, and fingers.
 - Remove or constrain only the translation channels forbidden by the skill's root policy.
 - For in-place motion, anchor horizontal root travel while preserving or rebuilding vertical pelvis/root compensation needed by bent knees.
