@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "policyVersion": "2026-08-29-v1",
+  "questId": "",
+  "narrativeBeatId": "",
+  "narrativeBeatKind": "QUEST_INTRO_VIDEO",
+  "narrativeStateVersion": "",
+  "status": "PLANNED",
+  "storyLane": "MINIMAX_H3",
+  "visibleSpeakingNpc": {
+    "required": false,
+    "npcId": "",
+    "selectedLane": "PENDING_BAKEOFF",
+    "bakeoffRecordId": "",
+    "ownerVerdictReference": ""
+  },
+  "media": {
+    "master": {
+      "externalAssetKey": "",
+      "versionedUrl": "",
+      "codec": "",
+      "resolution": "",
+      "durationMs": 0,
+      "byteLength": 0,
+      "sha256": ""
+    },
+    "desktop": {
+      "externalAssetKey": "",
+      "versionedUrl": "",
+      "codec": "",
+      "resolution": "",
+      "byteLength": 0,
+      "sha256": ""
+    },
+    "mobile": {
+      "externalAssetKey": "",
+      "versionedUrl": "",
+      "codec": "",
+      "resolution": "",
+      "byteLength": 0,
+      "sha256": ""
+    },
+    "poster": {
+      "assetKeyOrUrl": "",
+      "sha256": ""
+    },
+    "captions": [
+      {
+        "locale": "en",
+        "assetKeyOrUrl": "",
+        "format": "WEBVTT",
+        "sha256": ""
+      }
+    ],
+    "fallbackDialogueKey": ""
+  },
+  "delivery": {
+    "fullVideoOutsideZonePackage": true,
+    "fullVideoOutsideBaseApplicationBundle": true,
+    "loadPolicy": "LAZY_ON_NARRATIVE_TRIGGER",
+    "cachePolicy": "BOUNDED_MEDIA_CACHE",
+    "replayAvailable": true,
+    "skipAvailable": true,
+    "pauseAvailable": true,
+    "volumeAvailable": true,
+    "captionsAvailable": true,
+    "failureBlocksQuestProgression": false
+  },
+  "provenance": {
+    "productionMode": "PROVIDER_OR_IN_HOUSE",
+    "provider": "",
+    "modelAndDisplayedVersion": "",
+    "taskIds": [],
+    "sourceReferencePaths": [],
+    "editableSourcePaths": [],
+    "generationOrRenderSettingsPath": "",
+    "rightsOrLicenseReference": "",
+    "creditsSpent": 0,
+    "humanProductionMinutes": 0,
+    "elapsedMinutes": 0,
+    "failedAttempts": []
+  },
+  "talkingNpcBakeoff": {
+    "required": false,
+    "lockedInputRecord": "",
+    "candidateARecord": "",
+    "candidateBRecord": "",
+    "hardFailureResults": [],
+    "scores": {
+      "candidateA": {},
+      "candidateB": {}
+    },
+    "blindedOwnerVerdict": "",
+    "labelReveal": {},
+    "selectedDefault": "",
+    "fallbackRetained": true
+  },
+  "verification": {
+    "desktopPlaybackEvidence": [],
+    "mobilePlaybackEvidence": [],
+    "captionsSkipReplayEvidence": [],
+    "networkFailureFallbackEvidence": [],
+    "zoneBundleExclusionEvidence": [],
+    "watchedSkippedReentryEvidence": [],
+    "performanceAndMemoryEvidence": [],
+    "independentVerifier": "",
+    "verifiedCommit": "",
+    "result": "NOT_RUN"
+  },
+  "ownerAcceptance": {
+    "status": "PENDING",
+    "reference": ""
+  }
+}

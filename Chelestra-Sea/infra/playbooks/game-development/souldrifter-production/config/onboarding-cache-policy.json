@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "toolchainSchemaVersion": "2026-08-24-toolchain-v1",
+  "fullBootstrapScope": "once_per_workstation_or_invalidation",
+  "sessionFastStartRequired": true,
+  "defaultStateRoot": "H:\\CodexData\\souldrifter-toolchain",
+  "productionReceiptPath": "H:\\CodexData\\souldrifter-toolchain\\receipts\\production-toolchain.json",
+  "tripoReceiptPath": "H:\\CodexData\\souldrifter-toolchain\\receipts\\tripo-provider.json",
+  "maxReceiptAgeDays": 30,
+  "liveProviderRefresh": {
+    "requiredBeforePaidOperation": true,
+    "requiredWhenProviderWorkBeginsAfterHours": 24,
+    "requiredForReadOnlyNonProviderTickets": false
+  },
+  "fullBootstrapInvalidationTriggers": [
+    "receipt_missing_or_unreadable",
+    "receipt_expired",
+    "toolchain_schema_changed",
+    "workstation_or_os_changed",
+    "tripo_sdk_lock_missing_or_unexpectedly_changed",
+    "tripo_secret_missing_or_authentication_failed",
+    "tripo_region_or_base_url_changed",
+    "official_tripo_cli_installed_removed_or_upgraded",
+    "houdini_version_or_license_changed",
+    "blender_major_version_or_addon_set_changed",
+    "node_or_python_major_version_changed",
+    "runtime_toolchain_lock_changed",
+    "real_gpu_or_browser_route_changed",
+    "cached_check_failed",
+    "owner_requested_clean_reonboarding"
+  ],
+  "perSessionChecks": [
+    "context_version",
+    "ticket_branch_worktree_and_heads",
+    "cached_receipt_id_and_age",
+    "required_secret_names_present_without_values",
+    "required_tool_roots_and_locks_exist",
+    "live_issue_pr_comments_and_head",
+    "ticket_state_and_work_claims"
+  ],
+  "neverRepeatPerChatUnlessInvalidated": [
+    "package_installation",
+    "full_tripo_capability_discovery",
+    "houdini_license_and_export_smoke_suite",
+    "blender_install_and_addon_setup",
+    "full_real_gpu_baseline_suite",
+    "controlled_storage_creation"
+  ]
+}

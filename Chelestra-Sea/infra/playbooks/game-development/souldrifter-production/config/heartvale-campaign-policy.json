@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 2,
+  "policyId": "souldrifter-heartvale-levels-2-10-v1",
+  "chapterId": "heartvale-first-wound",
+  "ownerDirectionDate": "2026-09-04",
+  "ticketOwnership": {
+    "progressionRuntime": 442,
+    "questInfrastructurePilot": 459,
+    "campaignContentIntegration": 498,
+    "loreWorldState": 428,
+    "researchClassification": 429,
+    "realmContinuity": 430,
+    "inventoryRuntime": 499,
+    "factionReadinessRuntime": 500
+  },
+  "questCounts": {
+    "main": 10,
+    "side": 10,
+    "optional": 10,
+    "total": 30
+  },
+  "levelFlow": {
+    "firstBreachStart": 1,
+    "heartvaleArrival": 2,
+    "postRescueOrientationTarget": 3,
+    "campaignMinimum": 3,
+    "campaignFinaleTarget": 10,
+    "hardSetLevelByDefault": false,
+    "mainPathReachesFinaleWithoutGrinding": true,
+    "optionalQuestsRequired": false
+  },
+  "openingSequence": {
+    "arrivalQuestId": "HV-MQ-01",
+    "atlasQuestId": "HV-MQ-02",
+    "liveRescueRequired": true,
+    "realTimeDefault": true,
+    "tacticalTurnBasedSupported": true,
+    "requiredNpcsCannotPermanentlyDie": true,
+    "safeCheckpointReset": true,
+    "atlasDerivedFromAcceptedMap": true,
+    "secretsRevealed": false,
+    "postOrientationRoutes": [
+      "HELP_AT_BASIN",
+      "LEARN_GATHER_AND_TRADE",
+      "GO_DIRECTLY_TO_ANWEL"
+    ]
+  },
+  "globalCampaign": {
+    "objective": "MORTAL_PEOPLES_BUILD_POWER_KNOWLEDGE_ALLIANCES_STABILITY_INFRASTRUCTURE_AND_RESOURCES_TO_MEET_RETURNING_ANCIENT_POWERS_ON_EQUAL_FOOTING",
+    "readinessVectors": [
+      "PERSONAL_POWER",
+      "RECOVERED_KNOWLEDGE",
+      "ALLIANCES_AND_FACTION_INFLUENCE",
+      "REALM_STABILITY",
+      "INFRASTRUCTURE_AND_ACCESS",
+      "RESOURCES_AND_AUTHORITY"
+    ],
+    "mainQuestMinimumVectorCount": 1,
+    "heartvaleFinaleRecordsPersistentConsequences": true
+  },
+  "sourceClassification": {
+    "allowed": [
+      "SOURCE_REFERENCE",
+      "OWNER_LOCKED",
+      "PROJECT_CANON",
+      "PROPOSAL",
+      "INFERENCE",
+      "UNKNOWN_CONFLICT",
+      "DESIGN_QUESTION",
+      "IMPLEMENTATION_DEPENDENCY"
+    ],
+    "publicReleaseRequiresOriginalExpressionOrLicense": true,
+    "protectedDialogueSceneCharacterCopyingAllowed": false
+  },
+  "population": {
+    "populationMode": "HUMAN_ONLY",
+    "confirmedPeoples": ["HUMAN"],
+    "allowedSocialNpcPeoples": ["HUMAN"],
+    "additionalPeopleSlots": 0,
+    "additionalPeopleStatus": "NOT_ALLOWED_IN_CURRENT_HEARTVALE_CHAPTER",
+    "drakkinPresent": false,
+    "drakkinIntroduction": "LATER_LOCATIONS",
+    "elfPresent": false,
+    "dwarfPresent": false,
+    "halflingPresent": false,
+    "dragonOrDragonkinCameosAllowed": false,
+    "hostileWildlifeAndBreachCreaturesAllowed": true,
+    "factionCountMinimum": 3,
+    "factionCountMaximum": 4,
+    "allHeartvaleFactionsHuman": true,
+    "raceEqualsSingleFaction": false,
+    "permanentEarlyLockoutAllowed": false
+  },
+  "inventory": {
+    "baseBackpackSlots": 20,
+    "physicalQuestItemsShareBackpack": true,
+    "unlimitedQuestBag": false,
+    "equippedItemsUseBackpackSlots": false,
+    "currencyUsesBackpackSlots": false,
+    "reputationUsesBackpackSlots": false,
+    "recipesAndMapKnowledgeUseBackpackSlots": false,
+    "questReservationRequired": true,
+    "reservationCountsAgainstCapacity": true,
+    "criticalQuestItemsDiscardable": false,
+    "pendingRewardClaimWhenFull": true,
+    "mainCampaignRequiresPaidExpansion": false,
+    "expansion": {
+      "entitlementId": "PACK_EXPANSION_TOKEN",
+      "slotsPerToken": 5,
+      "pocCapacityTiers": [20, 25, 30, 35, 40],
+      "finalMaximum": "OWNER_DECISION_REQUIRED",
+      "firstEarnedExpansionQuestId": "HV-OQ-01",
+      "accountWideDefault": true,
+      "cryptoOrTransferableByDefault": false,
+      "realMoneyValueInPoc": false,
+      "futureSaleRequiresSeparateApproval": true
+    }
+  },
+  "rewardRules": {
+    "singleCanonicalProgressionService": true,
+    "idempotencyRequired": true,
+    "reloadMayDuplicateRewards": false,
+    "cutsceneReplayMayDuplicateRewards": false,
+    "reentryMayDuplicateRewards": false,
+    "combatModeSwitchMayDuplicateRewards": false,
+    "mainQuestMayRequireRandomDropWithoutFallback": false,
+    "mainQuestMayRequirePaidItem": false,
+    "overLevelSideRewardsShiftToNonXpValue": true
+  },
+  "narrativeMedia": {
+    "everyQuestRequiresVideoOrInEngineBeat": true,
+    "externalProviderVideoRequiredForEveryQuest": false,
+    "captionsRequired": true,
+    "skipRequired": true,
+    "fallbackRequired": true,
+    "majorBeatQuestIds": ["HV-MQ-01", "HV-MQ-02", "HV-MQ-06", "HV-MQ-08", "HV-MQ-10"]
+  },
+  "hardGates": {
+    "questDagAcyclic": true,
+    "requiredMainDependsOnOptional": false,
+    "mainPathLevel10WithoutGrinding": true,
+    "baseInventoryCompletesMainPath": true,
+    "questItemsCannotSoftLockCapacity": true,
+    "factionStateVisibleAndPersisted": true,
+    "heartvaleSocialPopulationHumanOnly": true,
+    "drakkinAndOtherPeoplesDeferredToLaterLocations": true,
+    "desktopAndMobile": true,
+    "bothCombatModes": true,
+    "saveReloadAndReentry": true,
+    "independentVerification": true,
+    "ownerStoryAndFinaleApproval": true
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "policyId": "souldrifter-custom-animation-dual-pipeline-v1",
+  "appliesTo": [
+    "TIER_3_BESPOKE_CUSTOM",
+    "TIER_2_SUBSTANTIAL_DERIVED_CUSTOM",
+    "OWNER_MARKED_BAKEOFF"
+  ],
+  "pipelines": [
+    "HOUDINI_KINEFX",
+    "BLENDER"
+  ],
+  "directTripoPresetExemption": {
+    "allowed": true,
+    "condition": "The verified Tripo preset passes the complete technical, visual, gameplay-camera, runtime, and owner acceptance gate without substantial custom DCC work."
+  },
+  "fairness": {
+    "sameRig": true,
+    "sameModel": true,
+    "sameSourceMotionOrBrief": true,
+    "sameDurationFpsRootMotion": true,
+    "sameConstraintsAndMarkers": true,
+    "sameReviewSceneAndCameras": true,
+    "firstPassIsolation": true
+  },
+  "review": {
+    "blindLabels": true,
+    "independentAiReviewer": true,
+    "ownerFinalCreativeVerdict": true,
+    "ownerVerdicts": [
+      "A_WINS",
+      "B_WINS",
+      "TIE_KEEP_BOTH",
+      "CATEGORY_SPLIT",
+      "REWORK_BOTH",
+      "REJECT_REQUIRE_NEW_ROUTE"
+    ]
+  },
+  "scoreWeights": {
+    "intentAndSilhouette": 0.18,
+    "gameplayReadability": 0.14,
+    "naturalBodyMechanics": 0.12,
+    "constraintAndContactIntegrity": 0.14,
+    "deformationQuality": 0.10,
+    "timingAnticipationContactRecovery": 0.10,
+    "loopAndTransitions": 0.06,
+    "styleFit": 0.06,
+    "runtimeEfficiency": 0.05,
+    "automationReliability": 0.05
+  },
+  "checkpoints": [10, 25, 50, 100],
+  "additionalCheckpointInterval": 50,
+  "globalRetirementProposalMinimum": {
+    "completedBakeoffs": 25,
+    "motionCategories": 4,
+    "constrainedInteractionSamples": 5,
+    "ownerWinRate": 0.75,
+    "medianTimeOrFailureImprovement": 0.20,
+    "ownerApprovalRequired": true
+  },
+  "retirement": {
+    "automatic": false,
+    "categorySpecificRoutingPreferredWhenResultsDifferByCategory": true,
+    "preserveRetiredPipelineSourcesAndRecords": true
+  },
+  "registryPath": ".agent-state/animation-bakeoffs/registry.json",
+  "recordTemplatePath": "templates/animation-bakeoff-record.template.json"
+}

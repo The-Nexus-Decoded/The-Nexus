@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "instanceId": "player-id:GENERIC-QUEST-001:1",
+  "owner": {
+    "playerId": "player-id",
+    "profileId": "profile-id",
+    "partyId": null
+  },
+  "definition": {
+    "questId": "GENERIC-QUEST-001",
+    "questVersion": 1,
+    "contentHash": "",
+    "chapterId": "generic-chapter"
+  },
+  "lifecycleState": "AVAILABLE",
+  "objectiveState": {
+    "activeNodeIds": [],
+    "completedNodeIds": [],
+    "failedNodeIds": [],
+    "progressByNodeId": {},
+    "selectedBranchIds": [],
+    "selectedChoiceIds": []
+  },
+  "inventoryState": {
+    "reservationIds": [],
+    "questItemIds": [],
+    "pendingRewardClaimIds": []
+  },
+  "rewardState": {
+    "transactionId": null,
+    "transactionStatus": "NOT_REQUESTED",
+    "appliedReceiptId": null
+  },
+  "campaignState": {
+    "factionWrites": [],
+    "readinessWrites": [],
+    "worldStateWrites": [],
+    "tutorialFlags": [],
+    "mapTravelUnlocks": []
+  },
+  "timing": {
+    "offeredAtSequence": null,
+    "acceptedAtSequence": null,
+    "readyToTurnInAtSequence": null,
+    "completedAtSequence": null,
+    "failedAtSequence": null,
+    "abandonedAtSequence": null,
+    "expiresAtGameTime": null
+  },
+  "repeatability": {
+    "completionCount": 0,
+    "lastCompletedAtGameTime": null,
+    "cooldownUntilGameTime": null
+  },
+  "eventState": {
+    "lastProcessedEventSequence": 0,
+    "processedIdempotencyKeys": [],
+    "pendingRetryEventIds": []
+  },
+  "migration": {
+    "saveMigrationVersion": 1,
+    "definitionMigrationHistory": []
+  },
+  "diagnostics": {
+    "lastTransitionReason": "",
+    "lastRejectedCommandReason": "",
+    "blockingConditionExplanation": ""
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "policyId": "souldrifter-spatial-connection-traversal-v1",
+  "ticket": 0,
+  "commit": "",
+  "seedOrVariant": "",
+  "connectionId": "",
+  "sourceNode": {
+    "id": "",
+    "type": "ROOM_OR_CHAMBER",
+    "state": ""
+  },
+  "destinationNode": {
+    "id": "",
+    "type": "ROOM_OR_CHAMBER",
+    "state": ""
+  },
+  "connectionType": "PHYSICAL_CORRIDOR_OR_PASSAGE",
+  "physicalOrNonphysical": "PHYSICAL",
+  "movementModes": ["WALK"],
+  "medium": ["AIR"],
+  "directionality": "BIDIRECTIONAL",
+  "requirements": {
+    "locks": [],
+    "puzzles": [],
+    "encounters": [],
+    "equipment": [],
+    "abilities": [],
+    "worldState": []
+  },
+  "geometry": {
+    "sourceOpening": null,
+    "destinationOpening": null,
+    "pathOrSpline": [],
+    "surfaceOrVolume": null,
+    "clearance": null,
+    "elevationProfile": [],
+    "streamingBoundary": null
+  },
+  "runtime": {
+    "collisionOwner": "",
+    "navigationOwner": "",
+    "controllerStateTransitions": [],
+    "animations": [],
+    "eventMarkers": [],
+    "cameraRules": [],
+    "combatRules": [],
+    "interactionRules": [],
+    "aiAndCompanionSupport": "",
+    "mobileAndAccessibilityRules": []
+  },
+  "resourcesAndHazards": {
+    "stamina": null,
+    "oxygen": null,
+    "currentOrForce": null,
+    "damage": null,
+    "failureConditions": [],
+    "recoveryBehavior": []
+  },
+  "stateAndPersistence": {
+    "states": [],
+    "saveReload": "NOT_RUN",
+    "networkSynchronization": "NOT_APPLICABLE",
+    "oneWayOrReturnRules": ""
+  },
+  "diagnostics": {
+    "topDownPlan": [],
+    "sectionsOrElevations": [],
+    "volumeOrSliceEvidence": [],
+    "stateSequenceEvidence": [],
+    "streamingMapEvidence": []
+  },
+  "tests": {
+    "automated": [],
+    "realMovementMode": "NOT_RUN",
+    "camera": "NOT_RUN",
+    "collision": "NOT_RUN",
+    "navigation": "NOT_RUN",
+    "resources": "NOT_RUN",
+    "failureRecovery": "NOT_RUN",
+    "saveReload": "NOT_RUN"
+  },
+  "evidence": [],
+  "producerStatus": "NOT_STARTED",
+  "independentVerification": {
+    "status": "NOT_RUN",
+    "verifier": "",
+    "commit": "",
+    "notes": ""
+  }
+}

@@ -1,0 +1,473 @@
+{
+  "schemaVersion": 3,
+  "policyId": "souldrifter-zone-environment-completion-v3",
+  "stageOrder": [
+    "DESIGN_CANON_BUDGET_ZONE_SEAM_CONTRACT",
+    "TOPOLOGY_CONNECTION_TRAVERSAL_SOLVER",
+    "GRAYBOX_PLAYABILITY_SCALE_PACING_CAMERA_SOCKET_RESERVATION",
+    "SHARED_SHELL_SURFACES_VOLUMES_WORLD_SEAMS",
+    "ASSET_INTAKE_TECHNICAL_READINESS",
+    "ENVIRONMENT_STAGING_PROP_PLACEMENT",
+    "PROP_COMPLETE_WALKTHROUGH_COLLISION_DISCOVERY",
+    "COLLISION_PHYSICS_NAVIGATION_HAZARD_REGRESSION",
+    "INTERACTION_PICKUP_DESTRUCTION_DYNAMIC_STATE",
+    "LOOKDEV_LIGHTING_ATMOSPHERE_WAYFINDING",
+    "AUDIO_ACOUSTICS",
+    "PERFORMANCE_STREAMING_LOADING_MEMORY",
+    "FAILURE_RECOVERY_CHECKPOINTS_OUT_OF_BOUNDS_SOFTLOCKS",
+    "DEVICE_INPUT_CAMERA_ACCESSIBILITY_NETWORK_CONTRACT",
+    "POPULATION_READINESS_REVALIDATION_HANDOFF",
+    "FINAL_INTEGRATED_WALKTHROUGH_EXPERIENCE_REVIEW",
+    "INDEPENDENT_ENVIRONMENT_VERIFICATION",
+    "SEPARATE_ZONE_POPULATION_GAMEPLAY_TICKET"
+  ],
+  "hardOrderingRules": {
+    "grayboxAcceptedBeforeProductionArt": true,
+    "zoneSeamsDefinedBeforeShellFreeze": true,
+    "assetIntakePassesBeforePlacement": true,
+    "propsPlacedBeforeCollisionWalkthrough": true,
+    "collisionPhysicsVerifiedBeforeInteractionAcceptance": true,
+    "interactionDynamicStateVerifiedBeforeLookdevFinalization": true,
+    "lookdevAudioCompletedBeforeDedicatedPerformancePass": true,
+    "performanceAndRecoveryPassBeforeFinalWalkthrough": true,
+    "populationReadinessRevalidatedBeforePopulationTicket": true,
+    "environmentVerifiedBeforePopulationTicket": true,
+    "emptyShellWalkthroughMaySubstituteForPropCompleteWalkthrough": false,
+    "navigationMaySubstituteForCollision": false,
+    "proofOrDebugInventoryMaySubstituteForRuntimeSpatialAuthority": false,
+    "endpointGridPathOrNavigationSuccessMaySubstituteForContinuousCollisionProof": false,
+    "attractiveScreenshotsMaySubstituteForRuntimeProof": false,
+    "producerMaySelfVerify": false
+  },
+  "graybox": {
+    "requiredChecks": [
+      "REAL_MOVEMENT_SPEED_AND_ROUTE_TIMING",
+      "SPACE_AND_THRESHOLD_DIMENSIONS",
+      "PACING_AND_DEAD_SPACE",
+      "WAYFINDING_WITHOUT_FINAL_ART",
+      "REQUIRED_CAMERA_PROFILES",
+      "COMBAT_TELEGRAPH_DODGE_PROJECTILE_RECOVERY_LANES",
+      "LARGEST_BODY_VISUAL_PROFILE",
+      "INTERACTION_APPROACHES",
+      "CHECKPOINT_RESPAWN_ANCHORS",
+      "SPAWN_PATROL_LEASH_QUEST_CINEMATIC_RESERVATIONS"
+    ],
+    "reservedEnvelopesMayBeOccupiedByProps": false
+  },
+  "zoneSeams": {
+    "requiredFields": [
+      "sourceZoneId",
+      "destinationZoneId",
+      "entryTransform",
+      "exitTransform",
+      "worldScaleAndOrientation",
+      "returnBehavior",
+      "saveCheckpointRespawnContract",
+      "loadingStreamingContract",
+      "lightingWeatherAudioMusicHandoff",
+      "proceduralStateHandoff",
+      "destinationFailureFallback"
+    ]
+  },
+  "assetIntake": {
+    "requiredFields": [
+      "sourceProviderLicenseProvenance",
+      "sourceHashAndRollback",
+      "unitsScaleAxesPivotBounds",
+      "normalsTangentsUvMaterialsTextures",
+      "textureFormatColorSpaceCompression",
+      "shaderAndTextureUnitBudget",
+      "lodInstancingBatchingCullingClass",
+      "collisionProxyStrategy",
+      "postFitWorldTransformBoundsAndFinalProxy",
+      "interactionDestructionAttachmentAnchors",
+      "requiredStateVariants",
+      "animationEventMarkersWhenApplicable",
+      "browserMobileCompatibility",
+      "manifestIdAndVersion"
+    ]
+  },
+  "environmentStaging": {
+    "spacePurposeProfileRequired": true,
+    "semanticPlacementZonesRequired": true,
+    "deterministicOrAuthoredPlacementRequired": true,
+    "requiredObjectClassifications": [
+      "renderOwnerId",
+      "colliderOwnerIds",
+      "spatialParticipation",
+      "inheritedOwnerIdWhenApplicable",
+      "collisionOnlyReasonWhenApplicable",
+      "collisionClass",
+      "interactionClass",
+      "destructionClass",
+      "protectionReasonWhenApplicable",
+      "performanceClass",
+      "contractOverrideApprovalWhenApplicable"
+    ],
+    "placementSequence": [
+      "STRUCTURAL_FIXTURES",
+      "FUNCTIONAL_FURNITURE_AND_EQUIPMENT",
+      "CONTAINERS_AND_COVER",
+      "WALL_CEILING_HANGING_OBJECTS",
+      "ENVIRONMENTAL_STORYTELLING",
+      "SMALL_CLUTTER",
+      "HIDDEN_SECRET_CANDIDATES"
+    ]
+  },
+  "objectContractChain": {
+    "requiredSequence": [
+      "ASSET_CATALOG_DEFAULT",
+      "PLACEMENT_REGISTRY_EFFECTIVE_ENTRY",
+      "GENERATED_LAYOUT_EFFECTIVE_CONTRACT",
+      "RUNTIME_RENDER_INSTANCE",
+      "RUNTIME_COLLIDER_INSTANCE"
+    ],
+    "stableObjectRenderAndColliderIdsRequired": true,
+    "runtimeMayReDeriveContractIndependently": false,
+    "explicitApprovedOverridesOnly": true,
+    "overrideRequiredFields": [
+      "overrideId",
+      "approvedBy",
+      "reason",
+      "approvalEvidence",
+      "replacedContractFields"
+    ],
+    "spatialParticipationValues": [
+      "BLOCKING_SOLID",
+      "TRAVERSABLE_SURFACE",
+      "NONBLOCKING_DETAIL",
+      "HAZARD_OR_SPECIAL_VOLUME",
+      "VFX_ONLY",
+      "INHERITED_CHILD"
+    ],
+    "renderedSolidRequiresColliderOwnerIds": true,
+    "collisionOnlyOwnerRequiresReason": true,
+    "compoundOwnerEnumeratesColliderIds": true,
+    "inheritedChildRequiresOwnerId": true
+  },
+  "postFitProxyValidation": {
+    "fitNormalizeAndPlaceBeforeWorldBoundsMeasurement": true,
+    "requiredFields": [
+      "worldTransform",
+      "worldBounds",
+      "proxyId",
+      "proxyBounds",
+      "stateId",
+      "stateRevision"
+    ],
+    "rawSourceOrPreFitBoundsMaySubstitute": false,
+    "allReachableDynamicStatesRequired": true,
+    "dynamicTransitionSweptEnvelopeRequired": true
+  },
+  "runtimeSpatialAuthority": {
+    "singleCompleteAuthorityPerRunSeedState": true,
+    "authorityIdRequired": true,
+    "stateRevisionRequired": true,
+    "completeSourceCoverageRequired": true,
+    "proofAndDebugHooksUseProductionAuthority": true,
+    "stableOwnerIdsRequired": true,
+    "requiredSourceFamilies": [
+      "CANONICAL_SHELL_BOUNDARIES_SURFACES_AND_VOLUMES",
+      "PLACED_OBJECT_CONTRACTS",
+      "BESPOKE_LANDMARKS_AND_FIXTURES",
+      "STATEFUL_THRESHOLDS_AND_LEAVES",
+      "TRAVERSABLE_SURFACES",
+      "HAZARD_AND_SPECIAL_VOLUMES",
+      "INHERITED_RENDER_CHILDREN",
+      "COLLISION_ONLY_OWNERS"
+    ],
+    "requiredConsumers": [
+      "PLAYER_MOVEMENT",
+      "NPC_NAVIGATION",
+      "LINE_OF_SIGHT",
+      "PROJECTILE_MELEE_AND_PHYSICS",
+      "INTERACTION_TARGETING",
+      "CAMERA_COLLISION_AND_OCCLUSION",
+      "DEBUG_AND_PROOF_HOOKS",
+      "RENDER_STATE"
+    ],
+    "requiredDynamicStates": [
+      "CLOSED_OPEN_RAISED",
+      "INTACT_DAMAGED_DESTROYED",
+      "ENABLED_DISABLED",
+      "SPAWNED_DESPAWNED"
+    ],
+    "stateTransitionsUpdateAllConsumersAtomically": true,
+    "subsystemSpecificShadowAuthorityAllowed": false
+  },
+  "productionMovementProof": {
+    "actualProductionMovementAndCollisionPrimitiveRequired": true,
+    "productionBodyDimensionsRequired": true,
+    "productionSpeedRequired": true,
+    "productionTimestepRequired": true,
+    "productionSubstepRulesRequired": true,
+    "requiredScenarios": [
+      "AXIS_ALIGNED_APPROACH",
+      "DIAGONAL_APPROACH_AND_NAVIGATION",
+      "CORNER_CONTACT",
+      "GRAZING_CONTACT",
+      "WALL_SLIDING",
+      "THIN_OBSTACLE",
+      "OPEN_CLOSED_DYNAMIC_THRESHOLD",
+      "INTACT_DESTROYED_FOOTPRINT"
+    ],
+    "continuousSegmentsOrSweepsBetweenSamplesRequired": true,
+    "endpointOnlyProofAccepted": false,
+    "gridBfsPathOrNavigationOnlyProofAccepted": false,
+    "sparsePointOnlyProofAccepted": false
+  },
+  "hardZeroMetrics": {
+    "proofSourceCoverageFailures": 0,
+    "unresolvedRenderOnlySolids": 0,
+    "unexplainedColliderOnlyObjects": 0,
+    "catalogRegistryContractDrift": 0,
+    "registryGeneratedContractDrift": 0,
+    "generatedRuntimeContractDrift": 0,
+    "runtimeRenderColliderContractDrift": 0,
+    "unjustifiedContractOverrides": 0,
+    "postFitProxyMismatchFailures": 0,
+    "spatialQueryParityFailures": 0,
+    "spatialStatePropagationFailures": 0,
+    "lineOfSightParityFailures": 0,
+    "projectilePhysicsParityFailures": 0,
+    "interactionParityFailures": 0,
+    "cameraParityFailures": 0,
+    "movementPrimitiveParityFailures": 0,
+    "diagonalNavigationFailures": 0,
+    "continuousSegmentOrSweepFailures": 0
+  },
+  "collisionProfiles": [
+    "PLAYABLE_CHARACTER_CAPSULE",
+    "LARGEST_SUPPORTED_BODY_VISUAL_PROFILE",
+    "NPC_COMPANION_CAPSULE_WHEN_REQUIRED",
+    "LARGE_MONSTER_CAPSULE_WHEN_REQUIRED",
+    "THIRD_PERSON_CAMERA",
+    "PROJECTILE_MELEE_PHYSICS_LAYERS_WHEN_REQUIRED"
+  ],
+  "collisionObjectClasses": [
+    "STRUCTURAL_SOLID",
+    "STATEFUL_THRESHOLD",
+    "INTERACTABLE_CONTAINER",
+    "DESTRUCTIBLE_SOLID_PROP",
+    "PROTECTED_PROP_OR_STRUCTURE",
+    "QUEST_DESTRUCTIBLE",
+    "PICKUP_TRIGGER",
+    "SOFT_OR_COSMETIC_NONBLOCKING",
+    "HAZARD_OR_SPECIAL_VOLUME"
+  ],
+  "physicsSurfacesHazards": {
+    "requiredWhenApplicable": [
+      "FRICTION_RESTITUTION_SLOPE",
+      "SURFACE_FOOTSTEP_IMPACT_TAGS",
+      "MOVEMENT_MODIFIER_SURFACES",
+      "WATER_DEPTH_BUOYANCY_CURRENT",
+      "DAMAGE_FALL_DROWNING_CRUSH_VOLUMES",
+      "MOVING_PLATFORM_TRANSFER",
+      "PROJECTILE_MELEE_PHYSICS_DEBRIS_LAYERS",
+      "HAZARD_TELEGRAPH_AND_RECOVERY"
+    ]
+  },
+  "maximumDestructibility": {
+    "defaultNonstructuralPropsDestructibleOrDetachable": true,
+    "progressionDoorsProtectedByDefault": true,
+    "structuralShellProtectedByDefault": true,
+    "ironSteelStructuralPropsProtectedByDefault": true,
+    "questDestructionRequiresExplicitState": true,
+    "everyPlacedObjectRequiresContractOrProtectionReason": true
+  },
+  "minimumInteractionProof": [
+    "OPEN_CONTAINER",
+    "TRANSFER_TEST_ITEM_ONCE",
+    "PICKUP_ITEM_ONCE_NO_DUPLICATION",
+    "OPERATE_STATEFUL_THRESHOLD",
+    "PROMPT_SELECTION_WITH_OVERLAPPING_TARGETS_WHEN_APPLICABLE",
+    "SAVE_RELOAD_INTERACTION_STATE"
+  ],
+  "minimumDestructionProof": [
+    "BREAK_REPRESENTATIVE_WOODEN_CRATE_OR_BOX",
+    "BREAK_REPRESENTATIVE_BARREL_OR_FURNITURE",
+    "BREAK_OR_DETACH_REPRESENTATIVE_WALL_PROP_WHEN_ALLOWED",
+    "PROTECTED_OBJECT_REJECTS_DAMAGE",
+    "DESTROYED_COLLIDER_CLEARS",
+    "DEBRIS_DOES_NOT_SOFTLOCK_ROUTE",
+    "SAVE_RELOAD_DESTRUCTION_STATE",
+    "BROWSER_MOBILE_DEBRIS_BUDGET_PASSES"
+  ],
+  "lookdevWayfinding": {
+    "requiredChecks": [
+      "PBR_MATERIAL_CONSISTENCY",
+      "TEXTURE_DENSITY_AND_REPETITION",
+      "LIGHTING_SHADOW_EXPOSURE_POST",
+      "FOG_PARTICLES_WATER_WEATHER",
+      "LANDMARK_EXIT_INTERACTION_READABILITY",
+      "STATE_READABILITY",
+      "COLORBLIND_AND_LOW_LIGHT_READABILITY",
+      "ATMOSPHERE_DOES_NOT_HIDE_DEFECTS"
+    ]
+  },
+  "audioAcoustics": {
+    "requiredWhenApplicable": [
+      "AMBIENT_BEDS_AND_LOCAL_EMITTERS",
+      "MUSIC_STATE_TRANSITIONS",
+      "REVERB_ZONES",
+      "WALL_DOOR_OCCLUSION",
+      "ATTENUATION_DIRECTIONALITY",
+      "SURFACE_FOOTSTEPS",
+      "INTERACTION_DESTRUCTION_HAZARD_CUES",
+      "WATER_UNDERWATER_TRANSITIONS",
+      "CONCURRENCY_LOOP_QUALITY",
+      "BROWSER_MOBILE_RESUME",
+      "CRITICAL_AUDIO_ALTERNATIVE"
+    ]
+  },
+  "performanceStreaming": {
+    "checkpointStages": [
+      "GRAYBOX",
+      "POST_STAGING",
+      "POST_INTERACTION_DESTRUCTION",
+      "POST_LOOKDEV_AUDIO",
+      "FINAL_INTEGRATED"
+    ],
+    "requiredMetrics": [
+      "BUNDLE_AND_STREAMED_SIZE",
+      "STARTUP_FIRST_INTERACTIVE_ZONE_ENTRY_TIME",
+      "DRAW_CALLS_TRIANGLES_INSTANCES",
+      "MATERIALS_TEXTURES_TEXTURE_UNITS",
+      "CPU_GPU_FRAME_TIME",
+      "SYSTEM_GPU_JS_MEMORY",
+      "LIGHTS_SHADOWS",
+      "PARTICLES_OVERDRAW_VOLUMETRICS",
+      "ANIMATION_PHYSICS_NAV_AUDIO_COST",
+      "SAVE_SIZE",
+      "SHADER_FIRST_USE_STUTTER",
+      "MOBILE_THERMAL_BATTERY"
+    ],
+    "requiredScenarios": [
+      "SLOW_NETWORK",
+      "CACHE_MISS",
+      "BACKGROUND_RESUME",
+      "REPEATED_ZONE_ENTRY"
+    ]
+  },
+  "failureRecovery": {
+    "requiredScenarios": [
+      "CHECKPOINT_SAVE_RESPAWN",
+      "ZONE_REENTRY",
+      "FALL_DROWNING_HAZARD_RECOVERY_WHEN_APPLICABLE",
+      "STUCK_UNSTUCK",
+      "OUT_OF_BOUNDS_ESCAPE_ATTEMPTS",
+      "NO_FALL_THROUGH_OR_INFINITE_VOID",
+      "NO_REQUIRED_ITEM_OR_MECHANISM_LOSS",
+      "NO_DEBRIS_DOOR_SCRIPT_SOFTLOCK",
+      "DYNAMIC_STATE_RECOVERY",
+      "SEED_SCHEMA_VERSION_MIGRATION",
+      "MISSING_ASSET_STATE_LOAD_FALLBACK",
+      "DISCONNECT_RECONNECT_WHEN_APPLICABLE"
+    ]
+  },
+  "deviceInputAccessibility": {
+    "requiredWhenApplicable": [
+      "KEYBOARD_MOUSE",
+      "CONTROLLER",
+      "TOUCH_MOBILE",
+      "SUPPORTED_BROWSERS_AND_VIEWPORTS",
+      "SAFE_AREAS_AND_ORIENTATION",
+      "INTERACTION_TARGET_SIZE_PRIORITY",
+      "CAMERA_COLLISION_OCCLUSION_RECENTER_ZOOM",
+      "REDUCED_MOTION_SHAKE_FLASH",
+      "PROMPT_CONTRAST_COLOR_INDEPENDENCE",
+      "CAPTIONS_SUBTITLES",
+      "NO_HOVER_ONLY_PROGRESSION",
+      "INTERRUPTION_RECOVERY"
+    ]
+  },
+  "networkContract": {
+    "liveTestMayBeNotRequiredForLocalPoc": true,
+    "stateModelMustRemainSynchronizable": true,
+    "requiredWhenEnabled": [
+      "AUTHORITATIVE_LAYOUT_SEED",
+      "THRESHOLD_MECHANISM_STATE",
+      "CONTAINER_PICKUP_DESTRUCTION_STATE",
+      "HAZARD_MOVING_GEOMETRY_STATE",
+      "LATE_JOIN_RECONNECT",
+      "INTERACTION_CONTENTION",
+      "RELEVANCE_INTEREST_MANAGEMENT",
+      "VERSION_MISMATCH"
+    ]
+  },
+  "populationReadiness": {
+    "revalidateAfterFinalEnvironmentChanges": true,
+    "requiredChecks": [
+      "SPAWN_ENVELOPES_CLEAR",
+      "PATROL_CHASE_LEASH_RESET_ROUTES",
+      "ACTOR_SIZE_CLEARANCE",
+      "ENCOUNTER_TELEGRAPH_DODGE_RECOVERY_SPACE",
+      "COVER_AND_LINE_OF_SIGHT",
+      "QUEST_DIALOGUE_CINEMATIC_ANCHORS",
+      "LOOT_DROP_SAFE_REGIONS",
+      "AI_PLAYER_NAV_AGREEMENT",
+      "DESTRUCTION_DOES_NOT_BREAK_POPULATION_ROUTES",
+      "POPULATION_STREAMING_CULLING_REGIONS",
+      "STABLE_SOCKET_IDS_AND_DEPENDENCY_COMMIT"
+    ]
+  },
+  "observability": {
+    "required": [
+      "ZONE_VERSION_SEED_ROUTE_IDS",
+      "TOPOLOGY_COLLISION_NAV_INTERACTION_HAZARD_OVERLAYS",
+      "PERFORMANCE_COUNTERS_AND_RENDERER_DEVICE",
+      "DETERMINISTIC_REPRO_COMMANDS",
+      "ASSET_STATE_MANIFESTS",
+      "SAVE_CHECKPOINT_FIXTURES",
+      "FAILED_REQUEST_SHADER_ERROR_CAPTURE",
+      "DYNAMIC_STATE_EVIDENCE",
+      "DEFECT_LEDGER_AND_KNOWN_LIMITS",
+      "RELEASE_SAFE_DEBUG_CONTROLS"
+    ]
+  },
+  "environmentPopulationBoundary": {
+    "environmentTicketOwns": [
+      "DESIGN_AND_BUDGETS",
+      "TOPOLOGY",
+      "GRAYBOX",
+      "ZONE_SEAMS",
+      "SHELL",
+      "ASSET_INTAKE",
+      "PROP_PLACEMENT",
+      "COLLISION_PHYSICS_NAV_HAZARDS",
+      "BASE_INTERACTIONS",
+      "BASE_DESTRUCTION",
+      "LOOKDEV_LIGHTING_AUDIO",
+      "PERFORMANCE_STREAMING",
+      "RECOVERY_ACCESSIBILITY",
+      "POPULATION_READINESS_HANDOFF",
+      "DETERMINISTIC_TEST_LOOT",
+      "ENVIRONMENT_VERIFICATION"
+    ],
+    "populationTicketOwns": [
+      "NPC_SPAWNS",
+      "MONSTER_SPAWNS",
+      "PATROLS",
+      "RANDOM_ENCOUNTERS",
+      "RESPAWN_TUNING",
+      "QUEST_ACTORS_AND_OBJECTIVES",
+      "PRODUCTION_LOOT_AND_DROP_TABLES",
+      "ENCOUNTER_COMPOSITION",
+      "AI_COMBAT_BEHAVIOR",
+      "POPULATION_PERSISTENCE"
+    ],
+    "populationMaySilentlyAlterVerifiedEnvironment": false
+  },
+  "currentFirstBreach": {
+    "existingTopologyStagingLookdevMayBePreserved": true,
+    "fullRestartRequired": false,
+    "reconciliationRequired": true,
+    "assetRegistryAuditRequired": true,
+    "propCompleteWalkthroughRequired": true,
+    "collisionPhysicsRegressionRequired": true,
+    "interactionDestructionProofRequired": true,
+    "lookdevAudioPerformanceReconciliationRequired": true,
+    "recoveryDevicePopulationReadinessChecksRequired": true,
+    "newRandomEncounterExpansionInIssue451": false
+  }
+}

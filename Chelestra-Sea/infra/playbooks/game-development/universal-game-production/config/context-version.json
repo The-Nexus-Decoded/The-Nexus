@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "contextVersion": "2026-08-24-universal-game-v2",
+  "entryPoint": "START_HERE.md",
+  "sessionFastStart": "SESSION_FAST_START.md",
+  "fullOnboarding": "ONBOARDING.md",
+  "toolchainPreflight": "PRODUCTION_TOOLCHAIN_PREFLIGHT.md",
+  "customAnimationBakeoff": "CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md",
+  "rule": "Install and verify selected toolchain lanes once, cache sanitized receipts, and use fast per-session context loading thereafter."
+}

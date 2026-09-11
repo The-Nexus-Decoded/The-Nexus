@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 2,
+  "policyId": "souldrifter-heartvale-levels-2-10-v1",
+  "chapterId": "heartvale-first-wound",
+  "questId": "HV-MQ-00",
+  "version": 1,
+  "classification": "MAIN",
+  "displayTitle": "",
+  "canonStatus": "PROPOSAL",
+  "populationContract": {
+    "mode": "HUMAN_ONLY",
+    "allowedSocialNpcPeoples": ["HUMAN"],
+    "socialActorIds": [],
+    "nonhumanSocialNpcCount": 0,
+    "drakkinIntroducedHere": false
+  },
+  "recommendedLevel": {
+    "minimum": 0,
+    "maximum": 0
+  },
+  "prerequisiteExpression": "",
+  "start": {
+    "actorId": "",
+    "discoverySourceId": "",
+    "locationId": "",
+    "socketId": ""
+  },
+  "turnIn": {
+    "actorId": "",
+    "locationId": "",
+    "socketId": ""
+  },
+  "objectives": [],
+  "optionalObjectives": [],
+  "failureRecovery": {
+    "requiredNpcsProtected": true,
+    "safeCheckpointId": "",
+    "abandonAllowed": true,
+    "reacquireRule": "",
+    "alternateAccessibleRoute": ""
+  },
+  "combat": {
+    "realTimeSupported": true,
+    "tacticalTurnBasedSupported": true,
+    "requiredClass": null,
+    "requiredAncestry": null,
+    "randomDropFallback": ""
+  },
+  "inventory": {
+    "simultaneousPhysicalQuestItemsMaximum": 0,
+    "reservedSlotsAtAcceptance": 0,
+    "reservationIds": [],
+    "rewardSlotsRequired": 0,
+    "pendingRewardClaimAllowed": true,
+    "criticalItemReacquisition": "",
+    "paidExpansionRequired": false
+  },
+  "rewards": {
+    "xpEventId": "",
+    "currencyEventIds": [],
+    "itemEventIds": [],
+    "reputationEventIds": [],
+    "unlockEventIds": [],
+    "idempotencyKeys": []
+  },
+  "campaignContribution": {
+    "readinessVectors": [],
+    "worldStateReads": [],
+    "worldStateWrites": [],
+    "factionDeltas": []
+  },
+  "tutorial": {
+    "flagsGranted": [],
+    "skippable": true,
+    "journalHelpIds": []
+  },
+  "mapAndTravel": {
+    "locationReveals": [],
+    "waypointReveals": [],
+    "fastTravelUnlocks": [],
+    "secretLocationsRevealed": false
+  },
+  "narrativeMedia": {
+    "recordId": "",
+    "kind": "IN_ENGINE_VIGNETTE",
+    "captionsId": "",
+    "fallbackDialogueId": "",
+    "skipAllowed": true,
+    "replayAllowed": true,
+    "watchedStateId": "",
+    "paidProviderOperationApproved": false
+  },
+  "partyAndPersistence": {
+    "partyAttributionPolicy": "",
+    "saveMigrationVersion": 1,
+    "repeatable": false,
+    "reentrySafe": true,
+    "reconnectSafe": true
+  },
+  "environmentDependencies": {
+    "requiredLocationIds": [],
+    "requiredActorSocketIds": [],
+    "requiredEncounterSocketIds": [],
+    "requiredCinematicSocketIds": [],
+    "requiredDropSocketIds": [],
+    "dependencyCommit": ""
+  },
+  "evidence": [],
+  "producerStatus": "NOT_STARTED",
+  "independentVerifierStatus": "NOT_STARTED",
+  "ownerVerdict": "PENDING"
+}

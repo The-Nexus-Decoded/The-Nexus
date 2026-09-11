@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "questId": "GENERIC-QUEST-001",
+  "version": 1,
+  "chapterId": "generic-chapter",
+  "classification": "MAIN",
+  "canonStatus": "PROPOSAL",
+  "localization": {
+    "titleKey": "quest.generic.title",
+    "summaryKey": "quest.generic.summary",
+    "descriptionKey": "quest.generic.description"
+  },
+  "recommendedReadiness": {
+    "levelMin": 1,
+    "levelMax": 2,
+    "gearTags": [],
+    "skillTags": [],
+    "hardRequirements": []
+  },
+  "conditions": {
+    "visibility": { "op": "TRUE" },
+    "availability": { "op": "TRUE" },
+    "acceptance": { "op": "TRUE" },
+    "completion": { "op": "OBJECTIVE_GRAPH_COMPLETE" }
+  },
+  "start": {
+    "sourceType": "NPC",
+    "sourceId": "npc-id",
+    "locationId": "location-id",
+    "socketId": "socket-id",
+    "dialogueRecordId": "dialogue-id",
+    "mediaRecordId": "media-id"
+  },
+  "turnIn": {
+    "sourceType": "NPC",
+    "sourceId": "npc-id",
+    "locationId": "location-id",
+    "socketId": "socket-id",
+    "dialogueRecordId": "dialogue-id"
+  },
+  "objectiveGraph": {
+    "rootNodeId": "objective-root",
+    "nodes": [
+      {
+        "nodeId": "objective-root",
+        "operator": "SEQUENCE",
+        "required": true,
+        "children": ["objective-1"]
+      },
+      {
+        "nodeId": "objective-1",
+        "adapterType": "TALK",
+        "required": true,
+        "configuration": {
+          "targetActorId": "npc-id",
+          "requiredDialogueStateId": "dialogue-state-id"
+        },
+        "progressTextKey": "quest.generic.objective1"
+      }
+    ]
+  },
+  "branches": [],
+  "inventory": {
+    "reservedSlotsAtAcceptance": 0,
+    "reservationDefinitions": [],
+    "criticalItemReacquisitionPolicy": "NOT_REQUIRED",
+    "rewardSlotsRequired": 0,
+    "pendingRewardClaimAllowed": true,
+    "paidExpansionRequired": false
+  },
+  "rewards": {
+    "transactionTemplateId": "reward-template-id",
+    "transactionIdempotencyKeyTemplate": "quest:{questInstanceId}:complete:v1",
+    "xp": 0,
+    "currency": [],
+    "items": [],
+    "choiceGroups": [],
+    "unlocks": [],
+    "inventoryEntitlements": [],
+    "factionDeltas": [],
+    "readinessDeltas": [],
+    "worldStateWrites": [],
+    "mapTravelUnlocks": [],
+    "tutorialFlags": []
+  },
+  "failureRecovery": {
+    "recoverable": true,
+    "safeCheckpointId": "",
+    "resetPolicy": "RESET_ACTIVE_ENCOUNTER_ONLY",
+    "abandonAllowed": true,
+    "reacquirePolicy": "RETURN_TO_START_SOURCE",
+    "expirationPolicy": "NONE"
+  },
+  "partyAttribution": {
+    "mode": "PERSONAL",
+    "contributionRule": "OWNER_ONLY",
+    "lateJoinRule": "NO_RETROACTIVE_PROGRESS"
+  },
+  "mapAndMarkers": {
+    "markerDefinitions": [],
+    "secretLocationRevealAllowed": false
+  },
+  "narrativeMedia": {
+    "required": true,
+    "recordId": "media-id",
+    "captionsId": "captions-id",
+    "fallbackDialogueId": "fallback-dialogue-id",
+    "skipAllowed": true,
+    "replayAllowed": true
+  },
+  "repeatability": {
+    "mode": "ONCE",
+    "cooldownSeconds": 0,
+    "maximumCompletions": 1
+  },
+  "migration": {
+    "saveMigrationVersion": 1,
+    "previousQuestVersions": [],
+    "objectiveMappings": []
+  },
+  "evidenceStatus": "NOT_STARTED",
+  "ownerVerdict": "PENDING"
+}

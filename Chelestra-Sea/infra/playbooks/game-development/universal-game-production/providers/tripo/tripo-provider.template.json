@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "moduleId": "provider.tripo-v3",
+  "enabled": false,
+  "role": "3D_PRODUCTION_ONLY",
+  "connection": {
+    "primaryLane": "OFFICIAL_JS_SDK",
+    "sdkPackage": "@vastai/tripo-sdk",
+    "minimumNodeMajor": 18,
+    "baseUrl": "https://openapi.tripo3d.ai/v3",
+    "secretEnvironmentVariable": "TRIPO_API_KEY",
+    "receiptPath": "<LOCAL_TOOLCHAIN_ROOT>/receipts/tripo-provider.json",
+    "toolRoot": "<LOCAL_TOOLCHAIN_ROOT>/providers/tripo-v3",
+    "downloadsRoot": "<LOCAL_TOOLCHAIN_ROOT>/providers/tripo-v3/downloads",
+    "tasksRoot": "<LOCAL_TOOLCHAIN_ROOT>/providers/tripo-v3/tasks"
+  },
+  "policy": {
+    "hostLlmImageGenerationPreferred": true,
+    "tripo2DImageGenerationDefault": "DISABLED",
+    "geometryChangingOperationsBeforeRigging": true,
+    "downloadImmediately": true,
+    "temporaryProviderUrlsAreCanonical": false,
+    "officialCli": "DISCOVER_ONLY_FROM_FIRST_PARTY_DOCS",
+    "mcp": "OPTIONAL",
+    "paidOperationRequiresLiveBalancePricingAndOwnerApproval": true
+  },
+  "requiredCapabilities": [
+    "textToModel",
+    "imageToModel",
+    "multiviewToModel",
+    "uploadFile",
+    "downloadModel",
+    "segmentMesh",
+    "completeMesh",
+    "decimateMesh",
+    "rigCheck",
+    "rigModel",
+    "retargetAnimation",
+    "getTask",
+    "listTasks",
+    "waitForTask",
+    "getBalance"
+  ],
+  "animation": {
+    "queryLivePresetLibrary": true,
+    "directPresetAllowed": true,
+    "arbitraryTextToAnimationAssumed": false,
+    "verifiedCustomMotionRequiredBeforeUse": true,
+    "customMotionBakeoffPolicy": "PROJECT_PROFILE"
+  }
+}

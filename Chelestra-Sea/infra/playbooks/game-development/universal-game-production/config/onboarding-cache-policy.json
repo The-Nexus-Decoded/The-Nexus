@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "toolchainSchemaVersion": "2026-08-24-universal-toolchain-v1",
+  "fullBootstrapScope": "once_per_workstation_template_or_invalidation",
+  "sessionFastStartRequired": true,
+  "defaultStateRoot": "H:\\CodexData\\game-production-toolchain",
+  "defaultReceiptPath": "H:\\CodexData\\game-production-toolchain\\receipts\\production-toolchain.json",
+  "maxReceiptAgeDays": 30,
+  "liveProviderRefresh": {
+    "requiredBeforePaidOperation": true,
+    "defaultMaxAgeHoursBeforeProviderWork": 24,
+    "requiredForTicketsWithoutProviderWork": false
+  },
+  "invalidationTriggers": [
+    "receipt_missing_or_unreadable",
+    "receipt_expired",
+    "toolchain_schema_changed",
+    "workstation_or_os_changed",
+    "provider_sdk_or_region_changed",
+    "provider_secret_missing_or_auth_failed",
+    "official_cli_or_mcp_changed",
+    "dcc_or_engine_major_version_changed",
+    "dcc_or_engine_license_changed",
+    "node_or_python_major_version_changed",
+    "runtime_lock_changed",
+    "target_device_or_gpu_route_changed",
+    "cached_check_failed",
+    "owner_requested_clean_reonboarding"
+  ],
+  "perSessionChecks": [
+    "context_version",
+    "project_profile_and_overlay",
+    "ticket_branch_worktree_and_heads",
+    "cached_receipt_id_age_and_status",
+    "required_secret_names_present_without_values",
+    "selected_module_roots_and_locks_exist",
+    "live_ticket_pr_comments_and_head",
+    "ticket_state_and_work_claims"
+  ],
+  "neverRepeatPerChatUnlessInvalidated": [
+    "package_installation",
+    "full_provider_capability_discovery",
+    "dcc_engine_installation_and_full_smoke_suite",
+    "full_real_device_baseline_suite",
+    "controlled_storage_creation",
+    "account_authorization"
+  ]
+}
